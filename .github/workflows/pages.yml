@@ -80,8 +80,10 @@ jobs:
       - name: Verify the published website in Chromium
         run: |
           npm run check:backend
+          node scripts/weather-check.mjs
           node tests/security-browser.mjs
           node tests/account-browser.mjs
+          node tests/weather-browser.mjs
           node tests/update-recovery.mjs
           node tests/browser.mjs
           node tests/features.mjs

@@ -9,7 +9,7 @@ export async function serveSite(config={url:'',publishableKey:''}){
   try{
    let bytes=await readFile(file);
    if(path==='site.js')bytes=Buffer.from(bytes.toString().replace(/const CLOUD_CONFIG = [^\n]+;/,'const CLOUD_CONFIG = '+JSON.stringify(config)+';'));
-   if(path.endsWith('.html'))bytes=Buffer.from(bytes.toString().replace(/connect-src 'self'[^;\"]*/,"connect-src 'self'"+(config.url?' '+config.url:'')));
+   if(path.endsWith('.html'))bytes=Buffer.from(bytes.toString().replace(/connect-src 'self'[^;\"]*/,"connect-src 'self' https://api.open-meteo.com"+(config.url?' '+config.url:'')));
    res.setHeader('Content-Type',types[path.split('.').at(-1)]||'application/octet-stream');res.end(bytes);
   }catch{res.writeHead(404).end();}
  });

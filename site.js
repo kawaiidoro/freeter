@@ -602,8 +602,124 @@ class FreeterCloud {
   stop() { clearTimeout(this.timer); this.stopPolling(); this.subscription?.unsubscribe(); this.epoch++; }
 }
 
+// Public weather only. Coordinates stay in memory and never enter account records.
+const WEATHER_CITIES = [
+  { id:'seoul', name:'서울', lat:37.57, lon:126.98 },
+  { id:'incheon', name:'인천', lat:37.46, lon:126.71 },
+  { id:'suwon', name:'수원', lat:37.26, lon:127.03 },
+  { id:'daejeon', name:'대전', lat:36.35, lon:127.38 },
+  { id:'cheongju', name:'청주', lat:36.64, lon:127.49 },
+  { id:'gwangju', name:'광주', lat:35.16, lon:126.85 },
+  { id:'jeonju', name:'전주', lat:35.82, lon:127.15 },
+  { id:'daegu', name:'대구', lat:35.87, lon:128.60 },
+  { id:'busan', name:'부산', lat:35.18, lon:129.08 },
+  { id:'ulsan', name:'울산', lat:35.54, lon:129.31 },
+  { id:'chuncheon', name:'춘천', lat:37.88, lon:127.73 },
+  { id:'gangneung', name:'강릉', lat:37.75, lon:128.88 },
+  { id:'jeju', name:'제주', lat:33.50, lon:126.53 },
+];
+function weatherUrl(lat, lon) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat)>90 || Math.abs(lon)>180) throw new Error('위치를 확인하지 못했어요. 지역을 선택해 주세요.');
+  const url = new URL('https://api.open-meteo.com/v1/forecast');
+  url.search = new URLSearchParams({ latitude:lat.toFixed(2), longitude:lon.toFixed(2),
+    current:'temperature_2m,apparent_temperature,weather_code,is_day',
+    daily:'temperature_2m_max,temperature_2m_min', temperature_unit:'celsius', timezone:'auto', forecast_days:'1' }).toString();
+  return url.href;
+}
+function weatherCondition(code, daytime=true) {
+  if (code===0) return { label:daytime?'맑음':'맑은 밤', symbol:daytime?'☀':'☾', kind:daytime?'sun':'moon' };
+  if ([1,2].includes(code)) return { label:'구름 조금', symbol:'⛅', kind:'cloud' };
+  if (code===3) return { label:'흐림', symbol:'☁', kind:'cloud' };
+  if ([45,48].includes(code)) return { label:'안개', symbol:'≋', kind:'fog' };
+  if ([51,53,55,56,57].includes(code)) return { label:'이슬비', symbol:'☂', kind:'rain' };
+  if ([61,63,65,66,67,80,81,82].includes(code)) return { label:'비', symbol:'☂', kind:'rain' };
+  if ([71,73,75,77,85,86].includes(code)) return { label:'눈', symbol:'❄', kind:'snow' };
+  if ([95,96,99].includes(code)) return { label:'천둥·번개', symbol:'ϟ', kind:'storm' };
+  return { label:'현재 날씨', symbol:'○', kind:'cloud' };
+}
+function parseWeather(data) {
+  const current=data?.current, daily=data?.daily;
+  const temperature=current?.temperature_2m, feelsLike=current?.apparent_temperature;
+  const high=daily?.temperature_2m_max?.[0], low=daily?.temperature_2m_min?.[0];
+  if (data?.current_units?.temperature_2m!=='°C' || ![temperature,feelsLike,high,low].every(value=>Number.isFinite(value)&&value>=-150&&value<=100)
+      || low>high || !Number.isInteger(current?.weather_code) || ![0,1].includes(current?.is_day)
+      || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(current?.time||'') || daily?.time?.[0]!==current.time.slice(0,10)) throw new Error('날씨 응답을 확인하지 못했어요. 잠시 후 다시 시도해 주세요.');
+  return { temperature, feelsLike, high, low, time:current.time, ...weatherCondition(current.weather_code,current.is_day===1) };
+}
+async function fetchWeather(lat, lon, { signal, request=(...args)=>globalThis.fetch(...args) }={}) {
+  const response=await request(weatherUrl(lat,lon),{signal,credentials:'omit',referrerPolicy:'no-referrer',cache:'no-store'});
+  if (!response.ok) throw new Error('날씨를 불러오지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.');
+  return parseWeather(await response.json());
+}
+function mountWeatherWidget() {
+  const root=document.createElement('aside');root.className='gomssi-weather';root.setAttribute('aria-label','곰씨 날씨 도우미');
+  root.innerHTML=`<section id="gomssi-weather-panel" class="weather-panel" role="dialog" aria-labelledby="weather-title" hidden>
+    <div class="weather-head"><div><span class="weather-eyebrow">GOMSSI WEATHER</span><h2 id="weather-title">곰씨의 오늘 날씨</h2></div><button type="button" class="icon-button weather-close" aria-label="날씨 창 닫기">×</button></div>
+    <div class="weather-location"><label><span class="sr-only">날씨 지역</span><select id="weather-city"><option value="current" hidden>내 위치</option>${WEATHER_CITIES.map(city=>`<option value="${city.id}" ${city.id==='seoul'?'selected':''}>${city.name}</option>`).join('')}</select></label><button type="button" class="weather-locate">⌖ 내 위치</button></div>
+    <p class="weather-status" role="status" aria-live="polite"></p><div class="weather-content" aria-busy="false"></div>
+    <p class="weather-location-note">지역을 선택하거나 내 위치를 허용해 주세요.</p>
+    <a class="weather-source" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">날씨 제공 Open-Meteo ↗</a>
+    </section><button type="button" class="gomssi-button" aria-label="노가다 곰씨 · 오늘 날씨와 기온 보기" aria-controls="gomssi-weather-panel" aria-haspopup="dialog" aria-expanded="false"><span class="gomssi-bubble">오늘 날씨</span><img src="./assets/gomssi.png" width="90" height="90" alt="" draggable="false"></button>`;
+  document.body.append(root);
+  const find=selector=>root.querySelector(selector), panel=find('.weather-panel'), toggle=find('.gomssi-button'), content=find('.weather-content'), status=find('.weather-status'), citySelect=find('#weather-city');
+  let open=false, serial=0, active=null, location={...WEATHER_CITIES[0]}, cache=null;
+  const setStatus=(message,error=false)=>{status.textContent=message;status.dataset.error=String(error);};
+  const close=(focus=true)=>{open=false;serial++;active?.abort();panel.hidden=true;toggle.setAttribute('aria-expanded','false');if(focus)toggle.focus({preventScroll:true});};
+  const showWeather=data=>{
+    // API strings never enter HTML. Only validated numbers and local labels are displayed.
+    content.innerHTML='<div class="weather-now"><div><p class="weather-place"></p><div class="weather-degrees"><strong></strong><span>°C</span></div><p class="weather-description"></p></div><span class="weather-symbol" aria-hidden="true"></span></div><div class="weather-range"><span class="weather-low"></span><span class="weather-high"></span></div><p class="weather-tip"></p>';
+    find('.weather-place').textContent=location.name;
+    find('.weather-degrees strong').textContent=String(Math.round(data.temperature));
+    find('.weather-description').textContent=`${data.label} · 체감 ${Math.round(data.feelsLike)}°`;
+    find('.weather-symbol').textContent=data.symbol;find('.weather-symbol').dataset.kind=data.kind;
+    find('.weather-low').textContent=`최저 ${Math.round(data.low)}°`;find('.weather-high').textContent=`최고 ${Math.round(data.high)}°`;
+    find('.weather-tip').textContent=data.kind==='storm'?'천둥·번개가 있으면 야외 작업에 주의해요.':data.kind==='rain'?'비 오는 현장은 미끄럼에 주의해요.':data.temperature>=30?'더운 날엔 물과 휴식 챙기기.':data.temperature<=5?'체온이 떨어지지 않게 따뜻하게.':'오늘도 안전하게, 곰씨가 응원해요.';
+    setStatus(`${data.time.slice(5,10).replace('-','월 ')}일 · ${data.time.slice(11)} 기준`);
+  };
+  const load=async(force=false)=>{
+    const ticket=++serial;active?.abort();
+    const key=weatherUrl(location.lat,location.lon);
+    if(!force&&cache?.key===key&&Date.now()-cache.at<300000){showWeather(cache.data);content.setAttribute('aria-busy','false');return;}
+    const controller=new AbortController();active=controller;
+    const timer=setTimeout(()=>controller.abort(),12000);
+    setStatus('곰씨가 날씨를 확인하고 있어요…');content.setAttribute('aria-busy','true');content.innerHTML='<div class="weather-loading" aria-hidden="true"><span>☁</span></div>';
+    try {
+      const data=await fetchWeather(location.lat,location.lon,{signal:controller.signal});
+      if(ticket!==serial||!open)return;
+      cache={key,data,at:Date.now()};showWeather(data);
+    } catch {
+      if(ticket!==serial||!open)return;
+      setStatus('날씨를 불러오지 못했어요. 연결을 확인하거나 다른 지역을 선택해 주세요.',true);
+      content.innerHTML='<div class="weather-error"><span aria-hidden="true">☁</span><button type="button" class="button secondary small weather-retry">다시 불러오기</button></div>';
+    } finally {clearTimeout(timer);if(ticket===serial)content.setAttribute('aria-busy','false');}
+  };
+  toggle.addEventListener('click',()=>{
+    if(open){close();return;}
+    open=true;panel.hidden=false;toggle.setAttribute('aria-expanded','true');citySelect.focus({preventScroll:true});load();
+  });
+  find('.weather-close').addEventListener('click',()=>close());
+  root.addEventListener('click',event=>{if(event.target.closest('.weather-retry'))load(true);});
+  citySelect.addEventListener('change',()=>{
+    const selected=WEATHER_CITIES.find(city=>city.id===citySelect.value);if(!selected)return;
+    location={...selected};load();
+  });
+  find('.weather-locate').addEventListener('click',()=>{
+    if(!navigator.geolocation){setStatus('이 브라우저에서는 위치를 사용할 수 없어요. 지역을 선택해 주세요.',true);return;}
+    const ticket=++serial;active?.abort();content.setAttribute('aria-busy','false');setStatus('위치를 확인하고 있어요…');
+    if(!content.querySelector('.weather-now'))content.innerHTML='<div class="weather-error"><span aria-hidden="true">☁</span><button type="button" class="button secondary small weather-retry">선택 지역 날씨 보기</button></div>';
+    navigator.geolocation.getCurrentPosition(position=>{
+      if(ticket!==serial||!open)return;
+      try{weatherUrl(position.coords.latitude,position.coords.longitude);}catch{setStatus('위치를 확인하지 못했어요. 지역을 선택해 주세요.',true);return;}
+      location={id:'current',name:'내 위치 주변',lat:position.coords.latitude,lon:position.coords.longitude};citySelect.value='current';load(true);
+    },error=>{if(ticket===serial&&open)setStatus(error.code===1?'위치 사용이 허용되지 않았어요. 지역을 직접 선택해 주세요.':'위치를 찾지 못했어요. 지역을 직접 선택해 주세요.',true);},{enableHighAccuracy:false,timeout:10000,maximumAge:300000});
+  });
+  // Rendering a loading state can detach the clicked retry button before bubbling.
+  document.addEventListener('click',event=>{if(open&&!event.composedPath().includes(root))close(false);});
+  document.addEventListener('keydown',event=>{if(open&&event.key==='Escape'){event.preventDefault();close();}});
+}
 
-const APP_RELEASE = 'bd8a720af6cc';
+
+const APP_RELEASE = '4eb8952db885';
 let latestRelease = APP_RELEASE;
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -684,7 +800,7 @@ let calcSavedHash = '';
 let mobileScheduleSettingsOpen = false;
 let memoReading = false, memoQuill = null, memoSelection = { index: 0, length: 0 };
 const compactSchedule = () => window.matchMedia('(max-width: 800px)').matches;
-const titles = { home: '대시보드', schedule: '밀어내기 · 맞교대 근무표', calculator: '급여 계산기', records: '나의 알바 기록', stats: '수입 통계', guide: '사용 가이드', privacy: '개인정보 안내', settings: '데이터 · 설정', notes: '업무 메모장' };
+const titles = { home: '대시보드', schedule: '교대 근무표', calculator: '급여 계산기', records: '나의 알바 기록', stats: '수입 통계', guide: '사용 가이드', privacy: '개인정보 안내', settings: '데이터 · 설정', notes: '업무 메모장' };
 const routeFiles = { home: './', schedule: './schedule.html', calculator: './calculator.html', records: './records.html', stats: './stats.html', guide: './guide.html', privacy: './privacy.html', settings: './settings.html', notes:'./notes.html' };
 const descriptions = {
   home: '단기알바 근무시간부터 급여 기록까지, 한 번에 관리하세요.',
@@ -740,7 +856,7 @@ function homeView() {
   const recent = [...state.records].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4);
   return `<header class="workspace-heading"><div><p class="eyebrow">FREETER WORKSPACE</p><h1>나의 워크스페이스</h1></div><span class="workspace-local">${icon('lock')}<span data-cloud-status data-status="${esc(cloud.phase)}">${esc(cloud.snapshot.label)}</span></span></header>
     <div class="workspace-grid">
-      <section class="workspace-widget profile-widget" aria-label="나의 Freeter"><img class="profile-logo" src="./assets/freeter-512.png" width="96" height="96" alt="안전모를 비스듬히 쓴 Freeter F 로고"><div class="profile-copy"><span class="profile-wordmark">Freeter</span><p>근무부터 급여까지,<br>내 일의 흐름을 한곳에.</p></div><a href="#calculator" class="profile-link">급여 계산하기 ${icon('arrow')}</a></section>
+      <section class="workspace-widget profile-widget" aria-label="나의 Freeter"><img class="profile-logo" src="./assets/freeter-512.png" width="96" height="96" alt="안전모를 비스듬히 쓴 Freeter F 로고"><div class="profile-copy"><img class="profile-wordmark freeter-wordmark" src="./assets/freeter-wordmark.png" width="220" height="73" alt="FREETER · 프리터"><p>근무부터 급여까지,<br>내 일의 흐름을 한곳에.</p></div><a href="#calculator" class="profile-link">급여 계산하기 ${icon('arrow')}</a></section>
       <section class="workspace-widget launcher-widget" aria-labelledby="apps-title"><div class="widget-heading"><h2 id="apps-title">나의 도구</h2><span>필요할 때, 바로</span></div><div class="app-launcher">${[['schedule','calendar','근무표','tile-orange'],['calculator','calculator','급여 계산','tile-black'],['records','notebook','알바 기록','tile-silver'],['notes','edit','업무 메모','tile-notes'],['stats','chart','수입 통계','tile-chart'],['settings','settings','데이터 · 설정','tile-settings']].map(args=>appTile(...args)).join('')}</div></section>
       <section class="workspace-widget recent-panel records-widget"><div class="widget-bar"><span class="widget-heading-icon tile-silver">${icon('notebook')}</span><div><h2>최근 알바 기록</h2><p>차곡차곡 쌓이는 나의 하루</p></div><a href="#records" class="widget-open" aria-label="알바 기록 전체 보기">${icon('arrow')}</a></div><div class="widget-content">${recent.length ? `<div class="recent-list">${recent.map(r=>`<button class="recent-row" data-action="edit-record" data-id="${esc(r.id)}"><span class="workplace-avatar">${esc(r.workplace.slice(0,1))}</span><span class="recent-details"><strong>${esc(r.workplace)}</strong><span>${esc(r.date)} · ${duration(calculatePay(r).paidMinutes)}</span></span><span class="recent-amount"><strong>${money(calculatePay(r).expected)}</strong><span class="status ${recordStatus(r)}">${STATUS[recordStatus(r)]}</span></span>${icon('chevron')}</button>`).join('')}</div>` : smallEmpty('첫 번째 알바를 기록해 보세요','근무한 하루를 남기면, 급여 관리가 쉬워져요.','<button class="button secondary small" data-action="add-record">'+icon('plus')+'첫 기록 추가하기</button>')}</div></section>
       <section class="workspace-widget memo-widget"><div class="widget-bar"><span class="widget-heading-icon tile-notes">${icon('edit')}</span><div><h2>업무 메모</h2><p>출근 전, 한 번 더 확인</p></div><a href="#notes" class="widget-open" aria-label="업무 메모장 열기">${icon('edit')}</a></div><a class="memo-preview" href="#notes"><span class="memo-preview-title">나의 업무 메모</span><p>${esc(state.workMemo.trim()||'전달받은 업무 설명과 준비물을 적어 두세요.\n필요할 때 바로 꺼내볼 수 있어요.')}</p><span class="memo-preview-cta">${state.workMemo.trim()?'메모 이어 보기':'첫 메모 쓰기'} ${icon('arrow')}</span></a></section>
@@ -753,7 +869,7 @@ const summaryCard = (image, color, label, value, note) => `<article class="summa
 
 function scheduleView() {
   const config = state.schedule.config, count = config.count;
-  return head('SHIFT PLANNER', '밀어내기 · 맞교대 근무표', '3인 밀어내기부터 2인 맞교대까지. 식사하는 방법도 우리 현장에 맞게 정해요.') + `
+  return head('SHIFT PLANNER', '교대 근무표', '3인 밀어내기부터 2인 맞교대까지. 식사하는 방법도 우리 현장에 맞게 정해요.') + `
     <div class="tool-layout schedule-layout"><section class="panel form-panel">
       <details id="schedule-settings" class="schedule-settings" ${!compactSchedule()||!state.schedule.rows.length||mobileScheduleSettingsOpen?'open':''}><summary class="settings-summary"><span>${icon('settings')}근무 설정</span><span class="settings-summary-meta">${count}인 교대 ${icon('chevron')}</span></summary>
       <form id="schedule-form"><fieldset><legend>근무 방식</legend><div class="choice-group two-options">
@@ -880,8 +996,16 @@ function setupMemoEditor() {
   memoQuill=new Quill(element,{theme:null,formats:['bold','underline','size','color','background'],modules:{toolbar:false,history:{delay:500,maxStack:100,userOnly:true}},placeholder:'전달받은 업무 설명을 적어 주세요.\n\n도착 장소와 연락할 담당자\n꼭 챙겨야 할 준비물\n업무 순서와 주의사항'});
   memoQuill.setContents(state.workMemoDelta||{ops:[{insert:state.workMemo+'\n'}]},'silent');
   memoQuill.root.setAttribute('role','textbox');memoQuill.root.setAttribute('aria-label','업무 메모');memoQuill.root.setAttribute('aria-multiline','true');memoQuill.root.setAttribute('spellcheck','false');
+  // Quill defers its blank class until IME composition ends. Hide the hint in the native event itself.
+  const root=memoQuill.root;let composing=false;
+  const syncPlaceholder=()=>root.classList.toggle('memo-input-active',composing||root.textContent.length>0);
+  root.addEventListener('compositionstart',()=>{composing=true;syncPlaceholder();},true);
+  root.addEventListener('compositionend',()=>{composing=false;syncPlaceholder();},true);
+  root.addEventListener('beforeinput',event=>{if(event.inputType?.startsWith('insert')&&!event.defaultPrevented)root.classList.add('memo-input-active');},true);
+  root.addEventListener('input',syncPlaceholder,true);root.addEventListener('blur',syncPlaceholder);syncPlaceholder();
   memoQuill.on('selection-change',range=>{if(range){memoSelection={index:range.index,length:range.length};updateMemoTools();}});
   memoQuill.on('text-change',(_delta,_old,source)=>{
+    syncPlaceholder();
     if(source!=='user')return;
     const text=memoQuill.getText().slice(0,-1);
     try{
@@ -920,7 +1044,7 @@ function newFeaturesGuide() {
 }
 function openUpdates() {
   const dialog=ensureAppDialog('updates-dialog','updates-title');
-  dialog.innerHTML=`<div class="dialog-head"><div><p class="eyebrow">WHAT’S NEW</p><h2 id="updates-title">업데이트 내역</h2></div><button type="button" class="icon-button" data-action="close-updates" aria-label="업데이트 내역 닫기">${icon('close')}</button></div><div class="updates-layout"><section class="updates-content"><span class="update-date">2026.10.16 · FREETER UPDATE</span><h3>새로운 근무 관리 도구</h3><p class="updates-intro">곰씨와 함께, 오늘의 일을 조금 더 편하게.</p><ul class="update-list"><li><span>${icon('calendar')}</span><div><h4>우리 현장에 맞는 교대</h4><p>3인 밀어내기·2인 맞교대, 모두 함께·1명씩·2명 먼저 점심을 선택해요. 모바일에서도 표를 한눈에 볼 수 있어요.</p></div></li><li><span>${icon('calculator')}</span><div><h4>세금까지 계산하는 급여</h4><p>일용근로소득과 프리랜서 3.3%를 선택하고 예상 수령액을 확인해요. 작은 계산기로 추가 계산도 할 수 있어요.</p></div></li><li><span>${icon('check')}</span><div><h4>받은 급여는 지급 완료로</h4><p>실제 입금일과 금액을 남기면 지급 상태와 수입 통계에 함께 반영돼요.</p></div></li><li><span>${icon('edit')}</span><div><h4>내 방식으로 쓰는 업무 메모</h4><p>굵게·크기·밑줄·글자색·형광펜으로 중요한 내용을 표시해요. 읽기 보기와 JSON 백업에도 서식이 유지돼요.</p></div></li></ul></section><aside class="updates-mascot"><img src="./assets/gomssi.png" width="240" height="280" alt="노란 안전모와 작업 조끼를 입고 인사하는 노가다 곰씨"><span>노가다 곰씨</span><p>오늘도 안전하게,<br>기록은 꼼꼼하게.</p></aside></div>`;
+  dialog.innerHTML=`<div class="dialog-head"><div><p class="eyebrow">WHAT’S NEW</p><h2 id="updates-title">업데이트 내역</h2></div><button type="button" class="icon-button" data-action="close-updates" aria-label="업데이트 내역 닫기">${icon('close')}</button></div><div class="updates-layout"><section class="updates-content"><span class="update-date">2026.10.17 · FREETER UPDATE</span><h3>새로운 근무 관리 도구</h3><p class="updates-intro">곰씨와 함께, 오늘의 일을 조금 더 편하게.</p><ul class="update-list"><li><span>${icon('calendar')}</span><div><h4>우리 현장에 맞는 교대</h4><p>3인 밀어내기·2인 맞교대, 모두 함께·1명씩·2명 먼저 점심을 선택해요. 모바일에서도 표를 한눈에 볼 수 있어요.</p></div></li><li><span>${icon('calculator')}</span><div><h4>세금까지 계산하는 급여</h4><p>일용근로소득과 프리랜서 3.3%를 선택하고 예상 수령액을 확인해요. 작은 계산기로 추가 계산도 할 수 있어요.</p></div></li><li><span>${icon('check')}</span><div><h4>받은 급여는 지급 완료로</h4><p>실제 입금일과 금액을 남기면 지급 상태와 수입 통계에 함께 반영돼요.</p></div></li><li><span>${icon('edit')}</span><div><h4>입력 즉시 반응하는 업무 메모</h4><p>한글을 입력하는 순간 안내 문구가 사라져요. 굵게·크기·밑줄·글자색·형광펜으로 중요한 내용을 표시해요. 읽기 보기와 JSON 백업에도 서식이 유지돼요.</p></div></li><li><span>${icon('sun')}</span><div><h4>곰씨가 알려주는 오늘 날씨</h4><p>오른쪽 아래 움직이는 곰씨를 눌러 날씨·현재 기온·오늘 최고와 최저 기온을 확인해요. 지역을 고르거나 내 위치를 사용할 수 있어요.</p></div></li></ul></section><aside class="updates-mascot"><img src="./assets/gomssi.png" width="240" height="280" alt="노란 안전모와 작업 조끼를 입고 인사하는 노가다 곰씨"><span>노가다 곰씨</span><p>오늘도 안전하게,<br>기록은 꼼꼼하게.</p></aside></div>`;
   dialog.showModal();
 }
 function ensureAppDialog(id,label) {
@@ -1029,7 +1153,7 @@ function guideView() {
   return head('A LITTLE HELP', '처음이어도 괜찮아요.', '복잡한 건 줄이고, 나의 하루에 집중하세요. 서비스 사용법을 알려드릴게요.') + `<div class="guide-grid"><article class="panel guide-card"><span class="guide-step">01</span><h2>세 사람이 함께하는 밀어내기 근무표</h2><p>이름, 일정, 점심시간, 교대 간격과 첫 휴식자를 입력하고 근무표를 생성하세요. 각 근무 구간에는 두 명 근무, 한 명 휴식이 배정됩니다.</p><p>점심에는 모두 쉬고 교대 타이머도 잠시 멈춥니다. 예를 들어 1시간 교대 중 20분 후 점심을 시작하면 점심 이후 남은 40분을 이어갑니다. 마지막 구간은 남은 시간에 맞춰 줄어듭니다.</p><p><strong>10:00–19:00, 점심 10:00–11:00, 1시간 교대, 첫 휴식자 A</strong>라면 A·B는 5시간, C는 6시간 근무합니다. 첫 휴식자를 바꾸어 날짜별 차이를 조절해 보세요.</p><p>공평하게 배분 모드는 휴식시간을 분 단위로 나누어 총 근무시간의 차이를 최대 1분으로 줄입니다. 이 과정에서 설정한 간격보다 짧은 구간이 생길 수 있어요. 수동 변경 후에는 실제 차이를 다시 보여드립니다.</p><p>표의 휴식자 선택으로 배정을 조정하고 PNG·CSV·텍스트로 공유하세요. 이름을 바꾸면 표에도 바로 반영돼요. 시간이나 규칙을 바꾸면 생성 버튼을 다시 눌러 주세요.</p><a class="text-link" href="#schedule">근무표 만들기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">02</span><h2>내 예상 급여 계산하기</h2><p><strong>시급제:</strong> (전체 근무시간 − 무급 휴게시간) ÷ 60 × 시급. 분 단위로 계산한 뒤 기본급을 원 단위로 반올림합니다.</p><div class="guide-example">10:00–19:00 · 휴게 60분 · 시급 12,000원<br><strong>유급 8시간 × 12,000원 = 96,000원</strong></div><p><strong>일급제:</strong> 근무시간과 관계없이 입력한 계약 일급을 기본급으로 사용합니다. 추가 지급액을 더하고 직접 입력한 공제액을 빼면 최종 예상액이 됩니다.</p><p>자정을 넘는 근무를 지원하며, 같은 출퇴근 시각은 0시간과 24시간을 구분할 수 없어 허용하지 않아요. 선택한 세금 유형의 공제를 계산합니다. 주휴·야간·연장 수당은 자동 적용하지 않습니다. 실제 근로 조건과 법정 수당은 별도로 확인해 주세요.</p><a class="text-link" href="#calculator">급여 계산하기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">03</span><h2>근무 기록과 입금 관리하기</h2><p>급여 계산기에서 근무일과 근무지를 입력하고 저장하거나, 기록장에서 직접 알바를 추가하세요. 업무·지급 예정일·메모도 남길 수 있습니다.</p><p>입금이 생길 때마다 기록을 열어 <strong>입금 내역 추가</strong>로 금액과 날짜를 남기세요. 여러 번 나눠 받은 내역도 그대로 관리할 수 있어요. 총입금이 예상액 이상이면 지급 완료, 일부 입금이면 일부 지급, 미입금이고 예정일이 지났으면 미지급, 나머지는 지급 예정으로 표시됩니다.</p><p>월별 실적은 <strong>근무 날짜</strong>, 실제 현금 수입은 <strong>입금 날짜</strong>로 집계됩니다. 미수령액은 각 기록의 예상액에서 입금액을 뺀 금액(최소 0원)의 합계입니다.</p><a class="text-link" href="#records">나의 기록장 열기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">04</span><h2>기기를 바꾸기 전에는 백업</h2><p>모든 기록은 현재 브라우저의 localStorage에 자동 저장됩니다. 로그인 전에는 현재 브라우저에 기록합니다. Google 계정으로 로그인하면 계정에 저장하고 PC·모바일에서 함께 볼 수 있습니다. 기존 브라우저 기록은 계정 창의 브라우저 기록 가져오기로 옮기며, JSON 백업·복원도 지원합니다.</p><p>데이터 · 설정에서 <strong>전체 기록 JSON 다운로드</strong>를 누르세요. 다른 기기에서 같은 페이지를 열어 JSON 파일을 복원하면 됩니다. 복원은 현재 기록 전체를 대체하므로 먼저 양쪽 기록을 백업하세요.</p><p>CSV는 한글 UTF-8 BOM 형식으로 내려받아 엑셀에서 열 수 있어요. 파일 가져오기 시 UTF-8을 선택하세요. 데이터가 손상되거나 저장 공간이 부족하면 경고가 표시됩니다. 이때 새로고침하기 전에 JSON을 다운로드해 주세요.</p><a class="text-link" href="#settings">백업 · 복원 관리 ${icon('arrow')}</a></article></div><section class="panel guide-pwa"><span class="feature-icon blue">${icon('home')}</span><div><h2>스마트폰 홈 화면에 추가해 보세요</h2><p>HTTPS에서 한 번 접속하면 핵심 화면과 도구를 오프라인에서도 사용할 수 있어요. Android Chrome의 메뉴 → 홈 화면에 추가, iPhone Safari의 공유 → 홈 화면에 추가를 이용하세요. 브라우저와 설치 방식에 따라 저장 공간이 별도로 관리될 수 있으니 먼저 백업해 주세요.</p></div></section>${newFeaturesGuide()}<div class="ad-space" aria-label="향후 광고 영역"><span>서비스 소식</span><p>오늘도 당신의 알바 생활을 응원합니다.</p></div>`;
 }
 function privacyView() {
-  return head('YOUR DATA, YOUR CHOICE','내 기록을 안전하게.','로그인 전 브라우저 저장과 Google 계정 저장의 차이를 안내합니다.')+`<article class="panel prose"><h2>로그인 전에는 이 브라우저에 저장합니다</h2><p>로그인 없이 만든 근무표·급여·입금·업무 메모와 서식은 브라우저 localStorage의 <code>${STORAGE_KEY}</code>에 저장합니다. 이 기록을 자동으로 서버에 올리지 않습니다. 같은 도메인과 브라우저에서는 경로가 바뀌어도 기존 기록을 읽을 수 있습니다.</p><h2>Google 로그인과 계정 동기화</h2><p>Google 로그인 시 Supabase Auth가 계정 식별자·이메일·인증 제공자의 기본 프로필과 세션을 처리합니다. 로그인한 상태에서 작성한 근무표·근무·급여·입금 내역·메모와 서식·설정은 Supabase 데이터베이스의 내 계정 공간에 저장되어 같은 계정의 기기에서 조회할 수 있습니다. 로그인 전 기록은 사용자가 브라우저 기록 가져오기를 확인한 경우에만 계정으로 옮깁니다. Freeter는 Google 비밀번호를 받지 않으며 Google Drive·메일 권한을 요청하지 않습니다.</p><h2>접근 권한과 기기 사본</h2><p>데이터베이스는 로그인한 사용자의 계정 ID로 접근을 제한합니다. 이는 다른 일반 사용자의 접근을 막는 방식이며 서비스 운영자의 관리자 접근까지 차단하는 종단간 암호화는 아닙니다. 계정 세션과 오프라인 편집 사본은 브라우저에 보관합니다. 명시적으로 로그아웃하면 현재 브라우저의 계정 사본과 복구 사본을 지우고 로그인 전 기록으로 돌아갑니다. 미전송 편집은 먼저 저장하거나 JSON으로 백업한 뒤 로그아웃합니다. 세션 만료나 연결 오류 시 미전송 자료는 복구를 위해 기기에 남을 수 있습니다.</p><h2>공용 기기와 보관 기간</h2><p>공용 기기에서는 사용 후 로그아웃하고 백업 파일을 직접 정리하세요. 브라우저 저장소와 기기 파일은 같은 기기를 사용하는 사람이 열람할 수 있습니다. 로그인 전 자료는 전체 삭제나 브라우저 데이터 삭제까지, 계정 자료는 사용자가 계정의 전체 데이터 삭제를 실행할 때까지 유지합니다. Supabase의 서비스 로그·백업 보관은 제공자의 정책과 프로젝트 설정을 따릅니다. 시크릿 모드 종료·브라우저 초기화 시 기기의 미전송 기록이 사라질 수 있습니다.</p><h2>백업·공유·동시 수정</h2><p>JSON·CSV·PNG·TXT 다운로드와 근무표 공유는 버튼을 누를 때만 실행합니다. 백업 파일은 암호화하지 않으므로 안전하게 보관하세요. 다른 항목의 변경은 합치고 같은 항목을 동시에 수정하면 자동 덮어쓰기를 멈춥니다. 사용자가 사용할 기록을 고르기 전에 기기·서버 자료를 각각 백업합니다.</p><h2>전체 데이터 삭제의 범위</h2><p>로그인 전 전체 삭제는 이 서비스의 브라우저 자료와 이전 버전의 복구 자료를 삭제합니다. 로그인 후에는 현재 계정의 기록을 비우며, 서버에 반영되면 같은 계정의 다른 기기에서도 반영합니다. 오프라인에서는 연결 후 삭제가 전송됩니다. Google 계정이나 로그인 전 별도 기록을 삭제하지 않습니다. 이미 내려받거나 공유한 파일은 직접 삭제하세요.</p><h2>호스팅·인증 서비스와 오프라인 캐시</h2><p>GitHub Pages가 정적 사이트를 제공하고, Google과 Supabase가 로그인·계정 저장을 제공합니다. 각 제공자는 접속·서비스 제공에 필요한 정보를 처리할 수 있습니다. 서비스 워커는 공개 사이트 파일만 캐시하고 인증 응답·개인 기록 API는 캐시하지 않습니다. 현재 광고·분석·추적 스크립트는 없습니다.</p><a class="button secondary" href="#settings">계정과 내 데이터 관리 ${icon('arrow')}</a></article>`;
+  return head('YOUR DATA, YOUR CHOICE','내 기록을 안전하게.','로그인 전 브라우저 저장과 Google 계정 저장의 차이를 안내합니다.')+`<article class="panel prose"><h2>로그인 전에는 이 브라우저에 저장합니다</h2><p>로그인 없이 만든 근무표·급여·입금·업무 메모와 서식은 브라우저 localStorage의 <code>${STORAGE_KEY}</code>에 저장합니다. 이 기록을 자동으로 서버에 올리지 않습니다. 같은 도메인과 브라우저에서는 경로가 바뀌어도 기존 기록을 읽을 수 있습니다.</p><h2>Google 로그인과 계정 동기화</h2><p>Google 로그인 시 Supabase Auth가 계정 식별자·이메일·인증 제공자의 기본 프로필과 세션을 처리합니다. 로그인한 상태에서 작성한 근무표·근무·급여·입금 내역·메모와 서식·설정은 Supabase 데이터베이스의 내 계정 공간에 저장되어 같은 계정의 기기에서 조회할 수 있습니다. 로그인 전 기록은 사용자가 브라우저 기록 가져오기를 확인한 경우에만 계정으로 옮깁니다. Freeter는 Google 비밀번호를 받지 않으며 Google Drive·메일 권한을 요청하지 않습니다.</p><h2>접근 권한과 기기 사본</h2><p>데이터베이스는 로그인한 사용자의 계정 ID로 접근을 제한합니다. 이는 다른 일반 사용자의 접근을 막는 방식이며 서비스 운영자의 관리자 접근까지 차단하는 종단간 암호화는 아닙니다. 계정 세션과 오프라인 편집 사본은 브라우저에 보관합니다. 명시적으로 로그아웃하면 현재 브라우저의 계정 사본과 복구 사본을 지우고 로그인 전 기록으로 돌아갑니다. 미전송 편집은 먼저 저장하거나 JSON으로 백업한 뒤 로그아웃합니다. 세션 만료나 연결 오류 시 미전송 자료는 복구를 위해 기기에 남을 수 있습니다.</p><h2>공용 기기와 보관 기간</h2><p>공용 기기에서는 사용 후 로그아웃하고 백업 파일을 직접 정리하세요. 브라우저 저장소와 기기 파일은 같은 기기를 사용하는 사람이 열람할 수 있습니다. 로그인 전 자료는 전체 삭제나 브라우저 데이터 삭제까지, 계정 자료는 사용자가 계정의 전체 데이터 삭제를 실행할 때까지 유지합니다. Supabase의 서비스 로그·백업 보관은 제공자의 정책과 프로젝트 설정을 따릅니다. 시크릿 모드 종료·브라우저 초기화 시 기기의 미전송 기록이 사라질 수 있습니다.</p><h2>백업·공유·동시 수정</h2><p>JSON·CSV·PNG·TXT 다운로드와 근무표 공유는 버튼을 누를 때만 실행합니다. 백업 파일은 암호화하지 않으므로 안전하게 보관하세요. 다른 항목의 변경은 합치고 같은 항목을 동시에 수정하면 자동 덮어쓰기를 멈춥니다. 사용자가 사용할 기록을 고르기 전에 기기·서버 자료를 각각 백업합니다.</p><h2>전체 데이터 삭제의 범위</h2><p>로그인 전 전체 삭제는 이 서비스의 브라우저 자료와 이전 버전의 복구 자료를 삭제합니다. 로그인 후에는 현재 계정의 기록을 비우며, 서버에 반영되면 같은 계정의 다른 기기에서도 반영합니다. 오프라인에서는 연결 후 삭제가 전송됩니다. Google 계정이나 로그인 전 별도 기록을 삭제하지 않습니다. 이미 내려받거나 공유한 파일은 직접 삭제하세요.</p><h2>곰씨 날씨와 위치</h2><p>곰씨를 눌러 날씨 창을 열 때만 선택한 지역의 좌표를 Open-Meteo에 보내 날씨를 조회합니다. 기본 지역은 서울이며 내 위치로 자동 판단하지 않습니다. 내 위치 버튼을 누르고 브라우저에서 허용한 경우에만 위치를 사용합니다. 전송 좌표는 소수점 둘째 자리로 줄이며 계정 기록·브라우저 저장소·오프라인 캐시에 위치를 저장하지 않습니다. 위치 권한 없이도 지역 선택으로 사용할 수 있습니다.</p><h2>호스팅·인증 서비스와 오프라인 캐시</h2><p>GitHub Pages가 정적 사이트를 제공하고, Google과 Supabase가 로그인·계정 저장을 제공합니다. 각 제공자는 접속·서비스 제공에 필요한 정보를 처리할 수 있습니다. 서비스 워커는 공개 사이트 파일만 캐시하고 인증 응답·개인 기록 API는 캐시하지 않습니다. 현재 광고·분석·추적 스크립트는 없습니다.</p><a class="button secondary" href="#settings">계정과 내 데이터 관리 ${icon('arrow')}</a></article>`;
 }
 
 function confirmAction(message, title = '한 번 더 확인해 주세요', label = '확인') {
@@ -1340,6 +1464,7 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkAppVe
 $('#today-label').textContent = new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' }).format(new Date());
 $('#year').textContent = new Date().getFullYear();
 render();
+mountWeatherWidget();
 if (globalThis.origin !== 'null' && 'serviceWorker' in navigator && (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname))) {
   navigator.serviceWorker.addEventListener('message',event=>{if(event.data?.type==='FREETER_UPDATE_READY')showAvailableUpdate(event.data.version);});
   navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(registration=>registration.update()).catch(() => { /* Core tools remain available without offline caching. */ });

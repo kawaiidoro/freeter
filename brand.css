@@ -742,3 +742,64 @@ html[data-theme] .notes-editor .ql-editor { padding: 0; min-height: 450px; color
   .account-intro .feature-icon { display: none; }
   .account-email { font-size: 16px; }
 }
+
+/* Racing wordmark: the existing helmet F stays beside the bilingual logo. */
+.brand-lockup { display: block; flex-shrink: 0; line-height: 0; }
+html[data-theme] .brand-lockup .freeter-wordmark { display: block; width: 148px; height: auto; object-fit: contain; }
+html[data-theme] .profile-wordmark.freeter-wordmark { display: block; width: 220px; max-width: 100%; height: auto; margin: 0 0 8px; object-fit: contain; }
+/* Native IME events hide the hint before Quill finishes its composition batch. */
+.notes-editor .ql-editor.memo-input-active::before { display: none !important; }
+.notes-editor .ql-editor::before { transition: none !important; animation: none !important; }
+
+.gomssi-weather { position: fixed; z-index: 35; right: 24px; bottom: 24px; width: 96px; height: 119px; pointer-events: none; }
+.gomssi-button { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; width: 100%; height: 100%; padding: 0; pointer-events: auto; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.gomssi-button img { display: block; width: 96px; height: 96px; object-fit: contain; transform-origin: 50% 95%; filter: drop-shadow(0 5px 5px #00000016); animation: gomssi-greeting 4.5s ease-in-out infinite; }
+.gomssi-button:focus-visible { outline: 2px solid var(--accent); border-radius: 18px; outline-offset: 3px; }
+.gomssi-button:hover img, .gomssi-button[aria-expanded='true'] img { animation-play-state: paused; transform: rotate(-5deg) translateY(-3px); }
+.gomssi-bubble { position: absolute; top: 0; right: 7px; padding: 5px 10px; white-space: nowrap; font-size: 10px; font-weight: 700; line-height: 1.5; letter-spacing: -.2px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 11px 11px 3px 11px; box-shadow: 0 3px 12px #0000000a; }
+@keyframes gomssi-greeting { 0%, 65%, 100% { transform: translateY(0) rotate(0); } 20% { transform: translateY(-5px) rotate(-5deg); } 35% { transform: translateY(-4px) rotate(4deg); } 48% { transform: translateY(-2px) rotate(-3deg); } }
+.weather-panel { position: absolute; bottom: calc(100% + 10px); right: 0; width: 320px; max-width: calc(100vw - 32px); max-height: min(540px, calc(100dvh - 195px)); overflow-y: auto; overscroll-behavior: contain; pointer-events: auto; padding: 23px; border: 1px solid var(--border); border-radius: 24px; background: var(--surface); box-shadow: 0 15px 65px #00000025; color: var(--text); }
+.weather-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.weather-eyebrow { color: var(--accent); font-size: 8px; letter-spacing: 1.8px; font-weight: 750; }
+.weather-head h2 { margin: 4px 0 0; font-size: 19px; line-height: 1.5; letter-spacing: -.6px; }
+.weather-close { min-width: 32px; height: 32px; font-size: 25px; font-weight: 400; }
+.weather-location { display: flex; align-items: center; gap: 8px; margin-top: 20px; }
+.weather-location label { flex: 1; min-width: 0; }
+.weather-location select { display: block; width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 11px; background: var(--bg); color: var(--text); font-size: 13px; }
+.weather-locate { min-height: 40px; padding: 8px 11px; color: var(--accent); background: var(--blue-soft); border: 1px solid transparent; border-radius: 11px; font-size: 12px; font-weight: 650; white-space: nowrap; }
+.weather-locate:focus-visible, .weather-location select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.weather-status { min-height: 18px; margin: 14px 0 2px; color: var(--muted); font-size: 11px; line-height: 1.8; overflow-wrap: anywhere; }
+.weather-status[data-error='true'] { color: var(--accent); }
+.weather-now { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 15px 0 18px; }
+.weather-place { margin: 0 0 3px; color: var(--body); font-size: 13px; font-weight: 600; }
+.weather-degrees { display: flex; align-items: flex-start; gap: 4px; line-height: 1.15; }
+.weather-degrees strong { font-size: 62px; letter-spacing: -4px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.weather-degrees > span { padding-top: 10px; font-size: 23px; color: var(--muted); }
+.weather-description { color: var(--muted); font-size: 12px; margin-top: 7px; }
+.weather-symbol { font-family: Arial, sans-serif; font-size: 66px; line-height: 1; color: var(--accent); }
+.weather-symbol[data-kind='snow'], .weather-symbol[data-kind='rain'] { color: #4388c6; }
+.weather-range { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--bg); padding: 12px 14px; border-radius: 12px; font-size: 13px; }
+.weather-low { color: var(--muted); }
+.weather-high { font-weight: 650; }
+.weather-tip { margin-top: 15px; color: var(--body); font-size: 11px; line-height: 1.8; }
+.weather-location-note { margin: 16px 0 0; padding-top: 13px; border-top: 1px solid var(--border); font-size: 10px; color: var(--muted); line-height: 1.8; }
+.weather-source { display: inline-block; margin-top: 5px; color: var(--muted); font-size: 9px; text-decoration: underline; text-underline-offset: 3px; }
+.weather-loading, .weather-error { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 155px; gap: 15px; }
+.weather-loading > span, .weather-error > span { color: var(--muted); font-size: 52px; }
+body:has(dialog[open]) .gomssi-weather { visibility: hidden; }
+@media (max-width: 800px) {
+  html[data-theme] .mobile-brand { gap: 6px; }
+  html[data-theme] .mobile-brand .freeter-wordmark { width: clamp(82px, 26vw, 118px); height: auto; }
+  .gomssi-weather { right: 12px; bottom: calc(77px + env(safe-area-inset-bottom)); width: 70px; height: 91px; }
+  .gomssi-button img { width: 73px; height: 73px; }
+  .gomssi-bubble { top: 0; right: 0; padding: 3px 8px; font-size: 9px; }
+  .weather-panel { padding: 21px; border-radius: 22px; }
+}
+@media (max-width: 360px) {
+  html[data-theme] .mobile-brand { gap: 3px; }
+  html[data-theme] .topbar { gap: 7px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gomssi-button img { animation: none !important; }
+}
+@media print { .gomssi-weather { display: none; } }

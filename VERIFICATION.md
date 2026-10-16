@@ -1,6 +1,6 @@
 # Freeter 검증 결과
 
-검증일: 2026-10-16. 사이트: https://kawaiidoro.github.io/freeter/
+검증일: 2026-10-17. 사이트: https://kawaiidoro.github.io/freeter/
 
 ## 로컬 검사
 
@@ -10,6 +10,7 @@ Node.js 24, 시스템 Chromium·Playwright와 격리된 테스트 데이터를 �
 | --- | ---: | --- |
 | 핵심 로직 | 35 | 급여·세금·교대 식사·기록·통계·CSV·백업·서식 검증 |
 | 계정·동기화 로직 | 33 | PKCE 설정·공개 키 검증·계정 분리·3방향 병합·CAS·오프라인·계정 전환·로그아웃·삭제 세대·손상 저장소 |
+| 날씨 로직 | 4 | 좌표 축약·범위·섭씨·당일 검증·WMO 코드·쿠키 및 세션 미전송 |
 | PostgreSQL 보안 | 10 | 실제 PGlite 엔진에서 RLS·권한·RPC·익명 및 타 계정 접근 차단·CAS·크기 제한·재설치 보존 |
 | 기본 브라우저 | 18 | 근무표·급여·기록·입금·통계·다운로드·복원·삭제·모바일·오프라인 |
 | 추가 기능 | 11 | 맞교대·교대 식사·세금 선택·지급 완료·미니 계산기·메모·이전 버전 |
@@ -19,8 +20,9 @@ Node.js 24, 시스템 Chromium·Playwright와 격리된 테스트 데이터를 �
 | 제한 미리보기 | 5 | origin·저장소·History API 제한에서도 시작·계산·근무표 실행 |
 | 보안 브라우저 | 5 | 실제 CSP 강제·HTML 내보내기 XSS 패치·악성 붙여넣기·인증 콜백 비캐시 |
 | 계정 브라우저 | 6 | 공식 SDK와 격리 OAuth/REST에서 PKCE·가져오기·두 기기 서식 동기화·로그아웃·계정 전환·다른 탭의 확인창 취소 |
+| 날씨·입력 반응 브라우저 | 7 | 실제 CDP 한글 조합·즉시 안내 숨김·지역 변경·날씨 오류·위치 허용/거부·저장소 보존·모바일·키보드·움직임 줄이기 |
 
-격리 검사는 144개입니다. 핵심·계정·DB 78개는 `npm test`, 브라우저 66개는 각각의 `tests/*.mjs`로 실행합니다. 별도로 실제 Supabase 공개 API 검사 3개를 실행합니다. 생성 파일·구문 검사와 vendor 재현성 검사도 수행합니다.
+격리 검사는 155개입니다. 핵심·계정·DB·날씨 82개는 `npm test`, 브라우저 73개는 각각의 `tests/*.mjs`로 실행합니다. 별도로 실제 Supabase 공개 API 검사 3개를 실행합니다. 생성 파일·구문 검사와 vendor 재현성 검사도 수행합니다.
 
 ```sh
 NPM_CONFIG_CACHE=/tmp/freeter-npm-cache npm ci --ignore-scripts
@@ -41,7 +43,7 @@ NPM_CONFIG_CACHE=/tmp/freeter-npm-cache node scripts/security-audit.mjs
 
 ## 자동 배포·보안 유지
 
-`main` 푸시 시 GitHub Actions가 vendor·런타임 재현성, 핵심·계정·DB 78개와 의존성 감사를 검사하고 공개 파일만 Pages에 배포합니다. 이어서 공개 사이트 브라우저 50개와 격리된 보안·계정 브라우저 11개를 실행합니다. 운영 Supabase의 공개 API 검사 3개도 배포 후 실행합니다. 제한 미리보기 5개는 별도 로컬 검사입니다. 관리자 키·DB 비밀번호·Google client secret은 배포물에 포함하지 않습니다. Actions는 커밋으로 고정하고 checkout 인증 정보 보관을 껐습니다. PR·주간 감사와 Dependabot을 추가했습니다.
+`main` 푸시 시 GitHub Actions가 vendor·런타임 재현성, 핵심·계정·DB·날씨 82개와 의존성 감사를 검사하고 공개 파일만 Pages에 배포합니다. 이어서 공개 사이트 브라우저 50개와 격리된 보안·계정 브라우저 18개를 실행합니다. 운영 Supabase의 공개 API 검사 3개도 배포 후 실행합니다. 제한 미리보기 5개는 별도 로컬 검사입니다. 관리자 키·DB 비밀번호·Google client secret은 배포물에 포함하지 않습니다. Actions는 커밋으로 고정하고 checkout 인증 정보 보관을 껐습니다. PR·주간 감사와 Dependabot을 추가했습니다.
 
 ## 실제 Supabase 확인
 
@@ -56,3 +58,11 @@ NPM_CONFIG_CACHE=/tmp/freeter-npm-cache node scripts/security-audit.mjs
 JSONB 속성 순서로 인한 메모 오탐 충돌, 저장 확인 실패 시 초안 보존, 서버 행 소실, 로그아웃 후 새 로그인에 도착한 오래된 응답을 회귀 검사했습니다. 저장 직후 서버 본문 재조회, 오프라인 최초 인증 재시도, API 본문 수신까지 제한 시간 적용, 계정 창의 최근 서버 확인 시각도 검사합니다.
 
 Samsung Internet·iOS Safari의 전체 실기기 검사와 환경 Publish 이후 새 작업 복원은 별도 확인 범위입니다.
+
+## 2026-10-17 입력 반응·브랜드·날씨
+
+실제 Chromium의 `Input.imeSetComposition`으로 한글 조합 중 Quill의 `ql-blank`가 남는 문제를 재현했습니다. 수정 전 안내 문구의 `display`는 `block`, 수정 후 같은 조합 이벤트에서는 `none`입니다. 저장과 서식 처리는 기존 Quill 경로를 유지하며 안내 숨김만 네이티브 이벤트에서 즉시 수행합니다. 글자를 모두 지우면 안내가 복원되는 것도 검사합니다.
+
+새 FREETER / 프리터 로고를 9개 페이지의 모바일·데스크톱 헤더와 홈 프로필에 적용하고, 근무표 제목을 교대 근무표로 통일했습니다. 새 로고도 서비스 워커 공개 캐시에 포함합니다.
+
+곰씨 날씨는 창을 열 때만 API를 호출하며 위치 권한은 내 위치 버튼을 누를 때만 요청합니다. 선택한 지역·내 위치 주변을 명시하고 좌표를 소수점 둘째 자리로 줄입니다. 계정·localStorage·오프라인 캐시에 좌표를 남기지 않습니다. 기본 서울·지역 변경·오류/오프라인/잘못된 응답 복구·이전 요청의 늦은 응답·권한 거부·320px 및 작은 높이·다크모드·Escape·동작 줄이기를 검사합니다. 공개 API의 실제 응답과 CORS는 배포 CI의 `node scripts/weather-check.mjs`에서 확인합니다.

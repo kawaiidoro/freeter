@@ -15,6 +15,7 @@
 - 근무표를 생성하면 결과가 설정 위로 올라오고 설정은 접힙니다. 결과의 **설정** 버튼을 눌러 다시 펼칠 수 있습니다.
 - 기존 하단 슬로건과 사이드바의 무료 슬로건을 제거했습니다. 하단은 사용법·개인정보·백업 링크와 저작권 표시만 남겼습니다.
 - 모든 HTML에 Freeter 탭 제목, Open Graph·Twitter 공유 제목·설명·이미지 메타데이터를 넣었습니다. 공유용 PNG는 1733×908px(약 1.91:1)입니다. 공유 앱이 기존 미리보기를 캐시했다면 갱신에 시간이 걸릴 수 있습니다.
+- `assets/freeter-wordmark.png`: 속도감을 준 주황색 영문 FREETER와 그 아래 한글 프리터를 조합한 로고입니다. 사이드바·모바일 헤더·홈 프로필에 적용합니다.
 - `icon.svg`: 안전모를 비스듬히 쓴 F 심볼(이미지 포함 SVG). `assets/freeter-helmet.png`: 생성 원본. `assets/freeter-logo.svg`: 새 심볼과 윤곽선 워드마크를 포함한 독립형 SVG 로고. `assets/freeter-192.png`, `freeter-512.png`: 앱 아이콘. `assets/freeter-share.png`: 링크 공유 썸네일.
 - Freeter 영문 브랜드 글꼴 Archivo Black은 자체 호스팅하며 `assets/FONT-LICENSE.txt`에 OFL 라이선스를 포함합니다. 저장소 제한 미리보기에서는 시스템 글꼴로 대체하여 CORS 오류를 피합니다.
 - **기존 개인 기록 보존을 위해** 브라우저 저장 키 `dangi-alba:data`를 유지합니다. 저장소 이름이 바뀌어도 같은 도메인·브라우저의 기록이 초기화되지 않습니다. 공개 주소는 `/freeter/`로 변경했습니다.
@@ -26,7 +27,8 @@
 - **2인 맞교대:** 일반 구간 1명 근무·1명 휴식. 기존 3인 밀어내기는 2명 근무·1명 휴식입니다.
 - **점심 방식:** 모두 함께, 1명씩 순서대로, 2명 먼저·1명 나중을 선택합니다. 2명이 함께 식사하는 구간은 1명만 근무하며 별도 색으로 정확하게 표시합니다. 2인 맞교대에서는 함께 식사 또는 1명씩 식사를 제공합니다. 식사 시작·1인 식사시간·첫 식사자를 지정할 수 있습니다.
 - **이름 입력:** 기본 이름을 실제 값으로 채우지 않고 빈 입력 안내로 표시합니다. 클릭하면 안내가 숨겨지며 이미 입력한 실제 이름은 보존합니다.
-- **업무 메모장:** 굵게·14~32px 크기·밑줄·글자색·형광펜을 선택한 글자에 적용합니다. 읽기 보기와 JSON 백업에도 서식이 유지됩니다. TXT·복사는 일반 텍스트를 내보냅니다. HTML 내보내기 취약점을 수정한 Quill 2.0.3을 `vendor/`에서 자체 호스팅하며 BSD 라이선스를 동봉합니다. [보안 변경](docs/SECURITY.md)을 참고하세요. 임의 HTML은 저장하지 않고 문자열과 검증한 서식 속성만 저장합니다.
+- **곰씨 날씨:** 오른쪽 아래 인사하는 곰씨를 누르면 선택 지역의 현재 기온·체감온도·오늘 최고/최저를 확인합니다. 기본 지역은 서울이며 지역 변경·내 위치 선택을 지원합니다. 위치 권한은 내 위치 버튼에서만 요청하고 좌표는 소수점 둘째 자리만 Open-Meteo에 전송합니다. 위치는 계정이나 localStorage에 저장하지 않습니다. 날씨 오류·오프라인에서는 재시도와 지역 선택을 제공합니다. 움직임 줄이기 설정을 따릅니다.
+- **업무 메모장:** 한글 IME 조합이 시작되는 즉시 입력 안내를 숨기며, 비우면 안내를 다시 표시합니다.  굵게·14~32px 크기·밑줄·글자색·형광펜을 선택한 글자에 적용합니다. 읽기 보기와 JSON 백업에도 서식이 유지됩니다. TXT·복사는 일반 텍스트를 내보냅니다. HTML 내보내기 취약점을 수정한 Quill 2.0.3을 `vendor/`에서 자체 호스팅하며 BSD 라이선스를 동봉합니다. [보안 변경](docs/SECURITY.md)을 참고하세요. 임의 HTML은 저장하지 않고 문자열과 검증한 서식 속성만 저장합니다.
 - **업데이트 내역:** 홈·상단 시계 아이콘·사용 가이드의 버튼을 누르면 새 근무 관리 도구 안내와 곰씨 캐릭터를 한 창에 표시합니다. 기본 화면에서는 내용이 접혀 있습니다.
 - **작은 계산기:** 급여 계산 화면 옆에서 사칙연산·괄호·음수·소수·키보드 Enter를 지원합니다. 문자열을 코드로 실행하지 않습니다.
 
@@ -181,6 +183,9 @@ CHROMIUM_PATH=/usr/bin/chromium node tests/update-recovery.mjs
 CHROMIUM_PATH=/usr/bin/chromium node tests/startup.mjs
 CHROMIUM_PATH=/usr/bin/chromium node tests/security-browser.mjs
 CHROMIUM_PATH=/usr/bin/chromium node tests/account-browser.mjs
+CHROMIUM_PATH=/usr/bin/chromium node tests/weather-browser.mjs
+# 인터넷 연결이 허용된 환경에서 공개 날씨 API와 사이트 CORS 검사
+node scripts/weather-check.mjs
 ```
 
 브라우저 테스트의 다운로드·스크린샷은 `/tmp/dangi-alba-tests`에 저장하며 저장소나 실제 사용자 기록을 건드리지 않는 별도 브라우저 컨텍스트를 사용합니다.
@@ -203,6 +208,7 @@ vendor/                자체 호스팅 Quill 편집기와 BSD 라이선스
 assets/                로고·앱 아이콘·공유 썸네일·브랜드 글꼴과 라이선스
 site.js                브라우저가 실행하는 일반 스크립트 묶음
 app.js                 화면·저장·백업·다운로드·입금 관리
+weather.js             곰씨 날씨·지역·권한·온도 검증과 공개 API
 core.js                순수 계산·근무표·검증·통계·CSV 로직
 cloud.js               PKCE 로그인·계정 저장·충돌 처리
 cloud-config.json      Supabase 공개 URL·Publishable key
