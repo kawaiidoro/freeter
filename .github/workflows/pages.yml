@@ -56,8 +56,6 @@ jobs:
     timeout-minutes: 10
     env:
       TEST_BASE_URL: ${{ needs.deploy.outputs.page_url }}
-      TEST_OUTPUT_DIR: ${{ runner.temp }}/dangi-alba-live-tests
-      NODE_PATH: ${{ runner.temp }}/dangi-browser/node_modules
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -67,6 +65,8 @@ jobs:
         run: |
           npm install --prefix "$RUNNER_TEMP/dangi-browser" --no-package-lock --no-save playwright@1.64.1
           "$RUNNER_TEMP/dangi-browser/node_modules/.bin/playwright" install --with-deps chromium
+          echo "NODE_PATH=$RUNNER_TEMP/dangi-browser/node_modules" >> "$GITHUB_ENV"
+          echo "TEST_OUTPUT_DIR=$RUNNER_TEMP/dangi-alba-live-tests" >> "$GITHUB_ENV"
       - name: Verify the published website in Chromium
         run: node tests/browser.mjs
       - name: Save browser verification results
