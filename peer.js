@@ -4,6 +4,12 @@
   const MAX_MESSAGE = 8 * 1024 * 1024, CHUNK = 4096;
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const copy = value => structuredClone(value);
+  const randomId = () => {
+    if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+    const bytes = crypto.getRandomValues(new Uint8Array(16)); bytes[6] = (bytes[6] & 15) | 64; bytes[8] = (bytes[8] & 63) | 128;
+    const hex = [...bytes].map(byte => byte.toString(16).padStart(2,'0')).join('');
+    return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+  };
   const flat = state => new Map([
     ['settings', state.settings], ['schedule', state.schedule], ['workplaces', state.workplaces], ['calculator', state.calculator],
     ['memo', { workMemo: state.workMemo, workMemoDelta: state.workMemoDelta }],
@@ -26,7 +32,7 @@
   }
   class FreeterPeer {
     constructor(options) {
-      this.options = options; this.actor = crypto.randomUUID(); this.status = 'idle'; this.ready = false;
+      this.options = options; this.actor = randomId(); this.status = 'idle'; this.ready = false;
       this.pc = null; this.channel = null; this.localCode = ''; this.clock = 0;
       this.versions = new Map(); this.transfers = new Map(); this.outbound = Promise.resolve();
     }
@@ -75,7 +81,7 @@
     }
     code(kind) { return this.localCode = encode({ version: 1, kind, session: this.session, expires: Date.now() + 10 * 60000, sdp: this.pc.localDescription.sdp }); }
     async offer() {
-      const pc = this.create(crypto.randomUUID()); this.notify('preparing', '이 기기의 요청 코드를 만들고 있어요.');
+      const pc = this.create(randomId()); this.notify('preparing', '이 기기의 요청 코드를 만들고 있어요.');
       this.bind(pc.createDataChannel('freeter-data', { ordered: true }));
       await pc.setLocalDescription(await pc.createOffer()); await this.gathered(pc);
       const result = this.code('offer'); this.notify('offer', '요청 코드를 다른 기기에 전달해 주세요. 두 기기의 창을 계속 열어 두세요.'); return result;
@@ -98,7 +104,7 @@
       const json = JSON.stringify(message);
       if (json.length > MAX_MESSAGE) { this.close('전송 가능한 기록 크기를 초과했어요. JSON 파일로 백업해 주세요.'); return; }
       this.outbound = this.outbound.then(async () => {
-        const id = crypto.randomUUID(), total = Math.max(1, Math.ceil(json.length / CHUNK));
+        const id = randomId(), total = Math.max(1, Math.ceil(json.length / CHUNK));
         for (let i = 0; i < total; i++) {
           if (!channel || this.channel !== channel || channel.readyState !== 'open') throw new Error('연결이 종료되어 전송을 멈췄어요. 기록은 이 기기에 저장돼 있습니다.');
           if (channel.bufferedAmount > 262144) await new Promise((resolve, reject) => {

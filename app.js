@@ -1,5 +1,7 @@
 import { STORAGE_KEY, VERSION, DEFAULT_SCHEDULE, today, money, duration, timeText, calculatePay, generateSchedule, scheduleTotals, recordStatus, STATUS, monthStats, emptyState, validateRecord, validateState, validDate, csvText, TAX_TYPES, shiftState, evaluateExpression, MEMO_SIZES, validateMemoDelta } from './core.js';
 
+const APP_RELEASE = '__FREETER_RELEASE__';
+let latestRelease = APP_RELEASE;
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 document.documentElement.dataset.brandFont = globalThis.origin === 'null' ? 'fallback' : 'local';
@@ -312,23 +314,38 @@ function newFeaturesGuide() {
   return `<section class="panel tax-guide"><h2>세금 유형별 예상 수령액</h2><p><strong>일용근로소득:</strong> 1일 과세급여에서 150,000원을 공제한 금액에 6% 세율과 55% 세액공제를 적용합니다. 일일 산식은 max(과세급여 − 150,000, 0) × 0.06 × 0.45입니다. 소득세가 1,000원 미만이면 소액부징수로 0원, 지방소득세는 계산된 소득세의 10%입니다. 소득세와 지방소득세는 각각 10원 미만을 절사합니다. 1일 200,000원이면 소득세 1,350원, 지방소득세 130원, 예상 수령액은 198,520원입니다.</p><p>이 계산은 기록 1건이 1일분이고 따로 지급받는 기준입니다. 여러 날의 급여를 한 번에 받는 경우 소액부징수 기준이 달라질 수 있으므로 지급처의 원천징수 명세서를 확인하세요. 근무 기간 등 법상 일용근로 요건에 해당할 때 선택해야 합니다.</p><p><strong>프리랜서:</strong> 사업소득 원천징수 대상인 경우 과세 지급액의 3%를 소득세로, 소득세의 10%를 지방소득세로 계산합니다. 통상 총 3.3%이며 끝수 처리로 차이가 날 수 있습니다. 200,000원이면 합계 6,600원 공제, 예상 수령액은 193,400원입니다. 4대보험과 최종 종합소득세 정산은 포함하지 않습니다.</p><p>추가 지급액도 기본적으로 과세금액에 포함합니다. 지급처에서 확인한 비과세 금액만 별도로 입력하세요. 자동 계산되는 세금을 기타 공제액에 다시 넣으면 중복 차감됩니다. 기존 기록은 세금 유형을 바꾸기 전까지 공제 안 함으로 보존됩니다.</p><p>법령 참고: <a href="https://www.law.go.kr/법령/소득세법/제47조" target="_blank" rel="noopener noreferrer">근로소득공제</a> · <a href="https://www.law.go.kr/법령/소득세법/제59조" target="_blank" rel="noopener noreferrer">근로소득세액공제</a> · <a href="https://www.law.go.kr/법령/소득세법/제129조" target="_blank" rel="noopener noreferrer">원천징수 세율</a> · <a href="https://www.nts.go.kr/nts/main.do" target="_blank" rel="noopener noreferrer">국세청 안내</a></p></section><button type="button" class="updates-trigger" data-action="open-updates"><span class="updates-trigger-icon">${icon('sparkle')}</span><span><strong>업데이트 내역</strong><small>새로운 근무 관리 도구를 확인해 보세요.</small></span>${icon('chevron')}</button>`;
 }
 function openUpdates() {
-  const dialog=$('#updates-dialog');
+  const dialog=ensureAppDialog('updates-dialog','updates-title');
   dialog.innerHTML=`<div class="dialog-head"><div><p class="eyebrow">WHAT’S NEW</p><h2 id="updates-title">업데이트 내역</h2></div><button type="button" class="icon-button" data-action="close-updates" aria-label="업데이트 내역 닫기">${icon('close')}</button></div><div class="updates-layout"><section class="updates-content"><span class="update-date">2026.10.16 · FREETER UPDATE</span><h3>새로운 근무 관리 도구</h3><p class="updates-intro">곰씨와 함께, 오늘의 일을 조금 더 편하게.</p><ul class="update-list"><li><span>${icon('calendar')}</span><div><h4>우리 현장에 맞는 교대</h4><p>3인 밀어내기·2인 맞교대, 모두 함께·1명씩·2명 먼저 점심을 선택해요. 모바일에서도 표를 한눈에 볼 수 있어요.</p></div></li><li><span>${icon('calculator')}</span><div><h4>세금까지 계산하는 급여</h4><p>일용근로소득과 프리랜서 3.3%를 선택하고 예상 수령액을 확인해요. 작은 계산기로 추가 계산도 할 수 있어요.</p></div></li><li><span>${icon('check')}</span><div><h4>받은 급여는 지급 완료로</h4><p>실제 입금일과 금액을 남기면 지급 상태와 수입 통계에 함께 반영돼요.</p></div></li><li><span>${icon('edit')}</span><div><h4>내 방식으로 쓰는 업무 메모</h4><p>굵게·크기·밑줄·글자색·형광펜으로 중요한 내용을 표시해요. 읽기 보기와 JSON 백업에도 서식이 유지돼요.</p></div></li><li><span>${icon('share')}</span><div><h4>두 기기, 같은 기록</h4><p>같은 와이파이에서 연결 코드를 교환해 PC·모바일을 직접 연결해요. 두 창이 열린 동안 변경 내용을 연동해요.</p></div></li></ul></section><aside class="updates-mascot"><img src="./assets/gomssi.png" width="240" height="280" alt="노란 안전모와 작업 조끼를 입고 인사하는 노가다 곰씨"><span>노가다 곰씨</span><p>오늘도 안전하게,<br>기록은 꼼꼼하게.</p></aside></div>`;
   dialog.showModal();
 }
 const SYNC_BACKUP_KEY='freeter:before-peer-sync',SYNC_CONFLICT_KEY='freeter:peer-conflict';
+let syncSupportError='';
+const readBackup = key => { try { return localStorage.getItem(key); } catch { return null; } };
+function ensureAppDialog(id,label) {
+  let dialog=document.getElementById(id);
+  if(!dialog){dialog=document.createElement('dialog');dialog.id=id;dialog.setAttribute('aria-labelledby',label);document.body.append(dialog);}
+  return dialog;
+}
+function syncSupportProblem() {
+  if(storageBlocked)return '이 브라우저에서 기록을 저장할 수 없어 연동을 시작할 수 없어요. 일반 탭에서 다시 열고 데이터 · 설정에서 기록 저장 상태를 확인해 주세요.';
+  if(!globalThis.isSecureContext)return '기기 연결은 HTTPS의 일반 브라우저 탭에서 이용할 수 있어요.';
+  if(typeof globalThis.RTCPeerConnection!=='function')return '현재 브라우저에서 기기 연결 기능을 지원하지 않거나 제한하고 있어요. 삼성 인터넷을 최신 버전으로 업데이트하거나 Chrome의 일반 탭에서 열어 주세요.';
+  if(typeof globalThis.crypto?.getRandomValues!=='function')return '안전한 연결 코드를 만들 수 없는 환경이에요. 최신 버전의 삼성 인터넷 또는 Chrome에서 열어 주세요.';
+  if(typeof globalThis.FreeterPeer!=='function')return '기기 연결 기능을 불러오지 못했어요. 아래의 최신 화면 다시 열기를 눌러 주세요.';
+  return '';
+}
 function updateSyncStatus(_status,message) {
-  const status=peerSession?.status||'idle',ready=peerSession?.ready||false,connected=peerSession?.channel?.readyState==='open';
+  const status=syncSupportError?'unsupported':peerSession?.status||'idle',ready=peerSession?.ready||false,connected=peerSession?.channel?.readyState==='open';
   $$('[data-sync-indicator]').forEach(node=>{node.dataset.connected=String(ready);node.title=ready?'기기 연동 중':'다른 기기 연결';});
   if($('#sync-status')){
-    $('#sync-status').textContent=message||peerSession?.message||'아직 연결된 기기가 없어요.';$('#sync-status').dataset.status=status;
-    $('#sync-pairing').hidden=connected;$('#sync-connected').hidden=!connected;$('#sync-start').hidden=ready;
+    $('#sync-status').textContent=syncSupportError||message||peerSession?.message||'아직 연결된 기기가 없어요.';$('#sync-status').dataset.status=status;
+    $('#sync-pairing').hidden=connected||!!syncSupportError;$('#sync-unavailable').hidden=!syncSupportError;$('#sync-connected').hidden=!connected;$('#sync-start').hidden=ready;
     $('#sync-connected-description').textContent=ready?'이제 근무표·급여 기록·입금 내역·메모와 서식이 함께 반영됩니다.':'사용할 기록이 있는 기기에서 시작하세요. 상대 기기에서 자료 교체를 확인한 후 연동됩니다.';
     $('#sync-start').disabled=status==='confirming';
-    for(const button of $$('#sync-pairing button[data-action="sync-offer"],#sync-pairing button[data-action="sync-accept"]'))button.disabled=status==='preparing';
+    for(const button of $$('#sync-pairing button[data-action="sync-offer"],#sync-pairing button[data-action="sync-accept"]'))button.disabled=!!syncSupportError||status==='preparing';
     const local=peerSession?.localCode||'';$('#sync-local-block').hidden=!local;if($('#sync-local-code').value!==local)$('#sync-local-code').value=local;
     $('#sync-local-label').textContent=status==='answer'?'② 이 응답 코드를 처음 기기에 전달하세요':'① 이 요청 코드를 다른 기기에 전달하세요';
-    $('#sync-backup').hidden=!localStorage.getItem(SYNC_BACKUP_KEY);$('#sync-conflict-backup').hidden=!localStorage.getItem(SYNC_CONFLICT_KEY);
+    $('#sync-backup').hidden=!readBackup(SYNC_BACKUP_KEY);$('#sync-conflict-backup').hidden=!readBackup(SYNC_CONFLICT_KEY);
   }
 }
 function backupBeforePairing() {
@@ -351,16 +368,18 @@ function applyPeerState(next,initial) {
   else render();
 }
 function ensurePeer() {
-  if(!globalThis.isSecureContext||!globalThis.RTCPeerConnection||!globalThis.crypto?.randomUUID)throw new Error('HTTPS의 최신 Chrome·Safari·Firefox에서 기기 연결을 이용해 주세요.');
+  const problem=syncSupportProblem();if(problem)throw new Error(problem);
   if(!peerSession)peerSession=new FreeterPeer({getState:()=>state,validate:validateState,onStatus:updateSyncStatus,
     approve:incoming=>confirmAction(`현재 이 기기의 기록 ${state.records.length}건과 메모·근무표를 상대 기기의 기록 ${incoming.records.length}건으로 교체한 뒤 연동합니다. 교체 전 자료는 이 기기에 별도 백업으로 보관해요.`,'어느 기기의 기록으로 시작할까요?','상대 기록으로 연동'),
     apply:applyPeerState,onConflict:(_key,previous)=>{try{localStorage.setItem(SYNC_CONFLICT_KEY,JSON.stringify(previous));}catch{}toast('동시에 수정된 항목을 정리했어요. 기기 연결 창에서 직전 기록을 백업할 수 있어요.');}});
   return peerSession;
 }
 function openSync() {
-  const dialog=$('#sync-dialog');
-  dialog.innerHTML=`<div class="dialog-head"><div><p class="eyebrow">DEVICE LINK</p><h2 id="sync-title">다른 기기 연결</h2></div><button type="button" class="icon-button" data-action="close-sync" aria-label="기기 연결 창 닫기">${icon('close')}</button></div><p class="sync-intro">같은 와이파이의 PC와 모바일을 연결하세요.<br>두 기기의 창이 열린 동안, 기록이 함께 바뀝니다.</p><p id="sync-status" class="sync-status" role="status" aria-live="polite"></p><div id="sync-pairing" class="sync-pairing"><section class="sync-step"><h3><span>1</span>처음 연결하는 기기</h3><p>한 기기에서 요청 코드를 만들어 다른 기기로 전달하세요.</p><button class="button primary" data-action="sync-offer">연결 요청 만들기</button><div id="sync-local-block" hidden><label class="field"><span id="sync-local-label">연결 코드</span><textarea id="sync-local-code" rows="3" readonly spellcheck="false" aria-label="다른 기기에 전달할 연결 코드"></textarea></label><button class="button secondary small" data-action="sync-copy">코드 복사</button></div></section><section class="sync-step"><h3><span>2</span>받은 코드 붙여넣기</h3><p>요청 코드를 받으면 응답 코드가 만들어집니다. 응답 코드는 처음 기기에 전달해 한 번 더 붙여넣으세요.</p><label class="field"><span class="sr-only">상대 기기의 연결 코드</span><textarea id="sync-remote-code" rows="4" maxlength="100000" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="FRT1.로 시작하는 코드 전체" aria-label="상대 기기의 연결 코드"></textarea></label><button class="button secondary" data-action="sync-accept">받은 코드로 연결</button></section></div><section id="sync-connected" class="sync-connected" hidden><span class="sync-connected-icon">${icon('share')}</span><h3>두 기기가 연결됐어요.</h3><p id="sync-connected-description"></p><button id="sync-start" class="button primary" data-action="sync-start">이 기기 기록으로 시작</button></section><div class="sync-notes"><p>창을 닫거나 새로고침하면 코드를 다시 교환해야 해요. 같은 메모는 한 번에 한 기기에서 편집해 주세요. 게스트 와이파이처럼 기기 간 통신이 차단된 네트워크에서는 연결되지 않을 수 있어요.</p><p>자료는 연결한 기기에 직접 전송하며 별도 서버에 보관하지 않습니다. 연결을 해제해도 각 기기의 자료는 남아요.</p></div><div class="sync-bottom-actions"><button class="button secondary small" id="sync-backup" data-action="sync-backup" hidden>연결 전 기록 JSON 백업</button><button class="button secondary small" id="sync-conflict-backup" data-action="sync-conflict-backup" hidden>동시 수정 전 기록 백업</button><button class="button ghost small" data-action="sync-disconnect">연결 해제</button></div>`;
-  ensurePeer();updateSyncStatus();dialog.showModal();
+  const dialog=ensureAppDialog('sync-dialog','sync-title');
+  dialog.innerHTML=`<div class="dialog-head"><div><p class="eyebrow">DEVICE LINK</p><h2 id="sync-title">다른 기기 연결</h2></div><button type="button" class="icon-button" data-action="close-sync" aria-label="기기 연결 창 닫기">${icon('close')}</button></div><p class="sync-intro">같은 와이파이의 PC와 모바일을 연결하세요.<br>두 기기의 창이 열린 동안, 기록이 함께 바뀝니다.</p><p id="sync-status" class="sync-status" role="status" aria-live="polite"></p><section id="sync-unavailable" class="sync-unavailable" hidden><h3>기기 연결을 시작하지 못했어요.</h3><p>화면의 안내를 확인한 뒤 최신 화면에서 다시 시도해 주세요. 저장한 기록은 그대로 유지됩니다.</p></section><div id="sync-pairing" class="sync-pairing"><section class="sync-step"><h3><span>1</span>처음 연결하는 기기</h3><p>한 기기에서 요청 코드를 만들어 다른 기기로 전달하세요.</p><button class="button primary" data-action="sync-offer">연결 요청 만들기</button><div id="sync-local-block" hidden><label class="field"><span id="sync-local-label">연결 코드</span><textarea id="sync-local-code" rows="3" readonly spellcheck="false" aria-label="다른 기기에 전달할 연결 코드"></textarea></label><button class="button secondary small" data-action="sync-copy">코드 복사</button></div></section><section class="sync-step"><h3><span>2</span>받은 코드 붙여넣기</h3><p>요청 코드를 받으면 응답 코드가 만들어집니다. 응답 코드는 처음 기기에 전달해 한 번 더 붙여넣으세요.</p><label class="field"><span class="sr-only">상대 기기의 연결 코드</span><textarea id="sync-remote-code" rows="4" maxlength="100000" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="FRT1.로 시작하는 코드 전체" aria-label="상대 기기의 연결 코드"></textarea></label><button class="button secondary" data-action="sync-accept">받은 코드로 연결</button></section></div><section id="sync-connected" class="sync-connected" hidden><span class="sync-connected-icon">${icon('share')}</span><h3>두 기기가 연결됐어요.</h3><p id="sync-connected-description"></p><button id="sync-start" class="button primary" data-action="sync-start">이 기기 기록으로 시작</button></section><div class="sync-notes"><p>창을 닫거나 새로고침하면 코드를 다시 교환해야 해요. 같은 메모는 한 번에 한 기기에서 편집해 주세요. 게스트 와이파이처럼 기기 간 통신이 차단된 네트워크에서는 연결되지 않을 수 있어요.</p><p>자료는 연결한 기기에 직접 전송하며 별도 서버에 보관하지 않습니다. 연결을 해제해도 각 기기의 자료는 남아요.</p></div><div class="sync-bottom-actions"><a class="button secondary small" href="${esc(latestAppUrl())}">최신 화면 다시 열기</a><button class="button secondary small" id="sync-backup" data-action="sync-backup" hidden>연결 전 기록 JSON 백업</button><button class="button secondary small" id="sync-conflict-backup" data-action="sync-conflict-backup" hidden>동시 수정 전 기록 백업</button><button class="button ghost small" data-action="sync-disconnect">연결 해제</button></div>`;
+  dialog.showModal();syncSupportError=syncSupportProblem();
+  if(!syncSupportError){try{ensurePeer();}catch(error){syncSupportError=error.message;}}
+  updateSyncStatus();
 }
 function openCompletePayment(id) {
   const record=state.records.find(r=>r.id===id);if(!record)return;
@@ -673,9 +692,30 @@ window.addEventListener('storage', event => {
   try { state = event.newValue ? validateState(JSON.parse(event.newValue)) : emptyState(); rawStored = event.newValue; storageBlocked = false; calcSavedHash = ''; $('#record-dialog').close(); render(); peerSession?.publish(state); toast('다른 탭의 최신 기록을 반영했어요. 저장 전 편집 내용은 반영되지 않습니다.'); }
   catch { storageBlocked = true; $('#storage-alert').hidden = false; $('#storage-alert').textContent = '다른 탭의 데이터를 읽지 못해 저장을 중지했습니다. 현재 내용을 백업해 주세요.'; }
 });
+function latestAppUrl() {
+  const url=new URL(location.href);url.searchParams.set('v',latestRelease);return url.href;
+}
+function showAvailableUpdate(version) {
+  if(!/^[a-f0-9]{12}$/.test(version)||version===APP_RELEASE)return;
+  latestRelease=version;
+  let banner=$('#app-update-banner');
+  if(!banner){banner=document.createElement('div');banner.id='app-update-banner';banner.className='app-update-banner';banner.setAttribute('role','status');$('.topbar').after(banner);}
+  banner.innerHTML=`<span>새 버전이 준비됐어요. 저장한 기록은 그대로 유지됩니다.</span><a class="button secondary small" href="${esc(latestAppUrl())}">업데이트 열기</a>`;
+}
+let lastVersionCheck=0;
+async function checkAppVersion() {
+  if(globalThis.origin==='null'||!navigator.onLine||!['http:','https:'].includes(location.protocol)||Date.now()-lastVersionCheck<30000)return;
+  lastVersionCheck=Date.now();
+  try{const response=await fetch(new URL('./version.json',location.href),{cache:'no-store'});if(response.ok){const data=await response.json();if(typeof data.version==='string')showAvailableUpdate(data.version);}}catch{/* An offline visit keeps the cached tools available. */}
+}
+document.documentElement.dataset.appRelease=APP_RELEASE;
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkAppVersion();});
 $('#today-label').textContent = new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' }).format(new Date());
 $('#year').textContent = new Date().getFullYear();
 render();
 if (globalThis.origin !== 'null' && 'serviceWorker' in navigator && (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname))) {
-  navigator.serviceWorker.register('./sw.js').catch(() => { /* Core tools remain available without offline caching. */ });
+  navigator.serviceWorker.addEventListener('message',event=>{if(event.data?.type==='FREETER_UPDATE_READY')showAvailableUpdate(event.data.version);});
+  navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(registration=>registration.update()).catch(() => { /* Core tools remain available without offline caching. */ });
 }
+
+checkAppVersion();
