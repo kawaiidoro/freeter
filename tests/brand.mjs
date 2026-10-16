@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { emptyState, generateSchedule } from '../core.js';
 const require=createRequire(import.meta.url),{chromium}=require('playwright');
@@ -56,6 +56,39 @@ try{
  });
  await check('페이지 이동 시 공유 제목·주소도 해당 페이지로 갱신',async()=>{
   await page.locator('.mobile-nav [data-page="calculator"]').click();assert.ok((await page.locator('meta[property="og:title"]').getAttribute('content')).includes('급여 계산기'));assert.ok((await page.locator('meta[property="og:url"]').getAttribute('content')).endsWith('/calculator.html'));
+ });
+ await check('중성 라이트 배경과 위젯·앱 바로가기가 모바일·데스크톱에서 화면 안에 표시',async()=>{
+  await page.locator('#theme-toggle').click();
+  for(const width of [320,390,768,1440]){
+   await page.setViewportSize({width,height:1000});await go('');
+   const neutral=await page.evaluate(()=>getComputedStyle(document.body).backgroundColor.match(/\d+/g).slice(0,3).map(Number));assert.ok(Math.max(...neutral)-Math.min(...neutral)<=3);assert.ok(Math.min(...neutral)>=240);
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.equal(await page.locator('.app-launcher .app-tile:visible').count(),6);
+   assert.equal(await page.locator('.home-summary .summary-card').count(),4);assert.ok(await page.locator('.memo-widget').isVisible());
+   const logo=page.locator('.profile-logo');assert.ok(await logo.evaluate(node=>node.complete&&node.naturalWidth===512));
+  }
+  await page.screenshot({path:join(output,'freeter-workspace-desktop.png'),fullPage:true});
+  await page.setViewportSize({width:390,height:844});await page.screenshot({path:join(output,'freeter-workspace-mobile.png'),fullPage:true});
+  await page.locator('.app-launcher [data-route="notes"]').click();await page.locator('#work-memo').waitFor();
+ });
+ const readingMemo='09:50 담당자에게 도착 연락\n준비물: 신분증, 편한 운동화\n\n업무 순서\n1. 안전교육을 받은 뒤 작업 시작\n2. 물품 정리와 수량 확인\n<script>throw new Error("unsafe memo")</script>\n'+('긴업무설명을읽을때에도화면밖으로넘어가지않아요'.repeat(12));
+ await check('모바일 메모 편집·읽기 전환과 줄바꿈·장문·기존 데이터 보존',async()=>{
+  await page.locator('#work-memo').fill(readingMemo);
+  for(const width of [320,390,768]){
+   await page.setViewportSize({width,height:844});
+   const typography=await page.locator('#work-memo').evaluate(node=>({size:parseFloat(getComputedStyle(node).fontSize),height:parseFloat(getComputedStyle(node).lineHeight)}));assert.ok(typography.size>=16);assert.ok(typography.height/typography.size>=1.7);
+   await page.locator('[data-action="memo-mode"][data-mode="read"]').click();assert.equal(await page.locator('#memo-reader').textContent(),readingMemo);assert.ok(await page.locator('#memo-reader').isVisible());assert.equal(await page.locator('#memo-reader script').count(),0);
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+   await page.locator('[data-action="memo-mode"][data-mode="edit"]').click();assert.equal(await page.locator('#work-memo').inputValue(),readingMemo);
+  }
+  await page.setViewportSize({width:390,height:844});await page.reload();assert.equal(await page.locator('#work-memo').inputValue(),readingMemo);assert.ok((await page.locator('#memo-status').innerText()).includes('자동 저장'));
+  await page.screenshot({path:join(output,'freeter-notes-mobile.png'),fullPage:true});
+  await page.locator('[data-action="memo-mode"][data-mode="read"]').click();await page.locator('#theme-toggle').click();assert.equal(await page.locator('#memo-reader').textContent(),readingMemo);await page.screenshot({path:join(output,'freeter-notes-reading-dark.png'),fullPage:true});
+ });
+ await check('읽기 보기에서도 메모 복사·TXT 저장·비우기 취소로 원문 보존',async()=>{
+  await context.grantPermissions(['clipboard-read','clipboard-write']);await page.locator('[data-action="copy-memo"]').click();assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),readingMemo);
+  const pending=page.waitForEvent('download');await page.locator('[data-action="download-memo"]').click();const file=join(output,'freeter-work-memo.txt');await(await pending).saveAs(file);assert.equal(await readFile(file,'utf8'),readingMemo);
+  await page.locator('[data-action="clear-memo"]').click();await page.locator('#confirm-dialog button[value="cancel"]').click();assert.equal(await page.locator('#memo-reader').textContent(),readingMemo);
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data')).workMemo),readingMemo);
  });
  assert.deepEqual(errors,[]);console.log(`Freeter 브랜드·모바일 브라우저 시나리오 ${count}개 통과`);
 }finally{await browser.close();}

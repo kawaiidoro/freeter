@@ -1,4 +1,4 @@
-const CACHE = 'dangi-alba-shell-v4';
+const CACHE = 'dangi-alba-shell-v5';
 const ASSETS = ['./', './index.html', './schedule.html', './calculator.html', './records.html', './stats.html', './guide.html', './privacy.html', './settings.html', './notes.html', './style.css', './brand.css', './site.js', './icon.svg', './manifest.webmanifest', './assets/freeter-display.woff2', './assets/freeter-192.png', './assets/freeter-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));

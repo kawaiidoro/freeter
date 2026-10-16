@@ -6,7 +6,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
 const root = new URL('../', import.meta.url);
-const types = { html: 'text/html; charset=utf-8', js: 'text/javascript', css: 'text/css', svg: 'image/svg+xml', webmanifest: 'application/manifest+json', woff2:'font/woff2' };
+const types = { html: 'text/html; charset=utf-8', js: 'text/javascript', css: 'text/css', svg: 'image/svg+xml', png: 'image/png', webmanifest: 'application/manifest+json', woff2:'font/woff2' };
 const server = createServer(async (request, response) => {
   const path = new URL(request.url, 'http://localhost').pathname;
   const restricted = path.startsWith('/preview/');
@@ -28,10 +28,10 @@ try {
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   const base = `http://127.0.0.1:${server.address().port}`;
-  await page.goto(base + '/'); await page.locator('.hero').waitFor();
+  await page.goto(base + '/'); await page.locator('.workspace-grid').waitFor();
   assert.equal(await page.title(), 'Freeter');
   console.log('PASS 일반 웹주소 첫 화면 실행');
-  await page.goto(base + '/preview/'); await page.locator('.hero').waitFor();
+  await page.goto(base + '/preview/'); await page.locator('.workspace-grid').waitFor();
   assert.equal(await page.evaluate(() => globalThis.origin), 'null');
   assert.ok(await page.locator('#storage-alert').isVisible());
   console.log('PASS 모듈·저장소가 제한된 미리보기 첫 화면 실행');
