@@ -68,7 +68,9 @@ jobs:
           echo "NODE_PATH=$RUNNER_TEMP/dangi-browser/node_modules" >> "$GITHUB_ENV"
           echo "TEST_OUTPUT_DIR=$RUNNER_TEMP/dangi-alba-live-tests" >> "$GITHUB_ENV"
       - name: Verify the published website in Chromium
-        run: node tests/browser.mjs
+        run: |
+          node tests/browser.mjs
+          node tests/features.mjs
       - name: Save browser verification results
         if: always()
         uses: actions/upload-artifact@v4

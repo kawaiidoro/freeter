@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULT_SCHEDULE, generateSchedule, scheduleTotals, calculatePay, recordStatus, monthStats, emptyState, validateState, validDate, csvText } from '../core.js';
+import { DEFAULT_SCHEDULE, generateSchedule, scheduleTotals, calculatePay, recordStatus, monthStats, emptyState, validateState, validDate, csvText, calculateTax, shiftState, evaluateExpression } from '../core.js';
 
-const pay = { start: '10:00', end: '19:00', breakMinutes: 60, payType: 'hourly', rate: 12000, extra: 0, deduction: 0 };
+const pay = { start: '10:00', end: '19:00', breakMinutes: 60, payType: 'hourly', rate: 12000, extra: 0, deduction: 0, taxType:'none',taxExempt:0 };
 const record = (changes = {}) => ({ ...pay, id: 'record-one', date: '2026-09-30', workplace: '우리 카페', task: '판매', dueDate: '2026-10-05', note: '', payments: [], ...changes });
 
 test('요구사항 예시: 점심 10–11시, A·B 5시간 / C 6시간', () => {
@@ -131,4 +131,76 @@ test('실제 달력 날짜 및 윤년 검증', () => {
   assert.equal(validDate('2026-02-29'), false);
   assert.equal(validDate('2026-13-01'), false);
   assert.equal(validDate('2026-01-00'), false);
+});
+
+test('일용근로 1일 20만원: 소득세 1350원 + 지방소득세 130원',()=>{
+  const result=calculatePay({...pay,payType:'daily',rate:200000,taxType:'daily'});
+  assert.equal(result.incomeTax,1350);assert.equal(result.localTax,130);assert.equal(result.expected,198520);
+});
+test('일용근로 일일 공제 및 1000원 미만 소액부징수',()=>{
+  for(const gross of [96000,150000,187000])assert.equal(calculateTax(gross,'daily').totalTax,0);
+  assert.equal(calculateTax(187037,'daily').incomeTax,0);
+  assert.equal(calculateTax(187038,'daily').incomeTax,1000);
+});
+test('프리랜서 과세금액의 3% + 지방소득세 및 비과세·기타공제 분리',()=>{
+  const result=calculatePay({...pay,payType:'daily',rate:200000,taxType:'freelance'});
+  assert.equal(result.totalTax,6600);assert.equal(result.expected,193400);
+  const exempt=calculatePay({...pay,payType:'daily',rate:220000,taxType:'freelance',taxExempt:20000,deduction:1000});
+  assert.equal(exempt.taxable,200000);assert.equal(exempt.expected,212400);
+  assert.throws(()=>calculateTax(10000,'daily',20000));assert.throws(()=>calculateTax(10000,'unknown'));
+});
+test('2인 맞교대는 1인 근무·1인 휴식으로 이름별 합계를 계산한다',()=>{
+  const rows=generateSchedule({...DEFAULT_SCHEDULE,count:2,lunchEnabled:false,start:'09:00',end:'17:00'});
+  assert.deepEqual(rows.map(r=>r.rest),[0,1,0,1,0,1,0,1]);
+  assert.deepEqual(scheduleTotals(rows,2).map(t=>t.work),[240,240]);
+  rows.forEach(row=>assert.deepEqual([0,1].map(p=>shiftState(row,p)).sort(),['rest','work']));
+});
+test('1명씩 식사하면 모든 사람에게 60분 식사, 나머지는 근무',()=>{
+  const rows=generateSchedule({...DEFAULT_SCHEDULE,lunchMode:'single'});
+  const meals=rows.filter(r=>r.lunchers);
+  assert.equal(meals.length,3);assert.deepEqual(meals.map(r=>r.lunchers),[[0],[1],[2]]);
+  for(const row of meals)assert.equal([0,1,2].filter(i=>shiftState(row,i)==='work').length,2);
+  assert.deepEqual(scheduleTotals(rows).map(t=>t.lunch),[60,60,60]);
+  assert.equal(rows.at(-1).end,1140);
+});
+test('2명 먼저 식사 시 1명 근무, 다음 구간은 2명 근무',()=>{
+  const rows=generateSchedule({...DEFAULT_SCHEDULE,lunchMode:'pair',lunchFirst:1});
+  const meals=rows.filter(r=>r.lunchers);
+  assert.deepEqual(meals.map(r=>r.lunchers),[[1,2],[0]]);
+  assert.deepEqual(meals.map(r=>[0,1,2].filter(i=>shiftState(r,i)==='work').length),[1,2]);
+  assert.deepEqual(scheduleTotals(rows).map(t=>t.lunch),[60,60,60]);
+});
+test('맞교대의 1명씩 식사 및 모든 식사 유형 공평 배분',()=>{
+  for(const count of [2,3])for(const lunchMode of ['together','single',...(count===3?['pair']:[])]){
+    const rows=generateSchedule({...DEFAULT_SCHEDULE,count,lunchMode,fair:true,interval:37});
+    const totals=scheduleTotals(rows,count), work=totals.map(t=>t.work);
+    assert.ok(Math.max(...work)-Math.min(...work)<=1);
+    assert.ok(totals.every(t=>t.work+t.rest+t.lunch===540));
+    rows.forEach((r,i)=>{if(i)assert.equal(rows[i-1].end,r.start);});
+  }
+});
+test('교대 식사 창이 전체 일정인 경우와 범위 초과 검증',()=>{
+  const rows=generateSchedule({...DEFAULT_SCHEDULE,start:'12:00',end:'15:00',lunchMode:'single'});
+  assert.equal(rows.length,3);assert.deepEqual(scheduleTotals(rows).map(t=>t.work),[120,120,120]);
+  assert.throws(()=>generateSchedule({...DEFAULT_SCHEDULE,end:'13:30',lunchMode:'single'}));
+  assert.throws(()=>generateSchedule({...DEFAULT_SCHEDULE,count:2,lunchMode:'pair'}));
+});
+test('v1 백업을 v2로 읽으면서 급여·입금·수동 배정을 보존한다',()=>{
+  const old=emptyState();old.version=1;delete old.workMemo;
+  old.schedule.config={names:['근무자 A','민수','근무자 C'],start:'10:00',end:'19:00',lunchEnabled:true,lunchStart:'12:00',lunchEnd:'13:00',interval:60,first:0,fair:false};
+  old.schedule.generatedConfig=structuredClone(old.schedule.config);old.schedule.rows=generateSchedule(old.schedule.config);old.schedule.rows[0].rest=2;
+  const r=record({payments:[{date:'2026-10-01',amount:30000}]});delete r.taxType;delete r.taxExempt;old.records=[r];
+  const updated=validateState(JSON.parse(JSON.stringify(old)));
+  assert.equal(updated.version,2);assert.equal(updated.records[0].taxType,'none');assert.equal(calculatePay(updated.records[0]).expected,96000);
+  assert.equal(updated.records[0].payments[0].amount,30000);assert.equal(updated.schedule.rows[0].rest,2);assert.equal(updated.schedule.config.names[0],'');assert.equal(updated.schedule.config.names[1],'민수');
+});
+test('교대 식사·업무 메모·세금 유형이 JSON 왕복 후 유지된다',()=>{
+  const data=emptyState();data.workMemo='<업무> 준비물과 전달사항\n확인';data.records=[record({taxType:'freelance'})];
+  data.schedule.config.lunchMode='pair';data.schedule.generatedConfig=structuredClone(data.schedule.config);data.schedule.rows=generateSchedule(data.schedule.config);
+  assert.deepEqual(validateState(JSON.parse(JSON.stringify(data))),data);
+  const broken=structuredClone(data);broken.schedule.rows.find(r=>r.lunchers).lunchers=[0,2];assert.throws(()=>validateState(broken));
+});
+test('작은 계산기는 우선순위·소수·음수·괄호를 지원하며 코드 실행을 거부한다',()=>{
+  assert.equal(evaluateExpression('12000 × 8 - 1000'),95000);assert.equal(evaluateExpression('(2+3)*4'),20);assert.equal(evaluateExpression('0.1+0.2'),0.3);assert.equal(evaluateExpression('-2×-3'),6);
+  for(const text of ['1/0','alert(1)','1..2','2(3)','(2+3','2+'])assert.throws(()=>evaluateExpression(text));
 });

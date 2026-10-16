@@ -19,10 +19,11 @@
     <div class="nav-caption">나의 알바 매니저</div>
     <nav class="main-nav">
       <a href="#home" data-page="home"><span data-icon="home"></span>대시보드</a>
-      <a href="#schedule" data-page="schedule"><span data-icon="calendar"></span>밀어내기 근무표</a>
+      <a href="#schedule" data-page="schedule"><span data-icon="calendar"></span>교대 근무표</a>
       <a href="#calculator" data-page="calculator"><span data-icon="calculator"></span>급여 계산기</a>
       <a href="#records" data-page="records"><span data-icon="notebook"></span>나의 알바 기록</a>
       <a href="#stats" data-page="stats"><span data-icon="chart"></span>수입 통계</a>
+      <a href="#notes" data-page="notes"><span data-icon="edit"></span>업무 메모장</a>
     </nav>
     <div class="sidebar-bottom">
       <div class="local-note"><span data-icon="shield"></span><strong>내 기록은 내 브라우저에</strong><p>회원가입 없이, 나만의 공간에서<br>안심하고 관리하세요.</p></div>
@@ -31,7 +32,7 @@
     </div>
   </aside>
   <div class="app-shell">
-    <header class="topbar"><a class="mobile-brand" href="#home"><img src="./icon.svg" alt="" width="28" height="28">저는 단기알바입니다.</a><div class="breadcrumb"><span>나의 워크스페이스</span><span class="slash">/</span><strong id="page-label">대시보드</strong></div><div class="top-actions"><span class="today" id="today-label"></span><button type="button" class="icon-button" id="theme-toggle" aria-label="다크모드로 전환"><span data-icon="moon"></span></button><a class="avatar" href="#settings" aria-label="내 설정">나</a></div></header>
+    <header class="topbar"><a class="mobile-brand" href="#home"><img src="./icon.svg" alt="" width="28" height="28">저는 단기알바입니다.</a><div class="breadcrumb"><span>나의 워크스페이스</span><span class="slash">/</span><strong id="page-label">대시보드</strong></div><div class="top-actions"><span class="today" id="today-label"></span><a class="icon-button notes-top-link" href="#notes" aria-label="업무 메모장 열기"><span data-icon="edit"></span></a><button type="button" class="icon-button" id="theme-toggle" aria-label="다크모드로 전환"><span data-icon="moon"></span></button><a class="avatar" href="#settings" aria-label="내 설정">나</a></div></header>
     <main id="main" tabindex="-1"><article class="panel prose"><h1>나의 알바 기록</h1><p>여러 근무지의 출퇴근, 담당 업무, 급여와 입금 내역을 브라우저에 기록하세요. 지급 예정, 미지급, 일부 지급과 지급 완료를 구분하고 검색 및 필터를 제공합니다.</p><p>저는 단기알바입니다. — 회원가입 없이 무료로 사용하세요.</p><a href="./guide.html">사용법 안내</a></article></main>
     <footer class="site-footer"><div><strong>저는 단기알바입니다.</strong><span>오늘의 수고가, 내일의 여유가 되도록.</span></div><nav aria-label="하단 메뉴"><a href="#guide">사용법</a><a href="#privacy">개인정보 안내</a><a href="#settings">백업 · 복원</a></nav><p>© <span id="year"></span> 저는 단기알바입니다. · 모든 기능 무료</p></footer>
   </div>

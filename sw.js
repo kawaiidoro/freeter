@@ -1,5 +1,5 @@
-const CACHE = 'dangi-alba-shell-v2';
-const ASSETS = ['./', './index.html', './schedule.html', './calculator.html', './records.html', './stats.html', './guide.html', './privacy.html', './settings.html', './style.css', './site.js', './icon.svg', './manifest.webmanifest'];
+const CACHE = 'dangi-alba-shell-v3';
+const ASSETS = ['./', './index.html', './schedule.html', './calculator.html', './records.html', './stats.html', './guide.html', './privacy.html', './settings.html', './notes.html', './style.css', './site.js', './icon.svg', './manifest.webmanifest'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
   self.skipWaiting();
