@@ -665,9 +665,9 @@ html[data-theme] .notes-editor .ql-editor { padding: 0; min-height: 450px; color
 .updates-trigger strong { display: block; font-size: 15px; }
 .updates-trigger small { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; }
 .updates-trigger > .icon { margin-left: auto; width: 16px; height: 16px; }
-#updates-dialog, #sync-dialog { width: 880px; border-radius: 25px; padding: 29px; }
-#updates-dialog .dialog-head, #sync-dialog .dialog-head { margin-bottom: 25px; }
-#updates-dialog .eyebrow, #sync-dialog .eyebrow { margin-bottom: 5px; font-size: 9px; }
+#updates-dialog { width: 880px; border-radius: 25px; padding: 29px; }
+#updates-dialog .dialog-head { margin-bottom: 25px; }
+#updates-dialog .eyebrow { margin-bottom: 5px; font-size: 9px; }
 .updates-layout { display: grid; grid-template-columns: minmax(0,1fr) 210px; gap: 30px; }
 .update-date { display: block; color: var(--muted); font-size: 10px; letter-spacing: .3px; }
 .updates-content > h3 { margin: 12px 0 6px; font-size: 23px; line-height: 1.5; letter-spacing: -1px; }
@@ -683,46 +683,18 @@ html[data-theme] .notes-editor .ql-editor { padding: 0; min-height: 450px; color
 .updates-mascot > span { font-size: 13px; font-weight: 700; margin-top: 5px; }
 .updates-mascot p { text-align: center; font-size: 11px; line-height: 1.9; color: var(--muted); margin-top: 7px; }
 
-/* Pairing is explicit; the open data channel carries data directly. */
-.workspace-connect { border: 1px solid var(--border); padding: 9px 12px; border-radius: 20px; background: var(--surface); cursor: pointer; }
-[data-sync-indicator][data-connected='true'] { color: var(--blue); background: var(--blue-soft); }
-.device-settings-card { display: flex; justify-content: space-between; gap: 20px; align-items: center; }
-.device-settings-card p { color: var(--body); font-size: 12px; line-height: 1.9; margin-top: 9px; }
-.device-settings-card .button { flex-shrink: 0; }
-.sync-intro { color: var(--body); font-size: 13px; line-height: 1.9; margin-bottom: 18px; }
-.sync-status { border-radius: 12px; padding: 13px 16px; color: var(--body); background: var(--bg); border: 1px solid var(--border); font-size: 12px; line-height: 1.8; margin-bottom: 22px; overflow-wrap: anywhere; }
-.sync-status[data-status='syncing'], .sync-status[data-status='connected'] { color: var(--blue); background: var(--blue-soft); }
-.sync-pairing { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; }
-.sync-step { border: 1px solid var(--border); border-radius: 17px; padding: 20px; min-width: 0; }
-.sync-step h3 { display: flex; align-items: center; gap: 8px; font-size: 14px; }
-.sync-step h3 > span { display: grid; place-items: center; width: 23px; height: 23px; border-radius: 50%; background: var(--blue-soft); color: var(--blue); font-size: 12px; }
-.sync-step > p { font-size: 12px; line-height: 1.9; color: var(--body); margin: 12px 0 17px; }
-.sync-step .field { margin: 14px 0 12px; }
-.sync-step .field > span { font-size: 11px; line-height: 1.8; }
-.sync-step textarea { resize: vertical; word-break: break-all; font-family: ui-monospace, monospace; font-size: 11px; line-height: 1.8; min-height: 95px; max-height: 220px; }
-.sync-step .button { font-size: 11px; }
-.sync-connected { padding: 28px; text-align: center; border-radius: 20px; border: 1px solid var(--border); }
-.sync-connected-icon { display: grid; place-items: center; width: 52px; height: 52px; background: var(--blue-soft); color: var(--blue); border-radius: 16px; margin: 0 auto 17px; }
-.sync-connected h3 { font-size: 20px; }
-.sync-connected p { font-size: 12px; color: var(--body); line-height: 1.9; max-width: 420px; margin: 13px auto 20px; }
-.sync-notes { margin-top: 22px; }
-.sync-notes p { font-size: 11px; color: var(--muted); line-height: 1.9; margin-top: 9px; }
-.sync-bottom-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; border-top: 1px solid var(--border); padding-top: 18px; margin-top: 20px; }
-.sync-bottom-actions > .button:last-child { margin-left: auto; }
 @media (max-width: 800px) {
   .top-actions .avatar { display: none; }
   .top-actions .icon-button { width: 30px; height: 34px; padding: 5px; }
   .top-actions .icon-button .icon { width: 19px; height: 19px; }
   .workspace-heading { flex-wrap: wrap; gap: 12px; }
-  .workspace-connect { display: flex; font-size: 10px; }
-  .device-settings-card { flex-direction: column; align-items: flex-start; }
 }
 @media (max-width: 600px) {
   .memo-format-toolbar { padding: 10px 17px; gap: 8px; }
   html[data-theme] .notes-editor .ql-editor { min-height: max(350px,48dvh); font-size: 17px; }
   .notes-editor .ql-editor.ql-blank::before { font-size: 15px; }
   .workspace-updates { flex-wrap: wrap; font-size: 11px; padding-inline: 10px; }
-  #updates-dialog, #sync-dialog { padding: 23px 20px; border-radius: 22px; }
+  #updates-dialog { padding: 23px 20px; border-radius: 22px; }
   .updates-layout { display: block; }
   .updates-content > h3 { font-size: 20px; padding-right: 80px; }
   .updates-content > .update-date, .updates-intro { padding-right: 80px; }
@@ -731,18 +703,8 @@ html[data-theme] .notes-editor .ql-editor { padding: 0; min-height: 450px; color
   .updates-mascot > span, .updates-mascot p { display: none; }
   .update-list { gap: 18px; }
   .update-list p { font-size: 12px; }
-  .sync-pairing { grid-template-columns: 1fr; gap: 16px; }
-  .sync-step { padding: 18px; }
-  .sync-intro { font-size: 12px; }
-  .sync-step textarea { font-size: 16px; }
-  .sync-connected { padding: 23px 17px; }
 }
 
-/* Connection feedback remains visible in browsers with restricted WebRTC. */
-.sync-unavailable { padding: 20px; border: 1px solid var(--border); background: var(--bg); border-radius: 16px; }
-.sync-unavailable h3 { font-size: 16px; }
-.sync-unavailable p { color: var(--body); font-size: 12px; line-height: 1.9; margin-top: 10px; }
-.sync-status[data-status='unsupported'] { border-color: var(--blue); color: var(--text); background: var(--blue-soft); }
 .app-update-banner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 13px 24px; border-bottom: 1px solid var(--border); background: var(--blue-soft); color: var(--text); font-size: 12px; }
 @media (max-width: 800px) {
   .top-actions .icon-button { min-width: 36px; width: 36px; height: 40px; padding: 8px; }

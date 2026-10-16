@@ -40,7 +40,6 @@ $$('[data-icon]').forEach(node => { node.innerHTML = icon(node.dataset.icon); })
 $('.topbar').before($('#storage-alert'));
 
 let state = emptyState(), storageBlocked = false, rawStored = null;
-let peerSession = null;
 try {
   rawStored = localStorage.getItem(STORAGE_KEY);
   if (rawStored !== null) state = validateState(JSON.parse(rawStored));
@@ -55,7 +54,6 @@ function save() {
   if (storageBlocked) return false;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    peerSession?.publish(state);
     return true;
   } catch {
     $('#storage-alert').hidden = false;
@@ -133,7 +131,7 @@ const appTile = (route, image, name, color) => `<a class="app-tile" href="#${rou
 function homeView() {
   const stats = monthStats(state.records, monthNow());
   const recent = [...state.records].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4);
-  return `<header class="workspace-heading"><div><p class="eyebrow">FREETER WORKSPACE</p><h1>나의 워크스페이스</h1></div><button class="workspace-local workspace-connect" data-action="open-sync" data-sync-indicator>${icon('share')}다른 기기 연결</button></header>
+  return `<header class="workspace-heading"><div><p class="eyebrow">FREETER WORKSPACE</p><h1>나의 워크스페이스</h1></div><span class="workspace-local">${icon('lock')}이 브라우저에 저장</span></header>
     <div class="workspace-grid">
       <section class="workspace-widget profile-widget" aria-label="나의 Freeter"><img class="profile-logo" src="./assets/freeter-512.png" width="96" height="96" alt="안전모를 비스듬히 쓴 Freeter F 로고"><div class="profile-copy"><span class="profile-wordmark">Freeter</span><p>근무부터 급여까지,<br>내 일의 흐름을 한곳에.</p></div><a href="#calculator" class="profile-link">급여 계산하기 ${icon('arrow')}</a></section>
       <section class="workspace-widget launcher-widget" aria-labelledby="apps-title"><div class="widget-heading"><h2 id="apps-title">나의 도구</h2><span>필요할 때, 바로</span></div><div class="app-launcher">${[['schedule','calendar','근무표','tile-orange'],['calculator','calculator','급여 계산','tile-black'],['records','notebook','알바 기록','tile-silver'],['notes','edit','업무 메모','tile-notes'],['stats','chart','수입 통계','tile-chart'],['settings','settings','데이터 · 설정','tile-settings']].map(args=>appTile(...args)).join('')}</div></section>
@@ -315,71 +313,13 @@ function newFeaturesGuide() {
 }
 function openUpdates() {
   const dialog=ensureAppDialog('updates-dialog','updates-title');
-  dialog.innerHTML=`<div class="dialog-head"><div><p class="eyebrow">WHAT’S NEW</p><h2 id="updates-title">업데이트 내역</h2></div><button type="button" class="icon-button" data-action="close-updates" aria-label="업데이트 내역 닫기">${icon('close')}</button></div><div class="updates-layout"><section class="updates-content"><span class="update-date">2026.10.16 · FREETER UPDATE</span><h3>새로운 근무 관리 도구</h3><p class="updates-intro">곰씨와 함께, 오늘의 일을 조금 더 편하게.</p><ul class="update-list"><li><span>${icon('calendar')}</span><div><h4>우리 현장에 맞는 교대</h4><p>3인 밀어내기·2인 맞교대, 모두 함께·1명씩·2명 먼저 점심을 선택해요. 모바일에서도 표를 한눈에 볼 수 있어요.</p></div></li><li><span>${icon('calculator')}</span><div><h4>세금까지 계산하는 급여</h4><p>일용근로소득과 프리랜서 3.3%를 선택하고 예상 수령액을 확인해요. 작은 계산기로 추가 계산도 할 수 있어요.</p></div></li><li><span>${icon('check')}</span><div><h4>받은 급여는 지급 완료로</h4><p>실제 입금일과 금액을 남기면 지급 상태와 수입 통계에 함께 반영돼요.</p></div></li><li><span>${icon('edit')}</span><div><h4>내 방식으로 쓰는 업무 메모</h4><p>굵게·크기·밑줄·글자색·형광펜으로 중요한 내용을 표시해요. 읽기 보기와 JSON 백업에도 서식이 유지돼요.</p></div></li><li><span>${icon('share')}</span><div><h4>두 기기, 같은 기록</h4><p>같은 와이파이에서 연결 코드를 교환해 PC·모바일을 직접 연결해요. 두 창이 열린 동안 변경 내용을 연동해요.</p></div></li></ul></section><aside class="updates-mascot"><img src="./assets/gomssi.png" width="240" height="280" alt="노란 안전모와 작업 조끼를 입고 인사하는 노가다 곰씨"><span>노가다 곰씨</span><p>오늘도 안전하게,<br>기록은 꼼꼼하게.</p></aside></div>`;
+  dialog.innerHTML=`<div class="dialog-head"><div><p class="eyebrow">WHAT’S NEW</p><h2 id="updates-title">업데이트 내역</h2></div><button type="button" class="icon-button" data-action="close-updates" aria-label="업데이트 내역 닫기">${icon('close')}</button></div><div class="updates-layout"><section class="updates-content"><span class="update-date">2026.10.16 · FREETER UPDATE</span><h3>새로운 근무 관리 도구</h3><p class="updates-intro">곰씨와 함께, 오늘의 일을 조금 더 편하게.</p><ul class="update-list"><li><span>${icon('calendar')}</span><div><h4>우리 현장에 맞는 교대</h4><p>3인 밀어내기·2인 맞교대, 모두 함께·1명씩·2명 먼저 점심을 선택해요. 모바일에서도 표를 한눈에 볼 수 있어요.</p></div></li><li><span>${icon('calculator')}</span><div><h4>세금까지 계산하는 급여</h4><p>일용근로소득과 프리랜서 3.3%를 선택하고 예상 수령액을 확인해요. 작은 계산기로 추가 계산도 할 수 있어요.</p></div></li><li><span>${icon('check')}</span><div><h4>받은 급여는 지급 완료로</h4><p>실제 입금일과 금액을 남기면 지급 상태와 수입 통계에 함께 반영돼요.</p></div></li><li><span>${icon('edit')}</span><div><h4>내 방식으로 쓰는 업무 메모</h4><p>굵게·크기·밑줄·글자색·형광펜으로 중요한 내용을 표시해요. 읽기 보기와 JSON 백업에도 서식이 유지돼요.</p></div></li></ul></section><aside class="updates-mascot"><img src="./assets/gomssi.png" width="240" height="280" alt="노란 안전모와 작업 조끼를 입고 인사하는 노가다 곰씨"><span>노가다 곰씨</span><p>오늘도 안전하게,<br>기록은 꼼꼼하게.</p></aside></div>`;
   dialog.showModal();
 }
-const SYNC_BACKUP_KEY='freeter:before-peer-sync',SYNC_CONFLICT_KEY='freeter:peer-conflict';
-let syncSupportError='';
-const readBackup = key => { try { return localStorage.getItem(key); } catch { return null; } };
 function ensureAppDialog(id,label) {
   let dialog=document.getElementById(id);
   if(!dialog){dialog=document.createElement('dialog');dialog.id=id;dialog.setAttribute('aria-labelledby',label);document.body.append(dialog);}
   return dialog;
-}
-function syncSupportProblem() {
-  if(storageBlocked)return '이 브라우저에서 기록을 저장할 수 없어 연동을 시작할 수 없어요. 일반 탭에서 다시 열고 데이터 · 설정에서 기록 저장 상태를 확인해 주세요.';
-  if(!globalThis.isSecureContext)return '기기 연결은 HTTPS의 일반 브라우저 탭에서 이용할 수 있어요.';
-  if(typeof globalThis.RTCPeerConnection!=='function')return '현재 브라우저에서 기기 연결 기능을 지원하지 않거나 제한하고 있어요. 삼성 인터넷을 최신 버전으로 업데이트하거나 Chrome의 일반 탭에서 열어 주세요.';
-  if(typeof globalThis.crypto?.getRandomValues!=='function')return '안전한 연결 코드를 만들 수 없는 환경이에요. 최신 버전의 삼성 인터넷 또는 Chrome에서 열어 주세요.';
-  if(typeof globalThis.FreeterPeer!=='function')return '기기 연결 기능을 불러오지 못했어요. 아래의 최신 화면 다시 열기를 눌러 주세요.';
-  return '';
-}
-function updateSyncStatus(_status,message) {
-  const status=syncSupportError?'unsupported':peerSession?.status||'idle',ready=peerSession?.ready||false,connected=peerSession?.channel?.readyState==='open';
-  $$('[data-sync-indicator]').forEach(node=>{node.dataset.connected=String(ready);node.title=ready?'기기 연동 중':'다른 기기 연결';});
-  if($('#sync-status')){
-    $('#sync-status').textContent=syncSupportError||message||peerSession?.message||'아직 연결된 기기가 없어요.';$('#sync-status').dataset.status=status;
-    $('#sync-pairing').hidden=connected||!!syncSupportError;$('#sync-unavailable').hidden=!syncSupportError;$('#sync-connected').hidden=!connected;$('#sync-start').hidden=ready;
-    $('#sync-connected-description').textContent=ready?'이제 근무표·급여 기록·입금 내역·메모와 서식이 함께 반영됩니다.':'사용할 기록이 있는 기기에서 시작하세요. 상대 기기에서 자료 교체를 확인한 후 연동됩니다.';
-    $('#sync-start').disabled=status==='confirming';
-    for(const button of $$('#sync-pairing button[data-action="sync-offer"],#sync-pairing button[data-action="sync-accept"]'))button.disabled=!!syncSupportError||status==='preparing';
-    const local=peerSession?.localCode||'';$('#sync-local-block').hidden=!local;if($('#sync-local-code').value!==local)$('#sync-local-code').value=local;
-    $('#sync-local-label').textContent=status==='answer'?'② 이 응답 코드를 처음 기기에 전달하세요':'① 이 요청 코드를 다른 기기에 전달하세요';
-    $('#sync-backup').hidden=!readBackup(SYNC_BACKUP_KEY);$('#sync-conflict-backup').hidden=!readBackup(SYNC_CONFLICT_KEY);
-  }
-}
-function backupBeforePairing() {
-  if(storageBlocked)throw new Error('이 브라우저에서 저장소를 사용할 수 없어 연동을 시작하지 못했어요. 먼저 JSON 백업을 해 주세요.');
-  try{localStorage.setItem(SYNC_BACKUP_KEY,JSON.stringify(state));}
-  catch{throw new Error('기기 연결 전 백업을 저장할 공간이 없어요. JSON으로 백업하고 저장 공간을 확보해 주세요.');}
-}
-function applyPeerState(next,initial) {
-  if(storageBlocked)throw new Error('저장소를 사용할 수 없어 상대 기기의 변경을 적용하지 않았어요.');
-  if(initial)backupBeforePairing();
-  const memoChanged=state.workMemo!==next.workMemo||JSON.stringify(state.workMemoDelta)!==JSON.stringify(next.workMemoDelta);
-  localStorage.setItem(STORAGE_KEY,JSON.stringify(next));state=next;rawStored=JSON.stringify(next);
-  if(page==='notes'){
-    if(memoQuill&&memoChanged){const range=memoQuill.getSelection();memoQuill.setContents(state.workMemoDelta||{ops:[{insert:state.workMemo+'\n'}]},'silent');if(range){const index=Math.min(range.index,memoQuill.getLength()-1);memoQuill.setSelection(index,Math.min(range.length,memoQuill.getLength()-1-index),'silent');}}
-    if($('#memo-reader')){$('#memo-reader').innerHTML=memoMarkup();$('#memo-reader').classList.toggle('memo-empty',!state.workMemo.trim());}
-    if($('#memo-fallback'))$('#memo-fallback').value=state.workMemo;
-    if($('.note-selected p'))$('.note-selected p').textContent=state.workMemo.trim().split('\n')[0]||'첫 업무 설명을 남겨 보세요.';
-    updateMemoStatus();applyTheme();updateMemoTools();
-  }else if(document.activeElement?.closest('form')){applyTheme();if(page==='records')updateRecords();}
-  else render();
-}
-function ensurePeer() {
-  const problem=syncSupportProblem();if(problem)throw new Error(problem);
-  if(!peerSession)peerSession=new FreeterPeer({getState:()=>state,validate:validateState,onStatus:updateSyncStatus,
-    approve:incoming=>confirmAction(`현재 이 기기의 기록 ${state.records.length}건과 메모·근무표를 상대 기기의 기록 ${incoming.records.length}건으로 교체한 뒤 연동합니다. 교체 전 자료는 이 기기에 별도 백업으로 보관해요.`,'어느 기기의 기록으로 시작할까요?','상대 기록으로 연동'),
-    apply:applyPeerState,onConflict:(_key,previous)=>{try{localStorage.setItem(SYNC_CONFLICT_KEY,JSON.stringify(previous));}catch{}toast('동시에 수정된 항목을 정리했어요. 기기 연결 창에서 직전 기록을 백업할 수 있어요.');}});
-  return peerSession;
-}
-function openSync() {
-  const dialog=ensureAppDialog('sync-dialog','sync-title');
-  dialog.innerHTML=`<div class="dialog-head"><div><p class="eyebrow">DEVICE LINK</p><h2 id="sync-title">다른 기기 연결</h2></div><button type="button" class="icon-button" data-action="close-sync" aria-label="기기 연결 창 닫기">${icon('close')}</button></div><p class="sync-intro">같은 와이파이의 PC와 모바일을 연결하세요.<br>두 기기의 창이 열린 동안, 기록이 함께 바뀝니다.</p><p id="sync-status" class="sync-status" role="status" aria-live="polite"></p><section id="sync-unavailable" class="sync-unavailable" hidden><h3>기기 연결을 시작하지 못했어요.</h3><p>화면의 안내를 확인한 뒤 최신 화면에서 다시 시도해 주세요. 저장한 기록은 그대로 유지됩니다.</p></section><div id="sync-pairing" class="sync-pairing"><section class="sync-step"><h3><span>1</span>처음 연결하는 기기</h3><p>한 기기에서 요청 코드를 만들어 다른 기기로 전달하세요.</p><button class="button primary" data-action="sync-offer">연결 요청 만들기</button><div id="sync-local-block" hidden><label class="field"><span id="sync-local-label">연결 코드</span><textarea id="sync-local-code" rows="3" readonly spellcheck="false" aria-label="다른 기기에 전달할 연결 코드"></textarea></label><button class="button secondary small" data-action="sync-copy">코드 복사</button></div></section><section class="sync-step"><h3><span>2</span>받은 코드 붙여넣기</h3><p>요청 코드를 받으면 응답 코드가 만들어집니다. 응답 코드는 처음 기기에 전달해 한 번 더 붙여넣으세요.</p><label class="field"><span class="sr-only">상대 기기의 연결 코드</span><textarea id="sync-remote-code" rows="4" maxlength="100000" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="FRT1.로 시작하는 코드 전체" aria-label="상대 기기의 연결 코드"></textarea></label><button class="button secondary" data-action="sync-accept">받은 코드로 연결</button></section></div><section id="sync-connected" class="sync-connected" hidden><span class="sync-connected-icon">${icon('share')}</span><h3>두 기기가 연결됐어요.</h3><p id="sync-connected-description"></p><button id="sync-start" class="button primary" data-action="sync-start">이 기기 기록으로 시작</button></section><div class="sync-notes"><p>창을 닫거나 새로고침하면 코드를 다시 교환해야 해요. 같은 메모는 한 번에 한 기기에서 편집해 주세요. 게스트 와이파이처럼 기기 간 통신이 차단된 네트워크에서는 연결되지 않을 수 있어요.</p><p>자료는 연결한 기기에 직접 전송하며 별도 서버에 보관하지 않습니다. 연결을 해제해도 각 기기의 자료는 남아요.</p></div><div class="sync-bottom-actions"><a class="button secondary small" href="${esc(latestAppUrl())}">최신 화면 다시 열기</a><button class="button secondary small" id="sync-backup" data-action="sync-backup" hidden>연결 전 기록 JSON 백업</button><button class="button secondary small" id="sync-conflict-backup" data-action="sync-conflict-backup" hidden>동시 수정 전 기록 백업</button><button class="button ghost small" data-action="sync-disconnect">연결 해제</button></div>`;
-  dialog.showModal();syncSupportError=syncSupportProblem();
-  if(!syncSupportError){try{ensurePeer();}catch(error){syncSupportError=error.message;}}
-  updateSyncStatus();
 }
 function openCompletePayment(id) {
   const record=state.records.find(r=>r.id===id);if(!record)return;
@@ -411,13 +351,13 @@ function statsView() {
 }
 
 function settingsView() {
-  return head('YOUR DATA, YOUR CONTROL', '데이터 · 설정', '내 기록은 나의 것. 주기적인 백업으로 안전하게 보관해 주세요.') + `<div class="settings-grid"><section class="panel settings-card wide device-settings-card"><div><h2>PC · 모바일, 같은 기록</h2><p>연결 코드를 교환하고 두 창이 열린 동안 기록과 메모를 연동해요.</p></div><button class="button primary" data-action="open-sync">${icon('share')}다른 기기 연결</button></section><section class="panel settings-card"><span class="feature-icon blue">${icon('download')}</span><h2>백업과 복원</h2><p>이름, 근무표, 알바 기록과 입금 내역, 메모와 서식을 하나의 JSON 파일로 보관해요. 다른 기기에서는 이 파일을 불러오세요.</p><div class="stack-actions"><button class="button primary" data-action="backup">${icon('download')}전체 기록 JSON 다운로드</button><button class="button secondary" data-action="restore">${icon('upload')}JSON 파일 불러오기 · 복원</button><button class="button ghost" data-action="all-records-csv">${icon('download')}전체 알바 기록 CSV 다운로드</button>${rawStored !== null ? '<button class="button ghost" data-action="raw-backup">기존 브라우저 저장 원본 다운로드</button>' : ''}</div><input type="file" id="restore-file" accept=".json,application/json" hidden><p class="field-hint">복원 전 파일 구조를 검사하고 덮어쓰기 여부를 확인해요.<br>CSV는 엑셀 열람용이에요. 복원하려면 JSON을 사용해 주세요.</p></section><section class="panel settings-card"><span class="feature-icon purple">${icon('moon')}</span><h2>내게 편한 화면</h2><p>늦은 시간에도 편안하게. 테마 설정도 이 브라우저에 저장돼요.</p><div class="theme-options"><button class="theme-option ${state.settings.theme === 'light' ? 'selected' : ''}" data-action="set-theme" data-theme="light">${icon('sun')}라이트 모드</button><button class="theme-option ${state.settings.theme === 'dark' ? 'selected' : ''}" data-action="set-theme" data-theme="dark">${icon('moon')}다크 모드</button></div><div class="data-count"><span>이 브라우저의 알바 기록</span><strong>${state.records.length}건</strong></div><p class="field-hint">저장 형식 버전 ${VERSION} · 회원가입 및 서버 전송 없음</p></section><section class="panel settings-card wide"><div class="privacy-info">${icon('shield')}<div><h2>브라우저 저장, 꼭 알아두세요</h2><ul><li>기기 연결을 시작한 두 창 사이에서만 연동돼요. 창을 닫으면 연결이 해제돼요.</li><li>시크릿 모드를 종료하거나 브라우저 데이터를 지우면 기록이 사라질 수 있어요.</li><li>공용 PC에서는 같은 브라우저를 쓰는 다른 사람에게 기록이 보일 수 있어요.</li><li>JSON과 CSV 백업 파일에도 개인 기록이 담겨 있어요. 안전한 곳에 보관해 주세요.</li></ul><a class="text-link" href="#privacy">개인정보 안내 자세히 보기 ${icon('arrow')}</a></div></div></section><section class="panel settings-card wide danger-zone"><div><h2>전체 데이터 삭제</h2><p>이 서비스의 근무표·근무 기록·입금 내역·설정을 모두 삭제해요. 되돌릴 수 없으니 먼저 백업해 주세요.</p></div><button class="button danger-outline" data-action="delete-all">${icon('trash')}전체 삭제</button></section></div>`;
+  return head('YOUR DATA, YOUR CONTROL', '데이터 · 설정', '내 기록은 나의 것. 주기적인 백업으로 안전하게 보관해 주세요.') + `<div class="settings-grid"><section class="panel settings-card"><span class="feature-icon blue">${icon('download')}</span><h2>백업과 복원</h2><p>이름, 근무표, 알바 기록과 입금 내역, 메모와 서식을 하나의 JSON 파일로 보관해요. 다른 기기에서는 이 파일을 불러오세요.</p><div class="stack-actions"><button class="button primary" data-action="backup">${icon('download')}전체 기록 JSON 다운로드</button><button class="button secondary" data-action="restore">${icon('upload')}JSON 파일 불러오기 · 복원</button><button class="button ghost" data-action="all-records-csv">${icon('download')}전체 알바 기록 CSV 다운로드</button>${rawStored !== null ? '<button class="button ghost" data-action="raw-backup">기존 브라우저 저장 원본 다운로드</button>' : ''}</div><input type="file" id="restore-file" accept=".json,application/json" hidden><p class="field-hint">복원 전 파일 구조를 검사하고 덮어쓰기 여부를 확인해요.<br>CSV는 엑셀 열람용이에요. 복원하려면 JSON을 사용해 주세요.</p></section><section class="panel settings-card"><span class="feature-icon purple">${icon('moon')}</span><h2>내게 편한 화면</h2><p>늦은 시간에도 편안하게. 테마 설정도 이 브라우저에 저장돼요.</p><div class="theme-options"><button class="theme-option ${state.settings.theme === 'light' ? 'selected' : ''}" data-action="set-theme" data-theme="light">${icon('sun')}라이트 모드</button><button class="theme-option ${state.settings.theme === 'dark' ? 'selected' : ''}" data-action="set-theme" data-theme="dark">${icon('moon')}다크 모드</button></div><div class="data-count"><span>이 브라우저의 알바 기록</span><strong>${state.records.length}건</strong></div><p class="field-hint">저장 형식 버전 ${VERSION} · 회원가입 및 서버 전송 없음</p></section><section class="panel settings-card wide"><div class="privacy-info">${icon('shield')}<div><h2>브라우저 저장, 꼭 알아두세요</h2><ul><li>기록은 현재 브라우저에 저장돼요. 다른 기기로 옮기려면 JSON 백업과 복원을 이용하세요.</li><li>시크릿 모드를 종료하거나 브라우저 데이터를 지우면 기록이 사라질 수 있어요.</li><li>공용 PC에서는 같은 브라우저를 쓰는 다른 사람에게 기록이 보일 수 있어요.</li><li>JSON과 CSV 백업 파일에도 개인 기록이 담겨 있어요. 안전한 곳에 보관해 주세요.</li></ul><a class="text-link" href="#privacy">개인정보 안내 자세히 보기 ${icon('arrow')}</a></div></div></section><section class="panel settings-card wide danger-zone"><div><h2>전체 데이터 삭제</h2><p>이 서비스의 근무표·근무 기록·입금 내역·설정을 모두 삭제해요. 되돌릴 수 없으니 먼저 백업해 주세요.</p></div><button class="button danger-outline" data-action="delete-all">${icon('trash')}전체 삭제</button></section></div>`;
 }
 function guideView() {
-  return head('A LITTLE HELP', '처음이어도 괜찮아요.', '복잡한 건 줄이고, 나의 하루에 집중하세요. 서비스 사용법을 알려드릴게요.') + `<div class="guide-grid"><article class="panel guide-card"><span class="guide-step">01</span><h2>세 사람이 함께하는 밀어내기 근무표</h2><p>이름, 일정, 점심시간, 교대 간격과 첫 휴식자를 입력하고 근무표를 생성하세요. 각 근무 구간에는 두 명 근무, 한 명 휴식이 배정됩니다.</p><p>점심에는 모두 쉬고 교대 타이머도 잠시 멈춥니다. 예를 들어 1시간 교대 중 20분 후 점심을 시작하면 점심 이후 남은 40분을 이어갑니다. 마지막 구간은 남은 시간에 맞춰 줄어듭니다.</p><p><strong>10:00–19:00, 점심 10:00–11:00, 1시간 교대, 첫 휴식자 A</strong>라면 A·B는 5시간, C는 6시간 근무합니다. 첫 휴식자를 바꾸어 날짜별 차이를 조절해 보세요.</p><p>공평하게 배분 모드는 휴식시간을 분 단위로 나누어 총 근무시간의 차이를 최대 1분으로 줄입니다. 이 과정에서 설정한 간격보다 짧은 구간이 생길 수 있어요. 수동 변경 후에는 실제 차이를 다시 보여드립니다.</p><p>표의 휴식자 선택으로 배정을 조정하고 PNG·CSV·텍스트로 공유하세요. 이름을 바꾸면 표에도 바로 반영돼요. 시간이나 규칙을 바꾸면 생성 버튼을 다시 눌러 주세요.</p><a class="text-link" href="#schedule">근무표 만들기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">02</span><h2>내 예상 급여 계산하기</h2><p><strong>시급제:</strong> (전체 근무시간 − 무급 휴게시간) ÷ 60 × 시급. 분 단위로 계산한 뒤 기본급을 원 단위로 반올림합니다.</p><div class="guide-example">10:00–19:00 · 휴게 60분 · 시급 12,000원<br><strong>유급 8시간 × 12,000원 = 96,000원</strong></div><p><strong>일급제:</strong> 근무시간과 관계없이 입력한 계약 일급을 기본급으로 사용합니다. 추가 지급액을 더하고 직접 입력한 공제액을 빼면 최종 예상액이 됩니다.</p><p>자정을 넘는 근무를 지원하며, 같은 출퇴근 시각은 0시간과 24시간을 구분할 수 없어 허용하지 않아요. 선택한 세금 유형의 공제를 계산합니다. 주휴·야간·연장 수당은 자동 적용하지 않습니다. 실제 근로 조건과 법정 수당은 별도로 확인해 주세요.</p><a class="text-link" href="#calculator">급여 계산하기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">03</span><h2>근무 기록과 입금 관리하기</h2><p>급여 계산기에서 근무일과 근무지를 입력하고 저장하거나, 기록장에서 직접 알바를 추가하세요. 업무·지급 예정일·메모도 남길 수 있습니다.</p><p>입금이 생길 때마다 기록을 열어 <strong>입금 내역 추가</strong>로 금액과 날짜를 남기세요. 여러 번 나눠 받은 내역도 그대로 관리할 수 있어요. 총입금이 예상액 이상이면 지급 완료, 일부 입금이면 일부 지급, 미입금이고 예정일이 지났으면 미지급, 나머지는 지급 예정으로 표시됩니다.</p><p>월별 실적은 <strong>근무 날짜</strong>, 실제 현금 수입은 <strong>입금 날짜</strong>로 집계됩니다. 미수령액은 각 기록의 예상액에서 입금액을 뺀 금액(최소 0원)의 합계입니다.</p><a class="text-link" href="#records">나의 기록장 열기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">04</span><h2>기기를 바꾸기 전에는 백업</h2><p>모든 기록은 현재 브라우저의 localStorage에 자동 저장됩니다. 별도의 계정이나 동기화 서버는 없습니다. 같은 와이파이에서는 연결 코드를 교환해 두 창이 열린 동안 PC·모바일의 기록을 직접 연동할 수 있습니다.</p><p>데이터 · 설정에서 <strong>전체 기록 JSON 다운로드</strong>를 누르세요. 다른 기기에서 같은 페이지를 열어 JSON 파일을 복원하면 됩니다. 복원은 현재 기록 전체를 대체하므로 먼저 양쪽 기록을 백업하세요.</p><p>CSV는 한글 UTF-8 BOM 형식으로 내려받아 엑셀에서 열 수 있어요. 파일 가져오기 시 UTF-8을 선택하세요. 데이터가 손상되거나 저장 공간이 부족하면 경고가 표시됩니다. 이때 새로고침하기 전에 JSON을 다운로드해 주세요.</p><a class="text-link" href="#settings">백업 · 복원 관리 ${icon('arrow')}</a></article></div><section class="panel guide-pwa"><span class="feature-icon blue">${icon('home')}</span><div><h2>스마트폰 홈 화면에 추가해 보세요</h2><p>HTTPS에서 한 번 접속하면 핵심 화면과 도구를 오프라인에서도 사용할 수 있어요. Android Chrome의 메뉴 → 홈 화면에 추가, iPhone Safari의 공유 → 홈 화면에 추가를 이용하세요. 브라우저와 설치 방식에 따라 저장 공간이 별도로 관리될 수 있으니 먼저 백업해 주세요.</p></div></section>${newFeaturesGuide()}<div class="ad-space" aria-label="향후 광고 영역"><span>서비스 소식</span><p>오늘도 당신의 알바 생활을 응원합니다.</p></div>`;
+  return head('A LITTLE HELP', '처음이어도 괜찮아요.', '복잡한 건 줄이고, 나의 하루에 집중하세요. 서비스 사용법을 알려드릴게요.') + `<div class="guide-grid"><article class="panel guide-card"><span class="guide-step">01</span><h2>세 사람이 함께하는 밀어내기 근무표</h2><p>이름, 일정, 점심시간, 교대 간격과 첫 휴식자를 입력하고 근무표를 생성하세요. 각 근무 구간에는 두 명 근무, 한 명 휴식이 배정됩니다.</p><p>점심에는 모두 쉬고 교대 타이머도 잠시 멈춥니다. 예를 들어 1시간 교대 중 20분 후 점심을 시작하면 점심 이후 남은 40분을 이어갑니다. 마지막 구간은 남은 시간에 맞춰 줄어듭니다.</p><p><strong>10:00–19:00, 점심 10:00–11:00, 1시간 교대, 첫 휴식자 A</strong>라면 A·B는 5시간, C는 6시간 근무합니다. 첫 휴식자를 바꾸어 날짜별 차이를 조절해 보세요.</p><p>공평하게 배분 모드는 휴식시간을 분 단위로 나누어 총 근무시간의 차이를 최대 1분으로 줄입니다. 이 과정에서 설정한 간격보다 짧은 구간이 생길 수 있어요. 수동 변경 후에는 실제 차이를 다시 보여드립니다.</p><p>표의 휴식자 선택으로 배정을 조정하고 PNG·CSV·텍스트로 공유하세요. 이름을 바꾸면 표에도 바로 반영돼요. 시간이나 규칙을 바꾸면 생성 버튼을 다시 눌러 주세요.</p><a class="text-link" href="#schedule">근무표 만들기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">02</span><h2>내 예상 급여 계산하기</h2><p><strong>시급제:</strong> (전체 근무시간 − 무급 휴게시간) ÷ 60 × 시급. 분 단위로 계산한 뒤 기본급을 원 단위로 반올림합니다.</p><div class="guide-example">10:00–19:00 · 휴게 60분 · 시급 12,000원<br><strong>유급 8시간 × 12,000원 = 96,000원</strong></div><p><strong>일급제:</strong> 근무시간과 관계없이 입력한 계약 일급을 기본급으로 사용합니다. 추가 지급액을 더하고 직접 입력한 공제액을 빼면 최종 예상액이 됩니다.</p><p>자정을 넘는 근무를 지원하며, 같은 출퇴근 시각은 0시간과 24시간을 구분할 수 없어 허용하지 않아요. 선택한 세금 유형의 공제를 계산합니다. 주휴·야간·연장 수당은 자동 적용하지 않습니다. 실제 근로 조건과 법정 수당은 별도로 확인해 주세요.</p><a class="text-link" href="#calculator">급여 계산하기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">03</span><h2>근무 기록과 입금 관리하기</h2><p>급여 계산기에서 근무일과 근무지를 입력하고 저장하거나, 기록장에서 직접 알바를 추가하세요. 업무·지급 예정일·메모도 남길 수 있습니다.</p><p>입금이 생길 때마다 기록을 열어 <strong>입금 내역 추가</strong>로 금액과 날짜를 남기세요. 여러 번 나눠 받은 내역도 그대로 관리할 수 있어요. 총입금이 예상액 이상이면 지급 완료, 일부 입금이면 일부 지급, 미입금이고 예정일이 지났으면 미지급, 나머지는 지급 예정으로 표시됩니다.</p><p>월별 실적은 <strong>근무 날짜</strong>, 실제 현금 수입은 <strong>입금 날짜</strong>로 집계됩니다. 미수령액은 각 기록의 예상액에서 입금액을 뺀 금액(최소 0원)의 합계입니다.</p><a class="text-link" href="#records">나의 기록장 열기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">04</span><h2>기기를 바꾸기 전에는 백업</h2><p>모든 기록은 현재 브라우저의 localStorage에 자동 저장됩니다. 별도의 계정이나 동기화 서버는 없습니다. 다른 기기로 옮길 때는 데이터 · 설정에서 JSON 파일을 백업하고 복원하세요.</p><p>데이터 · 설정에서 <strong>전체 기록 JSON 다운로드</strong>를 누르세요. 다른 기기에서 같은 페이지를 열어 JSON 파일을 복원하면 됩니다. 복원은 현재 기록 전체를 대체하므로 먼저 양쪽 기록을 백업하세요.</p><p>CSV는 한글 UTF-8 BOM 형식으로 내려받아 엑셀에서 열 수 있어요. 파일 가져오기 시 UTF-8을 선택하세요. 데이터가 손상되거나 저장 공간이 부족하면 경고가 표시됩니다. 이때 새로고침하기 전에 JSON을 다운로드해 주세요.</p><a class="text-link" href="#settings">백업 · 복원 관리 ${icon('arrow')}</a></article></div><section class="panel guide-pwa"><span class="feature-icon blue">${icon('home')}</span><div><h2>스마트폰 홈 화면에 추가해 보세요</h2><p>HTTPS에서 한 번 접속하면 핵심 화면과 도구를 오프라인에서도 사용할 수 있어요. Android Chrome의 메뉴 → 홈 화면에 추가, iPhone Safari의 공유 → 홈 화면에 추가를 이용하세요. 브라우저와 설치 방식에 따라 저장 공간이 별도로 관리될 수 있으니 먼저 백업해 주세요.</p></div></section>${newFeaturesGuide()}<div class="ad-space" aria-label="향후 광고 영역"><span>서비스 소식</span><p>오늘도 당신의 알바 생활을 응원합니다.</p></div>`;
 }
 function privacyView() {
-  return head('PRIVACY FIRST', '내 기록은 내 브라우저에.', 'Freeter는 회원가입 없이 사용하는 개인용 근무 관리 도구입니다.') + `<article class="panel prose"><h2>개인 기록을 서버로 보내지 않습니다</h2><p>이 서비스는 이름, 근무지, 근무 내역, 급여와 입금 내역, 업무 메모를 사용자 브라우저의 localStorage에만 저장합니다. 개인 기록을 GitHub 저장소에 저장하거나 외부 서버로 전송하지 않습니다. 로그인, 데이터베이스, 분석 도구와 실제 광고 코드는 사용하지 않습니다.</p><h2>저장 범위와 보관 기간</h2><p>저장 키는 <code>${STORAGE_KEY}</code>, 데이터 형식 버전은 ${VERSION}입니다. 근무자 이름, 마지막 근무표 설정과 결과, 근무지 목록, 알바·입금 내역, 계산기 입력, 업무 메모·서식과 테마가 저장됩니다. 기기 연결 전 백업과 동시 수정 시 복구용 자료도 별도 키에 저장될 수 있습니다. 사용자가 전체 삭제를 하거나 브라우저 저장 공간을 삭제할 때까지 유지됩니다. 같은 도메인에서는 경로가 달라도 브라우저 저장 공간을 공유할 수 있습니다.</p><h2>동기화 및 공용 기기 안내</h2><p>기본 상태에서는 다른 기기와 연동되지 않습니다. 사용자가 연결 코드를 교환하고 기록 교체를 확인하면, 두 창이 열린 동안 기록·메모·서식이 선택한 상대 기기로 직접 전송됩니다. 로그인·동기화 서버·외부 ICE 서버는 사용하지 않습니다. 창을 닫거나 새로고침하면 연결이 종료됩니다. 시크릿 모드, 브라우저 초기화, 저장 공간 정책에 따라 데이터가 사라질 수 있습니다. 공용 PC에서 같은 브라우저를 사용하는 사람은 기록을 볼 수 있습니다. 공용 기기에서는 사용 후 백업하고 이 서비스의 데이터를 삭제하세요.</p><h2>백업과 공유는 사용자가 직접 선택합니다</h2><p>JSON·CSV·PNG 다운로드와 근무표 공유는 사용자가 버튼을 누를 때만 실행됩니다. 공유 대상 앱에는 선택한 근무표의 이름과 시간이 전달됩니다. 백업 파일은 암호화하지 않으므로 안전하게 보관해 주세요. JSON 복원 시 형식을 검사하고 기존 데이터 교체를 확인합니다.</p><h2>정적 호스팅과 오프라인 사용</h2><p>사이트 파일은 GitHub Pages 등의 호스팅에서 전송되며, 호스팅 제공자는 서비스 제공에 필요한 접속 정보를 처리할 수 있습니다. 오프라인 지원을 위해 서비스 워커가 사이트 파일을 캐시에 보관합니다. 개인 기록은 서비스 워커 캐시에 넣지 않습니다.</p><h2>기록 삭제</h2><p>전체 삭제는 기기 연결을 해제하고 현재 브라우저의 이 서비스 자료와 연결 전 백업·복구 자료를 삭제합니다. 다른 기기의 자료와 같은 도메인의 다른 서비스 자료에는 영향을 주지 않습니다. 다운로드한 백업 파일과 이미 공유한 근무표는 직접 삭제해 주세요.</p><h2>광고에 관하여</h2><p>현재 버전에는 광고·추적 스크립트가 없습니다. 향후 광고를 도입한다면 이 안내와 필요한 동의 절차를 먼저 갱신해야 합니다. 준비된 광고 영역은 입력창과 계산 버튼에서 떨어져 있습니다.</p><a class="button secondary" href="#settings">내 데이터 관리하기 ${icon('arrow')}</a></article>`;
+  return head('PRIVACY FIRST', '내 기록은 내 브라우저에.', 'Freeter는 회원가입 없이 사용하는 개인용 근무 관리 도구입니다.') + `<article class="panel prose"><h2>개인 기록을 서버로 보내지 않습니다</h2><p>이 서비스는 이름, 근무지, 근무 내역, 급여와 입금 내역, 업무 메모를 사용자 브라우저의 localStorage에만 저장합니다. 개인 기록을 GitHub 저장소에 저장하거나 외부 서버로 전송하지 않습니다. 로그인, 데이터베이스, 분석 도구와 실제 광고 코드는 사용하지 않습니다.</p><h2>저장 범위와 보관 기간</h2><p>저장 키는 <code>${STORAGE_KEY}</code>, 데이터 형식 버전은 ${VERSION}입니다. 근무자 이름, 마지막 근무표 설정과 결과, 근무지 목록, 알바·입금 내역, 계산기 입력, 업무 메모·서식과 테마가 저장됩니다. 이전 버전에서 만들어진 백업·복구 자료가 별도 키에 남아 있을 수 있습니다. 사용자가 전체 삭제를 하거나 브라우저 저장 공간을 삭제할 때까지 유지됩니다. 같은 도메인에서는 경로가 달라도 브라우저 저장 공간을 공유할 수 있습니다.</p><h2>동기화 및 공용 기기 안내</h2><p>기기 연결과 자동 동기화 기능은 제공하지 않습니다. 다른 기기로 기록을 옮기려면 데이터 · 설정의 JSON 백업·복원을 이용하세요. 시크릿 모드, 브라우저 초기화, 저장 공간 정책에 따라 데이터가 사라질 수 있습니다. 공용 PC에서 같은 브라우저를 사용하는 사람은 기록을 볼 수 있습니다. 공용 기기에서는 사용 후 백업하고 이 서비스의 데이터를 삭제하세요.</p><h2>백업과 공유는 사용자가 직접 선택합니다</h2><p>JSON·CSV·PNG 다운로드와 근무표 공유는 사용자가 버튼을 누를 때만 실행됩니다. 공유 대상 앱에는 선택한 근무표의 이름과 시간이 전달됩니다. 백업 파일은 암호화하지 않으므로 안전하게 보관해 주세요. JSON 복원 시 형식을 검사하고 기존 데이터 교체를 확인합니다.</p><h2>정적 호스팅과 오프라인 사용</h2><p>사이트 파일은 GitHub Pages 등의 호스팅에서 전송되며, 호스팅 제공자는 서비스 제공에 필요한 접속 정보를 처리할 수 있습니다. 오프라인 지원을 위해 서비스 워커가 사이트 파일을 캐시에 보관합니다. 개인 기록은 서비스 워커 캐시에 넣지 않습니다.</p><h2>기록 삭제</h2><p>전체 삭제는 현재 브라우저의 이 서비스 자료와 이전 버전의 백업·복구 자료를 삭제합니다. 다른 기기의 자료와 같은 도메인의 다른 서비스 자료에는 영향을 주지 않습니다. 다운로드한 백업 파일과 이미 공유한 근무표는 직접 삭제해 주세요.</p><h2>광고에 관하여</h2><p>현재 버전에는 광고·추적 스크립트가 없습니다. 향후 광고를 도입한다면 이 안내와 필요한 동의 절차를 먼저 갱신해야 합니다. 준비된 광고 영역은 입력창과 계산 버튼에서 떨어져 있습니다.</p><a class="button secondary" href="#settings">내 데이터 관리하기 ${icon('arrow')}</a></article>`;
 }
 
 function confirmAction(message, title = '한 번 더 확인해 주세요', label = '확인') {
@@ -598,7 +538,7 @@ async function restoreFile(file) {
     // Atomic single-key write: failures leave the existing storage untouched.
     localStorage.setItem(STORAGE_KEY, JSON.stringify(restored));
     state = restored; rawStored = JSON.stringify(restored); storageBlocked = false; calcSavedHash = '';
-    $('#storage-alert').hidden = true; render(); peerSession?.publish(state); toast('백업 파일의 기록을 복원했어요.');
+    $('#storage-alert').hidden = true; render(); toast('백업 파일의 기록을 복원했어요.');
   } catch (failure) { toast(`복원하지 않았습니다. ${failure.message}`); }
   finally { if ($('#restore-file')) $('#restore-file').value = ''; }
 }
@@ -621,14 +561,6 @@ document.addEventListener('click', async event => {
   try {
     if(action==='open-updates'){openUpdates();return;}
     if(action==='close-updates'){$('#updates-dialog').close();return;}
-    if(action==='open-sync'){openSync();return;}
-    if(action==='close-sync'){$('#sync-dialog').close();return;}
-    if(action==='sync-offer'){await ensurePeer().offer();return;}
-    if(action==='sync-accept'){await ensurePeer().accept($('#sync-remote-code').value);return;}
-    if(action==='sync-copy'){await copyText(ensurePeer().localCode);return;}
-    if(action==='sync-start'){backupBeforePairing();ensurePeer().start();return;}
-    if(action==='sync-disconnect'){peerSession?.close();return;}
-    if(action==='sync-backup'||action==='sync-conflict-backup'){const original=localStorage.getItem(action==='sync-backup'?SYNC_BACKUP_KEY:SYNC_CONFLICT_KEY);if(original)download(original,`Freeter-before-link-${today()}.json`,'application/json;charset=utf-8');return;}
     if(action.startsWith('memo-format-')){formatMemo(action.slice('memo-format-'.length));return;}
     if(action==='memo-mode'){memoReading=button.dataset.mode==='read';render();return;}
     if(action==='edit-schedule'){mobileScheduleSettingsOpen=true;$('#schedule-settings').open=true;$('#schedule-settings').scrollIntoView({behavior:'smooth',block:'start'});}
@@ -669,8 +601,8 @@ document.addEventListener('click', async event => {
     if (action === 'raw-backup') download(rawStored, `Freeter-original-${today()}.json`, 'application/json;charset=utf-8');
     if (action === 'restore') $('#restore-file').click();
     if (action === 'all-records-csv' || action === 'records-csv') { download(recordsCsv(action === 'records-csv' ? filteredRecords() : state.records), `Freeter-records-${today()}.csv`, 'text/csv;charset=utf-8'); toast('한글 CSV를 다운로드했어요.'); }
-    if (action === 'delete-all' && await confirmAction('이 브라우저의 근무표, 알바·입금 기록, 메모와 서식, 연결 전 백업·설정을 삭제합니다. 기기 연결은 해제되며 상대 기기의 자료는 유지됩니다. 복구하려면 다운로드한 JSON 백업이 필요합니다.', '모든 데이터를 삭제할까요?', '전체 데이터 삭제')) {
-      peerSession?.close();localStorage.removeItem(SYNC_BACKUP_KEY);localStorage.removeItem(SYNC_CONFLICT_KEY);localStorage.removeItem(STORAGE_KEY); state = emptyState(); rawStored = null; storageBlocked = false; calcSavedHash = ''; $('#storage-alert').hidden = true; render(); toast('이 서비스의 모든 브라우저 데이터를 삭제했어요.');
+    if (action === 'delete-all' && await confirmAction('이 브라우저의 근무표, 알바·입금 기록, 메모와 서식, 설정과 이전 버전의 백업을 삭제합니다. 복구하려면 다운로드한 JSON 백업이 필요합니다.', '모든 데이터를 삭제할까요?', '전체 데이터 삭제')) {
+      localStorage.removeItem('freeter:before-peer-sync');localStorage.removeItem('freeter:peer-conflict');localStorage.removeItem(STORAGE_KEY); state = emptyState(); rawStored = null; storageBlocked = false; calcSavedHash = ''; $('#storage-alert').hidden = true; render(); toast('이 서비스의 모든 브라우저 데이터를 삭제했어요.');
     }
     if (action === 'set-theme') { state.settings.theme = button.dataset.theme; persisted('화면 테마를 변경했어요.'); render(); }
     if (action === 'schedule-csv') download(csvText([...scheduleMatrix(), [], ['개인별 합계', '근무', '휴식', '점심'], ...scheduleTotals(state.schedule.rows,resultCount()).map((t, i) => [personName(i), duration(t.work), duration(t.rest), duration(t.lunch)])]), `교대-근무표-${today()}.csv`, 'text/csv;charset=utf-8');
@@ -680,7 +612,7 @@ document.addEventListener('click', async event => {
       else await copyText(scheduleText());
     }
     if (action === 'schedule-png') await schedulePng();
-  } catch (failure) { if(action.startsWith('sync-')&&peerSession?.status==='preparing')peerSession.close(failure.message);toast(failure.message || '작업을 완료하지 못했어요. 다시 확인해 주세요.'); }
+  } catch (failure) { toast(failure.message || '작업을 완료하지 못했어요. 다시 확인해 주세요.'); }
 });
 $('#theme-toggle').addEventListener('click', () => { state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark'; save(); applyTheme(); if (page === 'settings') render(); });
 window.addEventListener('hashchange', () => { render(); window.scrollTo({ top: 0, behavior: 'instant' }); $('#main').focus({ preventScroll: true }); });
@@ -688,8 +620,7 @@ window.addEventListener('popstate', () => render());
 // Do not silently overwrite another tab's updates.
 window.addEventListener('storage', event => {
   if (event.key !== STORAGE_KEY) return;
-  if(event.newValue===null)peerSession?.close('다른 탭에서 자료가 삭제되어 기기 연결을 해제했어요.');
-  try { state = event.newValue ? validateState(JSON.parse(event.newValue)) : emptyState(); rawStored = event.newValue; storageBlocked = false; calcSavedHash = ''; $('#record-dialog').close(); render(); peerSession?.publish(state); toast('다른 탭의 최신 기록을 반영했어요. 저장 전 편집 내용은 반영되지 않습니다.'); }
+  try { state = event.newValue ? validateState(JSON.parse(event.newValue)) : emptyState(); rawStored = event.newValue; storageBlocked = false; calcSavedHash = ''; $('#record-dialog').close(); render(); toast('다른 탭의 최신 기록을 반영했어요. 저장 전 편집 내용은 반영되지 않습니다.'); }
   catch { storageBlocked = true; $('#storage-alert').hidden = false; $('#storage-alert').textContent = '다른 탭의 데이터를 읽지 못해 저장을 중지했습니다. 현재 내용을 백업해 주세요.'; }
 });
 function latestAppUrl() {

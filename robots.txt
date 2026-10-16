@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://kawaiidoro.github.io/dangi-alba/sitemap.xml
+Sitemap: https://kawaiidoro.github.io/freeter/sitemap.xml

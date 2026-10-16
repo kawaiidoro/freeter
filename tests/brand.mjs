@@ -17,6 +17,9 @@ try{
    await go(route);assert.ok((await page.title()).includes('Freeter'));assert.equal(await page.locator('meta[property="og:site_name"]').getAttribute('content'),'Freeter');
    const footer=await page.locator('.site-footer').innerText();assert.ok(!footer.includes('오늘의 수고가'));assert.ok(!footer.includes('언제나 무료'));assert.equal(await page.locator('.sidebar-foot,.bottom-note').count(),0);
    const response=await context.request.get(new URL(route,base).href),html=await response.text();assert.equal(response.status(),200);assert.ok(html.includes('property="og:image"'));assert.ok(html.includes('name="twitter:card" content="summary_large_image"'));assert.ok(!html.includes('저는 단기알바입니다.'));
+   assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'),'https://kawaiidoro.github.io/freeter/'+route);
+   for(const selector of ['meta[property="og:url"]','meta[property="og:image"]','meta[name="twitter:image"]'])assert.ok((await page.locator(selector).getAttribute('content')).startsWith('https://kawaiidoro.github.io/freeter/'));
+   assert.ok(!html.includes('https://kawaiidoro.github.io/dangi-alba/'));
   }
  });
  await check('공유 PNG·앱 아이콘·브랜드 폰트가 실제 파일로 응답',async()=>{

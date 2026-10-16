@@ -28,7 +28,7 @@ jobs:
       - name: Package public static files
         run: |
           mkdir _site
-          cp -- *.html style.css brand.css site.js peer.js sw.js icon.svg manifest.webmanifest robots.txt sitemap.xml version.json .nojekyll _site/
+          cp -- *.html style.css brand.css site.js sw.js icon.svg manifest.webmanifest robots.txt sitemap.xml version.json .nojekyll _site/
           cp -R -- assets _site/assets
           cp -R -- vendor _site/vendor
       - uses: actions/upload-pages-artifact@v3
@@ -75,7 +75,7 @@ jobs:
           node tests/browser.mjs
           node tests/features.mjs
           node tests/brand.mjs
-          node tests/editor-sync.mjs
+          node tests/editor.mjs
       - name: Save browser verification results
         if: always()
         uses: actions/upload-artifact@v4
