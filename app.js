@@ -512,6 +512,10 @@ async function schedulePng() {
   const source=$('#schedule-result');if(!source||!state.schedule.rows.length)return;
   const owner=cloud.user?.id||null;
   if(document.fonts?.ready)await document.fonts.ready;
+  // Snapshot the settled theme, rather than a color halfway through a CSS transition.
+  const transitions=source.getAnimations?.({subtree:true})||[];
+  await Promise.allSettled(transitions.filter(animation=>animation.effect?.getComputedTiming().endTime<=1000).map(animation=>animation.finished));
+  if(owner!==(cloud.user?.id||null)||!source.isConnected)throw new Error('화면이나 계정이 변경되어 이미지 저장을 중지했어요.');
   const width=Math.ceil(source.getBoundingClientRect().width),ratio=2;
   const rowNodes=[...source.querySelectorAll('tbody tr')];
   const heights=rowNodes.map(row=>row.getBoundingClientRect().height);

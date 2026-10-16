@@ -818,7 +818,7 @@ function mountWeatherWidget() {
 }
 
 
-const APP_RELEASE = 'efa2e4ee07f0';
+const APP_RELEASE = 'cfe5f750abd2';
 let latestRelease = APP_RELEASE;
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -1330,6 +1330,10 @@ async function schedulePng() {
   const source=$('#schedule-result');if(!source||!state.schedule.rows.length)return;
   const owner=cloud.user?.id||null;
   if(document.fonts?.ready)await document.fonts.ready;
+  // Snapshot the settled theme, rather than a color halfway through a CSS transition.
+  const transitions=source.getAnimations?.({subtree:true})||[];
+  await Promise.allSettled(transitions.filter(animation=>animation.effect?.getComputedTiming().endTime<=1000).map(animation=>animation.finished));
+  if(owner!==(cloud.user?.id||null)||!source.isConnected)throw new Error('화면이나 계정이 변경되어 이미지 저장을 중지했어요.');
   const width=Math.ceil(source.getBoundingClientRect().width),ratio=2;
   const rowNodes=[...source.querySelectorAll('tbody tr')];
   const heights=rowNodes.map(row=>row.getBoundingClientRect().height);

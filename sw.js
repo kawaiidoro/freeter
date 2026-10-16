@@ -1,7 +1,7 @@
 /* Generated as sw.js by scripts/build-site.mjs. */
-const RELEASE = 'efa2e4ee07f0';
+const RELEASE = 'cfe5f750abd2';
 const CACHE = `dangi-alba-shell-${RELEASE}`;
-const ASSETS = ["./","./index.html","./schedule.html","./calculator.html","./records.html","./stats.html","./guide.html","./privacy.html","./settings.html","./notes.html","./style.css?v=efa2e4ee07f0","./brand.css?v=efa2e4ee07f0","./vendor/quill.core.css?v=efa2e4ee07f0","./site.js?v=efa2e4ee07f0","./icon.svg","./manifest.webmanifest","./assets/freeter-display.woff2","./assets/freeter-192.png","./assets/freeter-512.png","./assets/gomssi.png","./assets/freeter-wordmark.png","./assets/weather-illustrations.png"];
+const ASSETS = ["./","./index.html","./schedule.html","./calculator.html","./records.html","./stats.html","./guide.html","./privacy.html","./settings.html","./notes.html","./style.css?v=cfe5f750abd2","./brand.css?v=cfe5f750abd2","./vendor/quill.core.css?v=cfe5f750abd2","./site.js?v=cfe5f750abd2","./icon.svg","./manifest.webmanifest","./assets/freeter-display.woff2","./assets/freeter-192.png","./assets/freeter-512.png","./assets/gomssi.png","./assets/freeter-wordmark.png","./assets/weather-illustrations.png"];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS.map(path => new Request(path, { cache: 'reload' })))));
   self.skipWaiting();
