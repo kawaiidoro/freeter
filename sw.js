@@ -1,7 +1,7 @@
 /* Generated as sw.js by scripts/build-site.mjs. */
-const RELEASE = '474aae43951d';
+const RELEASE = '21a74b52b64d';
 const CACHE = `dangi-alba-shell-${RELEASE}`;
-const ASSETS = ["./","./index.html","./schedule.html","./calculator.html","./records.html","./stats.html","./guide.html","./privacy.html","./settings.html","./notes.html","./style.css?v=474aae43951d","./brand.css?v=474aae43951d","./vendor/quill.core.css?v=474aae43951d","./site.js?v=474aae43951d","./icon.svg","./manifest.webmanifest","./assets/freeter-display.woff2","./assets/freeter-192.png","./assets/freeter-512.png","./assets/gomssi.png"];
+const ASSETS = ["./","./index.html","./schedule.html","./calculator.html","./records.html","./stats.html","./guide.html","./privacy.html","./settings.html","./notes.html","./style.css?v=21a74b52b64d","./brand.css?v=21a74b52b64d","./vendor/quill.core.css?v=21a74b52b64d","./site.js?v=21a74b52b64d","./icon.svg","./manifest.webmanifest","./assets/freeter-display.woff2","./assets/freeter-192.png","./assets/freeter-512.png","./assets/gomssi.png"];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS.map(path => new Request(path, { cache: 'reload' })))));
   self.skipWaiting();
@@ -15,6 +15,8 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
+  // Auth responses and private API requests must never enter the public shell cache.
+  if (event.request.headers.has('authorization') || ['code','error','error_description','access_token','refresh_token'].some(key => url.searchParams.has(key))) return;
   const navigation = event.request.mode === 'navigate';
   const asset = ASSETS.map(path => new URL(path, self.registration.scope)).find(path => navigation ? path.pathname === url.pathname : path.href === url.href);
   if (!asset) return;

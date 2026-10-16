@@ -1,0 +1,30 @@
+name: Security review
+on:
+  pull_request:
+  schedule:
+    - cron: '20 3 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts
+      - run: node scripts/build-vendor.mjs --check
+      - run: node scripts/build-site.mjs --check
+      - run: npm test
+      - run: node scripts/security-audit.mjs
+      - name: Prepare browser exploit checks
+        run: |
+          npm install --prefix "$RUNNER_TEMP/freeter-security-browser" --no-package-lock --no-save playwright@1.64.1
+          "$RUNNER_TEMP/freeter-security-browser/node_modules/.bin/playwright" install --with-deps chromium
+          echo "NODE_PATH=$RUNNER_TEMP/freeter-security-browser/node_modules" >> "$GITHUB_ENV"
+      - run: node tests/security-browser.mjs
+      - run: node tests/account-browser.mjs

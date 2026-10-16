@@ -16,22 +16,28 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
+      - name: Install pinned dependencies
+        run: npm ci --ignore-scripts
       - name: Verify runtime bundle and core behavior
         run: |
+          node scripts/build-vendor.mjs --check
           node scripts/build-site.mjs --check
           node --check site.js
-          node --test tests/core.test.mjs
+          npm test
+          node scripts/security-audit.mjs
       - name: Package public static files
         run: |
           mkdir _site
           cp -- *.html style.css brand.css site.js sw.js icon.svg manifest.webmanifest robots.txt sitemap.xml version.json .nojekyll _site/
           cp -R -- assets _site/assets
           cp -R -- vendor _site/vendor
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
           path: _site
 
@@ -47,10 +53,10 @@ jobs:
     outputs:
       page_url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
 
   browser-check:
     needs: deploy
@@ -59,8 +65,10 @@ jobs:
     env:
       TEST_BASE_URL: ${{ needs.deploy.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
       - name: Prepare isolated browser test tools
@@ -71,6 +79,8 @@ jobs:
           echo "TEST_OUTPUT_DIR=$RUNNER_TEMP/dangi-alba-live-tests" >> "$GITHUB_ENV"
       - name: Verify the published website in Chromium
         run: |
+          node tests/security-browser.mjs
+          node tests/account-browser.mjs
           node tests/update-recovery.mjs
           node tests/browser.mjs
           node tests/features.mjs
@@ -78,7 +88,7 @@ jobs:
           node tests/editor.mjs
       - name: Save browser verification results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: published-site-browser-results
           path: ${{ env.TEST_OUTPUT_DIR }}

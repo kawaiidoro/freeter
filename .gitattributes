@@ -1,0 +1,2 @@
+site.js linguist-generated=true -whitespace
+vendor/*.js linguist-vendored=true -whitespace

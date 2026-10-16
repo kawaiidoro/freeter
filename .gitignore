@@ -4,3 +4,8 @@ playwright-report/
 __pycache__/
 *.zip
 _site/
+
+.env
+.env.*
+!.env.example
+supabase/.temp/

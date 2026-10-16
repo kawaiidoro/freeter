@@ -713,3 +713,32 @@ html[data-theme] .notes-editor .ql-editor { padding: 0; min-height: 450px; color
 @media (max-width: 360px) {
   .top-actions .icon-button { min-width: 32px; width: 32px; padding: 6px; }
 }
+
+/* Optional Google account; offline tools remain available without signing in. */
+.account-top-link[data-signed-in='true'] { color: var(--accent); background: var(--blue-soft); }
+#account-dialog { width: 560px; border-radius: 25px; padding: 28px; }
+#account-dialog .dialog-head { margin-bottom: 24px; }
+.account-card > h2 { margin-bottom: 22px; }
+.account-intro { display: flex; align-items: flex-start; gap: 16px; }
+.account-intro .feature-icon { flex: 0 0 44px; margin: 0; }
+.account-intro h3 { font-size: 19px; letter-spacing: -.6px; margin: 0 0 8px; }
+.account-intro p { font-size: 13px; color: var(--body); line-height: 1.9; max-width: 430px; }
+.account-email { color: var(--text); font-size: 17px; overflow-wrap: anywhere; margin-bottom: 14px; }
+.account-status { font-size: 12px; line-height: 1.8; color: var(--muted); margin: 20px 0; overflow-wrap: anywhere; }
+.account-status[data-status='synced'] { color: var(--blue); }
+.account-status[data-status='error'], .account-status[data-status='conflict'], .account-status[data-status='offline'] { color: var(--accent); }
+.google-login { background: var(--text); color: var(--surface); min-height: 48px; padding: 12px 22px; gap: 12px; }
+.google-mark { font-family: Arial,sans-serif; font-size: 20px; font-weight: 700; }
+.account-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+.account-card .field-hint, #account-dialog .field-hint { margin-top: 18px; font-size: 12px; line-height: 1.9; color: var(--muted); }
+.account-conflict { padding: 18px; background: var(--bg); border: 1px solid var(--border); border-radius: 15px; margin-top: 20px; }
+.account-conflict h3 { font-size: 14px; }
+.account-conflict p { font-size: 12px; color: var(--body); line-height: 1.9; margin: 10px 0 15px; }
+.workspace-local [data-cloud-status] { max-width: 230px; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  #account-dialog { padding: 24px 20px; border-radius: 22px; }
+  .account-intro h3 { font-size: 18px; }
+  .account-actions > .button { flex: 1 1 auto; min-height: 42px; }
+  .account-intro .feature-icon { display: none; }
+  .account-email { font-size: 16px; }
+}
