@@ -42,8 +42,37 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/configure-pages@v5
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  browser-check:
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TEST_BASE_URL: ${{ needs.deploy.outputs.page_url }}
+      TEST_OUTPUT_DIR: ${{ runner.temp }}/dangi-alba-live-tests
+      NODE_PATH: ${{ runner.temp }}/dangi-browser/node_modules
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Prepare isolated browser test tools
+        run: |
+          npm install --prefix "$RUNNER_TEMP/dangi-browser" --no-package-lock --no-save playwright@1.64.1
+          "$RUNNER_TEMP/dangi-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Verify the published website in Chromium
+        run: node tests/browser.mjs
+      - name: Save browser verification results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-site-browser-results
+          path: ${{ env.TEST_OUTPUT_DIR }}
+          if-no-files-found: ignore

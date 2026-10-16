@@ -56,8 +56,15 @@
 
 `node scripts/build-site.mjs --check`, 8개 HTML의 상대 경로 검사 및 GitHub Actions 배포 YAML 파싱도 통과했습니다.
 
+## 공개 사이트 배포
+
+- 공개 주소: https://kawaiidoro.github.io/dangi-alba/
+- GitHub Pages를 GitHub Actions 방식으로 활성화했습니다.
+- 최초 정상 배포: https://github.com/kawaiidoro/dangi-alba/actions/runs/38857881011
+- 배포 후 8개 HTML과 실행·스타일·오프라인·검색 메타데이터 등 총 14개 파일의 HTTPS 200 응답 및 로컬 원본과의 바이트 일치를 확인했습니다.
+- 이후 워크플로는 배포 후 `browser-check`에서 같은 공개 URL에 대한 18개 브라우저 시나리오를 실행하고 스크린샷·다운로드 결과를 아티팩트로 보관합니다. HTTPS 인증서 검증을 유지합니다.
+
 ## 별도 확인이 필요한 범위
 
 - iOS Safari 및 Samsung Internet 실기기 동작, OS별 공유 대상 앱과 홈 화면 설치 UI.
-- 사용자가 GitHub에 업로드한 이후의 실제 GitHub Pages 게시와 배포된 URL의 확인.
 - 클라우드 환경 설정의 Publish 이후 새 작업에서의 복원. 현재 실행 검증과 재사용 시작 지침 저장은 완료했으나 게시·새 작업 복원은 수행하지 않았습니다.

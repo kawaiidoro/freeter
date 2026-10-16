@@ -77,7 +77,7 @@ python3 -m http.server 4173 --bind 0.0.0.0
 
 1. 이 폴더의 파일을 `kawaiidoro/dangi-alba` 저장소의 `main` 브랜치 루트에 업로드하고 커밋합니다. ZIP을 사용할 때는 **압축을 풀고 그 안의 파일**을 올리세요. `.git` 폴더는 업로드하지 않습니다.
 2. 최초 1회 GitHub 저장소의 **Settings → Pages → Build and deployment → Source**를 **GitHub Actions**로 설정합니다. 이 설정은 저장소 관리자 권한이 필요하며 일반 Actions 토큰만으로 자동 활성화할 수 없습니다.
-3. `.github/workflows/pages.yml`은 `main`에 푸시할 때 소스 묶음 일치 확인, 구문 검사와 핵심 테스트를 실행한 후 정적 파일만 패키징하고 배포합니다. 별도 유료 API나 배포용 비밀키는 사용하지 않습니다.
+3. `.github/workflows/pages.yml`은 `main`에 푸시할 때 소스 묶음 일치 확인, 구문 검사와 핵심 테스트를 실행한 후 정적 파일만 패키징하고 배포합니다. 배포 후에는 실제 공개 주소를 Chromium으로 열어 기록·계산·백업·모바일·오프라인 시나리오를 검증합니다. 브라우저 검사 도구는 CI 임시 폴더에만 설치합니다. 사이트 실행에는 추가 패키지가 필요하지 않습니다. 별도 유료 API나 배포용 비밀키는 사용하지 않습니다.
 4. 최초 설정 전에 워크플로가 실행되어 실패했다면 **Actions → Validate and deploy website → Run workflow**에서 다시 실행합니다. 이후에는 `main` 푸시마다 자동 실행됩니다.
 5. GitHub의 배포 작업이 완료되면 Pages 주소에서 확인합니다. 이 저장소의 기본 배포 주소는 `https://kawaiidoro.github.io/dangi-alba/`입니다. 실제 게시 여부는 GitHub Pages에서 확인하세요.
 6. 근무표 생성, 급여 계산, 기록 저장·새로고침, JSON 다운로드를 배포된 사이트에서 다시 확인합니다.
