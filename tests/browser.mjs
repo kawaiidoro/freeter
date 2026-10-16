@@ -25,7 +25,7 @@ async function download(actionName, fileName) {
 }
 try {
   await check('하위 경로에서 홈 및 정적 리소스 로딩', async () => {
-    await go(); assert.equal(await page.title(), '저는 단기알바입니다.');
+    await go(); assert.equal(await page.title(), 'Freeter');
     assert.equal(await page.locator('.home-summary .summary-card').count(), 4);
     assert.ok((await page.locator('.recent-panel').innerText()).includes('첫 번째 알바'));
   });
@@ -127,7 +127,7 @@ try {
       for (const route of ['', 'schedule.html', 'calculator.html', 'records.html', 'stats.html', 'guide.html', 'privacy.html', 'settings.html']) {
         await go(route);
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${route} width=${width}`);
-        assert.ok((await page.title()).includes('저는 단기알바입니다.'));
+        assert.ok((await page.title()).includes('Freeter'));
       }
     }
     await page.setViewportSize({ width: 390, height: 844 }); await go('schedule.html'); await page.screenshot({ path: join(output, 'schedule-mobile.png'), fullPage: true });

@@ -3,19 +3,39 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#3869ee">
+  <meta name="theme-color" content="#ff6b00">
+  <meta name="application-name" content="Freeter">
+  <meta name="apple-mobile-web-app-title" content="Freeter">
   <meta name="description" content="개인 근무·급여 기록은 현재 브라우저의 localStorage에만 저장되며 외부 서버나 GitHub로 전송되지 않습니다. 다른 기기나 브라우저로 자동 동기화되지 않습니다. 시크릿 모드나 브라우저 데이터 삭제로 기록이 사라질 수 있으며 공용 기기에서 같은 브라우저 사용자는 기록을 볼 수 있습니다.">
   <link rel="canonical" href="https://kawaiidoro.github.io/dangi-alba/privacy.html">
-  <title>개인정보 안내 | 저는 단기알바입니다.</title>
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Freeter">
+  <meta property="og:locale" content="ko_KR">
+  <meta property="og:title" content="개인정보 안내 | Freeter">
+  <meta property="og:description" content="개인 근무·급여 기록은 현재 브라우저의 localStorage에만 저장되며 외부 서버나 GitHub로 전송되지 않습니다. 다른 기기나 브라우저로 자동 동기화되지 않습니다. 시크릿 모드나 브라우저 데이터 삭제로 기록이 사라질 수 있으며 공용 기기에서 같은 브라우저 사용자는 기록을 볼 수 있습니다.">
+  <meta property="og:url" content="https://kawaiidoro.github.io/dangi-alba/privacy.html">
+  <meta property="og:image" content="https://kawaiidoro.github.io/dangi-alba/assets/freeter-share.png">
+  <meta property="og:image:secure_url" content="https://kawaiidoro.github.io/dangi-alba/assets/freeter-share.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1733">
+  <meta property="og:image:height" content="907">
+  <meta property="og:image:alt" content="오렌지 F 로고와 검정 Freeter 워드마크">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="개인정보 안내 | Freeter">
+  <meta name="twitter:description" content="개인 근무·급여 기록은 현재 브라우저의 localStorage에만 저장되며 외부 서버나 GitHub로 전송되지 않습니다. 다른 기기나 브라우저로 자동 동기화되지 않습니다. 시크릿 모드나 브라우저 데이터 삭제로 기록이 사라질 수 있으며 공용 기기에서 같은 브라우저 사용자는 기록을 볼 수 있습니다.">
+  <meta name="twitter:image" content="https://kawaiidoro.github.io/dangi-alba/assets/freeter-share.png">
+  <link rel="apple-touch-icon" href="./assets/freeter-192.png">
+  <title>개인정보 안내 | Freeter</title>
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./brand.css">
   <script defer src="./site.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">본문으로 바로가기</a>
   <aside class="sidebar" aria-label="주 메뉴">
-    <a class="brand" href="#home"><span class="brand-symbol" aria-hidden="true"><i></i><i></i><i></i></span><span>저는<br><strong>단기알바입니다.</strong></span></a>
+    <a class="brand" href="#home" aria-label="Freeter 홈"><img src="./icon.svg" alt="" width="42" height="42"><strong>Freeter</strong></a>
     <div class="nav-caption">나의 알바 매니저</div>
     <nav class="main-nav">
       <a href="#home" data-page="home"><span data-icon="home"></span>대시보드</a>
@@ -28,13 +48,12 @@
     <div class="sidebar-bottom">
       <div class="local-note"><span data-icon="shield"></span><strong>내 기록은 내 브라우저에</strong><p>회원가입 없이, 나만의 공간에서<br>안심하고 관리하세요.</p></div>
       <nav class="utility-nav"><a href="#guide"><span data-icon="help"></span>사용 가이드</a><a href="#settings"><span data-icon="settings"></span>데이터 · 설정</a></nav>
-      <div class="sidebar-foot"><span class="live-dot"></span>누구나, 언제나 무료</div>
     </div>
   </aside>
   <div class="app-shell">
-    <header class="topbar"><a class="mobile-brand" href="#home"><img src="./icon.svg" alt="" width="28" height="28">저는 단기알바입니다.</a><div class="breadcrumb"><span>나의 워크스페이스</span><span class="slash">/</span><strong id="page-label">대시보드</strong></div><div class="top-actions"><span class="today" id="today-label"></span><a class="icon-button notes-top-link" href="#notes" aria-label="업무 메모장 열기"><span data-icon="edit"></span></a><button type="button" class="icon-button" id="theme-toggle" aria-label="다크모드로 전환"><span data-icon="moon"></span></button><a class="avatar" href="#settings" aria-label="내 설정">나</a></div></header>
-    <main id="main" tabindex="-1"><article class="panel prose"><h1>개인정보 안내</h1><p>개인 근무·급여 기록은 현재 브라우저의 localStorage에만 저장되며 외부 서버나 GitHub로 전송되지 않습니다. 다른 기기나 브라우저로 자동 동기화되지 않습니다. 시크릿 모드나 브라우저 데이터 삭제로 기록이 사라질 수 있으며 공용 기기에서 같은 브라우저 사용자는 기록을 볼 수 있습니다.</p><p>저는 단기알바입니다. — 회원가입 없이 무료로 사용하세요.</p><a href="./guide.html">사용법 안내</a></article></main>
-    <footer class="site-footer"><div><strong>저는 단기알바입니다.</strong><span>오늘의 수고가, 내일의 여유가 되도록.</span></div><nav aria-label="하단 메뉴"><a href="#guide">사용법</a><a href="#privacy">개인정보 안내</a><a href="#settings">백업 · 복원</a></nav><p>© <span id="year"></span> 저는 단기알바입니다. · 모든 기능 무료</p></footer>
+    <header class="topbar"><a class="mobile-brand" href="#home"><img src="./icon.svg" alt="" width="28" height="28">Freeter</a><div class="breadcrumb"><span>나의 워크스페이스</span><span class="slash">/</span><strong id="page-label">대시보드</strong></div><div class="top-actions"><span class="today" id="today-label"></span><a class="icon-button notes-top-link" href="#notes" aria-label="업무 메모장 열기"><span data-icon="edit"></span></a><button type="button" class="icon-button" id="theme-toggle" aria-label="다크모드로 전환"><span data-icon="moon"></span></button><a class="avatar" href="#settings" aria-label="내 설정">나</a></div></header>
+    <main id="main" tabindex="-1"><article class="panel prose"><h1>개인정보 안내</h1><p>개인 근무·급여 기록은 현재 브라우저의 localStorage에만 저장되며 외부 서버나 GitHub로 전송되지 않습니다. 다른 기기나 브라우저로 자동 동기화되지 않습니다. 시크릿 모드나 브라우저 데이터 삭제로 기록이 사라질 수 있으며 공용 기기에서 같은 브라우저 사용자는 기록을 볼 수 있습니다.</p><p>Freeter — 회원가입 없이 무료로 사용하세요.</p><a href="./guide.html">사용법 안내</a></article></main>
+    <footer class="site-footer"><nav aria-label="하단 메뉴"><a href="#guide">사용법</a><a href="#privacy">개인정보 안내</a><a href="#settings">백업 · 복원</a></nav><p>© <span id="year"></span> Freeter</p></footer>
   </div>
   <nav class="mobile-nav" aria-label="모바일 메뉴"><a href="#home" data-page="home"><span data-icon="home"></span>홈</a><a href="#schedule" data-page="schedule"><span data-icon="calendar"></span>근무표</a><a href="#calculator" data-page="calculator"><span data-icon="calculator"></span>계산기</a><a href="#records" data-page="records"><span data-icon="notebook"></span>기록장</a><a href="#stats" data-page="stats"><span data-icon="chart"></span>통계</a></nav>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>

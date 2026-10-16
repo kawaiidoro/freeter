@@ -1,13 +1,31 @@
 {
   "id": "./",
-  "name": "저는 단기알바입니다.",
-  "short_name": "단기알바",
+  "name": "Freeter",
+  "short_name": "Freeter",
   "description": "나의 근무와 수입을 관리하는 무료 알바 매니저",
   "lang": "ko",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f6f8fc",
-  "theme_color": "#3869ee",
-  "icons": [{ "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+  "background_color": "#f4f1eb",
+  "theme_color": "#ff6b00",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/freeter-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./assets/freeter-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
 }

@@ -1,8 +1,19 @@
-# 저는 단기알바입니다.
+# Freeter
 
 단기 아르바이트·교대근무자를 위한 무료 정적 웹사이트입니다. 회원가입, 유료 API, 서버, 데이터베이스 없이 동작합니다. HTML·CSS·JavaScript만 사용하며 **설치나 빌드가 필요하지 않습니다.**
 
 공개 사이트: https://kawaiidoro.github.io/dangi-alba/
+
+## Freeter 브랜드와 모바일 근무표
+
+- 오렌지(`#ff6b00`)·블랙(`#111111`)·따뜻한 아이보리를 사용하는 Freeter 디자인입니다. 다크모드도 지원합니다.
+- 모바일(800px 이하) 근무표는 시간과 모든 근무자 열이 화면 안에 표시됩니다. 별도 배정 열을 숨기고 **근무자 칸을 눌러 해당 구간 휴식자를 변경**합니다. 점심 구간은 변경하지 않으며 식사자와 근무자를 구분합니다.
+- 근무표를 생성하면 결과가 설정 위로 올라오고 설정은 접힙니다. 결과의 **설정** 버튼을 눌러 다시 펼칠 수 있습니다.
+- 기존 하단 슬로건과 사이드바의 무료 슬로건을 제거했습니다. 하단은 사용법·개인정보·백업 링크와 저작권 표시만 남겼습니다.
+- 모든 HTML에 Freeter 탭 제목, Open Graph·Twitter 공유 제목·설명·이미지 메타데이터를 넣었습니다. 공유용 PNG는 1733×907px(약 1.91:1)입니다. 공유 앱이 기존 미리보기를 캐시했다면 갱신에 시간이 걸릴 수 있습니다.
+- `icon.svg`: 오렌지 F 심볼. `assets/freeter-logo.svg`: 폰트 설치가 필요 없는 윤곽선 로고. `assets/freeter-192.png`, `freeter-512.png`: 앱 아이콘. `assets/freeter-share.png`: 링크 공유 썸네일.
+- Freeter 영문 브랜드 글꼴 Archivo Black은 자체 호스팅하며 `assets/FONT-LICENSE.txt`에 OFL 라이선스를 포함합니다. 저장소 제한 미리보기에서는 시스템 글꼴로 대체하여 CORS 오류를 피합니다.
+- **기존 개인 기록 보존을 위해** 브라우저 저장 키 `dangi-alba:data`와 사이트 주소를 유지합니다. 이름 변경으로 데이터가 초기화되지 않습니다.
 
 ## 추가된 근무 관리 기능
 
@@ -118,11 +129,11 @@ GitHub API 관리 권한이 제공되면 에이전트가 Pages를 활성화할 �
 
 모든 이미지·CSS·JavaScript·페이지·매니페스트 경로는 상대 경로입니다. `/dangi-alba/` 같은 하위 경로를 지원합니다. `sitemap.xml`, `robots.txt`와 각 HTML의 canonical URL은 위 저장소 주소를 기준으로 작성했습니다. 계정·저장소·커스텀 도메인을 바꾸면 이 주소들도 함께 수정하세요.
 
-각 기능은 독립된 HTML 주소와 고유한 제목·설명을 갖습니다. JavaScript 사용 시 페이지 이동은 History API로 처리하며, 직접 진입·새로고침·뒤로 가기도 지원합니다. 모든 탭 제목에 **저는 단기알바입니다.**가 포함됩니다.
+각 기능은 독립된 HTML 주소와 고유한 제목·설명을 갖습니다. JavaScript 사용 시 페이지 이동은 History API로 처리하며, 직접 진입·새로고침·뒤로 가기도 지원합니다. 모든 탭 제목에 **Freeter**가 포함됩니다.
 
 ## 모바일 · PWA · 접근성
 
-- 모바일 하단 내비게이션, 다크모드, 가로 스크롤 근무표·기록표를 제공합니다.
+- 모바일 하단 내비게이션, 다크모드, 가로 스크롤 없는 근무표를 제공합니다. 기록표는 데이터 양에 따라 가로 스크롤을 지원합니다.
 - 키보드 포커스 표시, 본문 건너뛰기, 폼 레이블, 대화상자, 상태 알림과 통계 데이터 표를 제공합니다.
 - HTTPS 또는 로컬 개발 환경에서 서비스 워커를 등록합니다. 한 번 로드한 뒤에는 핵심 앱 파일을 캐시하여 오프라인 진입을 지원합니다. 개인 기록을 서비스 워커 캐시에 넣지 않습니다.
 - Android Chrome 메뉴 또는 iOS Safari 공유 메뉴에서 홈 화면에 추가할 수 있습니다. SVG 아이콘·설치 표시 방식과 공유 지원은 브라우저에 따라 다릅니다.
@@ -146,6 +157,7 @@ python3 -m http.server 4173 --bind 0.0.0.0 --directory /workspace
 # 다른 터미널에서 (Playwright가 사용 가능한 환경)
 TEST_BASE_URL=http://127.0.0.1:4173/dangi-alba/ CHROMIUM_PATH=/usr/bin/chromium node tests/browser.mjs
 TEST_BASE_URL=http://127.0.0.1:4173/dangi-alba/ CHROMIUM_PATH=/usr/bin/chromium node tests/features.mjs
+TEST_BASE_URL=http://127.0.0.1:4173/dangi-alba/ CHROMIUM_PATH=/usr/bin/chromium node tests/brand.mjs
 CHROMIUM_PATH=/usr/bin/chromium node tests/startup.mjs
 ```
 
@@ -164,6 +176,8 @@ privacy.html           개인정보 안내
 settings.html          데이터·테마 설정
 notes.html             업무 설명 메모장
 style.css              반응형·다크모드 스타일
+brand.css              Freeter 오렌지·블랙 디자인 및 모바일 근무표
+assets/                로고·앱 아이콘·공유 썸네일·브랜드 글꼴과 라이선스
 site.js                브라우저가 실행하는 일반 스크립트 묶음
 app.js                 화면·저장·백업·다운로드·입금 관리
 core.js                순수 계산·근무표·검증·통계·CSV 로직

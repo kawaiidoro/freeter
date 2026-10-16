@@ -6,7 +6,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
 const root = new URL('../', import.meta.url);
-const types = { html: 'text/html; charset=utf-8', js: 'text/javascript', css: 'text/css', svg: 'image/svg+xml', webmanifest: 'application/manifest+json' };
+const types = { html: 'text/html; charset=utf-8', js: 'text/javascript', css: 'text/css', svg: 'image/svg+xml', webmanifest: 'application/manifest+json', woff2:'font/woff2' };
 const server = createServer(async (request, response) => {
   const path = new URL(request.url, 'http://localhost').pathname;
   const restricted = path.startsWith('/preview/');
@@ -29,7 +29,7 @@ try {
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   const base = `http://127.0.0.1:${server.address().port}`;
   await page.goto(base + '/'); await page.locator('.hero').waitFor();
-  assert.equal(await page.title(), '저는 단기알바입니다.');
+  assert.equal(await page.title(), 'Freeter');
   console.log('PASS 일반 웹주소 첫 화면 실행');
   await page.goto(base + '/preview/'); await page.locator('.hero').waitFor();
   assert.equal(await page.evaluate(() => globalThis.origin), 'null');
