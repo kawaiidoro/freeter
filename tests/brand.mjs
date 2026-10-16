@@ -72,15 +72,15 @@ try{
  });
  const readingMemo='09:50 담당자에게 도착 연락\n준비물: 신분증, 편한 운동화\n\n업무 순서\n1. 안전교육을 받은 뒤 작업 시작\n2. 물품 정리와 수량 확인\n<script>throw new Error("unsafe memo")</script>\n'+('긴업무설명을읽을때에도화면밖으로넘어가지않아요'.repeat(12));
  await check('모바일 메모 편집·읽기 전환과 줄바꿈·장문·기존 데이터 보존',async()=>{
-  await page.locator('#work-memo').fill(readingMemo);
+  await page.locator('#work-memo .ql-editor').fill(readingMemo);
   for(const width of [320,390,768]){
    await page.setViewportSize({width,height:844});
-   const typography=await page.locator('#work-memo').evaluate(node=>({size:parseFloat(getComputedStyle(node).fontSize),height:parseFloat(getComputedStyle(node).lineHeight)}));assert.ok(typography.size>=16);assert.ok(typography.height/typography.size>=1.7);
+   const typography=await page.locator('#work-memo .ql-editor').evaluate(node=>({size:parseFloat(getComputedStyle(node).fontSize),height:parseFloat(getComputedStyle(node).lineHeight)}));assert.ok(typography.size>=16);assert.ok(typography.height/typography.size>=1.7);
    await page.locator('[data-action="memo-mode"][data-mode="read"]').click();assert.equal(await page.locator('#memo-reader').textContent(),readingMemo);assert.ok(await page.locator('#memo-reader').isVisible());assert.equal(await page.locator('#memo-reader script').count(),0);
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-   await page.locator('[data-action="memo-mode"][data-mode="edit"]').click();assert.equal(await page.locator('#work-memo').inputValue(),readingMemo);
+   await page.locator('[data-action="memo-mode"][data-mode="edit"]').click();assert.equal(await page.locator('#work-memo').evaluate(node=>Quill.find(node).getText().slice(0,-1)),readingMemo);
   }
-  await page.setViewportSize({width:390,height:844});await page.reload();assert.equal(await page.locator('#work-memo').inputValue(),readingMemo);assert.ok((await page.locator('#memo-status').innerText()).includes('자동 저장'));
+  await page.setViewportSize({width:390,height:844});await page.reload();assert.equal(await page.locator('#work-memo').evaluate(node=>Quill.find(node).getText().slice(0,-1)),readingMemo);assert.ok((await page.locator('#memo-status').innerText()).includes('자동 저장'));
   await page.screenshot({path:join(output,'freeter-notes-mobile.png'),fullPage:true});
   await page.locator('[data-action="memo-mode"][data-mode="read"]').click();await page.locator('#theme-toggle').click();assert.equal(await page.locator('#memo-reader').textContent(),readingMemo);await page.screenshot({path:join(output,'freeter-notes-reading-dark.png'),fullPage:true});
  });

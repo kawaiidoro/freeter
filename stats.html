@@ -30,6 +30,9 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="stylesheet" href="./style.css">
   <link rel="stylesheet" href="./brand.css">
+  <link rel="stylesheet" href="./vendor/quill.core.css">
+  <script defer src="./vendor/quill.js"></script>
+  <script defer src="./peer.js"></script>
   <script defer src="./site.js"></script>
 </head>
 <body>
@@ -51,13 +54,15 @@
     </div>
   </aside>
   <div class="app-shell">
-    <header class="topbar"><a class="mobile-brand" href="#home"><img src="./assets/freeter-192.png" alt="" width="28" height="28">Freeter</a><div class="breadcrumb"><span>나의 워크스페이스</span><span class="slash">/</span><strong id="page-label">대시보드</strong></div><div class="top-actions"><span class="today" id="today-label"></span><a class="icon-button notes-top-link" href="#notes" aria-label="업무 메모장 열기"><span data-icon="edit"></span></a><button type="button" class="icon-button" id="theme-toggle" aria-label="다크모드로 전환"><span data-icon="moon"></span></button><a class="avatar" href="#settings" aria-label="내 설정">나</a></div></header>
+    <header class="topbar"><a class="mobile-brand" href="#home"><img src="./assets/freeter-192.png" alt="" width="28" height="28">Freeter</a><div class="breadcrumb"><span>나의 워크스페이스</span><span class="slash">/</span><strong id="page-label">대시보드</strong></div><div class="top-actions"><span class="today" id="today-label"></span><a class="icon-button notes-top-link" href="#notes" aria-label="업무 메모장 열기"><span data-icon="edit"></span></a><button type="button" class="icon-button updates-top-link" data-action="open-updates" aria-label="업데이트 내역 열기"><span data-icon="clock"></span></button><button type="button" class="icon-button sync-top-link" data-action="open-sync" data-sync-indicator aria-label="다른 기기 연결"><span data-icon="share"></span></button><button type="button" class="icon-button" id="theme-toggle" aria-label="다크모드로 전환"><span data-icon="moon"></span></button><a class="avatar" href="#settings" aria-label="내 설정">나</a></div></header>
     <main id="main" tabindex="-1"><article class="panel prose"><h1>수입 통계</h1><p>월별 근무 일수, 유급 근무시간, 예상 급여, 실제 입금액과 미수령액을 확인하세요. 근무 날짜와 실제 입금 날짜를 구분해 월별 및 근무지별 수입을 집계합니다.</p><p>Freeter — 회원가입 없이 무료로 사용하세요.</p><a href="./guide.html">사용법 안내</a></article></main>
     <footer class="site-footer"><nav aria-label="하단 메뉴"><a href="#guide">사용법</a><a href="#privacy">개인정보 안내</a><a href="#settings">백업 · 복원</a></nav><p>© <span id="year"></span> Freeter</p></footer>
   </div>
   <nav class="mobile-nav" aria-label="모바일 메뉴"><a href="#home" data-page="home"><span data-icon="home"></span>홈</a><a href="#schedule" data-page="schedule"><span data-icon="calendar"></span>근무표</a><a href="#calculator" data-page="calculator"><span data-icon="calculator"></span>계산기</a><a href="#records" data-page="records"><span data-icon="notebook"></span>기록장</a><a href="#stats" data-page="stats"><span data-icon="chart"></span>통계</a></nav>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   <div id="storage-alert" class="storage-alert" role="alert" hidden></div>
+  <dialog id="updates-dialog" aria-labelledby="updates-title"></dialog>
+  <dialog id="sync-dialog" aria-labelledby="sync-title"></dialog>
   <dialog id="record-dialog" aria-labelledby="record-dialog-title"></dialog>
   <dialog id="confirm-dialog" aria-labelledby="confirm-title"><form method="dialog"><div class="dialog-head"><h2 id="confirm-title">확인해 주세요</h2></div><p id="confirm-message"></p><div class="dialog-actions"><button class="button secondary" value="cancel">취소</button><button class="button danger" id="confirm-yes" value="yes">확인</button></div></form></dialog>
   <noscript><p>이 사이트를 사용하려면 브라우저의 JavaScript를 활성화해 주세요. 기록은 사용 중인 브라우저에만 저장됩니다.</p></noscript>

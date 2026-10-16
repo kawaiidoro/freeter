@@ -65,14 +65,14 @@ try{
  });
  const memo='업무 설명: 09:50 담당자에게 연락\n준비물: 신분증 <안전하게 표시>\n<script>throw new Error("memo")</script>';
  await check('업무 메모 자동 저장·새로고침·HTML 안전 출력',async()=>{
-  await go('notes.html');await page.locator('#work-memo').fill(memo);await page.reload();assert.equal(await page.locator('#work-memo').inputValue(),memo);
+  await go('notes.html');await page.locator('#work-memo .ql-editor').fill(memo);await page.reload();assert.equal(await page.locator('#work-memo').evaluate(node=>Quill.find(node).getText().slice(0,-1)),memo);
   assert.equal(await page.locator('.notes-panel script').count(),0);
  });
  await check('새 데이터 전체 JSON 백업·복원에 세금·맞교대·메모 포함',async()=>{
   await go('settings.html');const pending=page.waitForEvent('download');await action('backup').click();await(await pending).saveAs(join(output,'features-backup.json'));
-  const buffer=await readFile(join(output,'features-backup.json')),data=JSON.parse(buffer);assert.equal(data.version,2);assert.equal(data.workMemo,memo);assert.equal(data.records[0].taxType,'freelance');assert.equal(data.schedule.generatedConfig.count,2);
+  const buffer=await readFile(join(output,'features-backup.json')),data=JSON.parse(buffer);assert.equal(data.version,3);assert.equal(data.workMemo,memo);assert.equal(data.records[0].taxType,'freelance');assert.equal(data.schedule.generatedConfig.count,2);
   await page.locator('#restore-file').setInputFiles({name:'features-backup.json',mimeType:'application/json',buffer});await page.locator('#confirm-yes').click();
-  await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('복원했어요'));await go('notes.html');assert.equal(await page.locator('#work-memo').inputValue(),memo);
+  await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('복원했어요'));await go('notes.html');assert.equal(await page.locator('#work-memo').evaluate(node=>Quill.find(node).getText().slice(0,-1)),memo);
  });
  await check('새 화면 모바일 320·390·768px 가로 넘침 검사',async()=>{
   for(const width of [320,390,768]){await page.setViewportSize({width,height:900});for(const route of ['calculator.html','schedule.html','records.html','notes.html']){await go(route);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,route+' '+width);}}
@@ -88,8 +88,8 @@ try{
   assert.ok((await page.locator('.records-table').innerText()).includes('96,000'));assert.ok((await page.locator('.records-table').innerText()).includes('30,000'));
   await go('schedule.html');assert.equal(await field('person1').inputValue(),'기존 이름');assert.equal(await field('person0').inputValue(),'');
   assert.equal(await page.locator('.rest-select').first().inputValue(),'2');
-  await go('notes.html');await page.locator('#work-memo').fill('새 메모');
-  const data=await page.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data')));assert.equal(data.version,2);assert.equal(data.records[0].payments[0].amount,30000);
+  await go('notes.html');await page.locator('#work-memo .ql-editor').fill('새 메모');
+  const data=await page.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data')));assert.equal(data.version,3);assert.equal(data.records[0].payments[0].amount,30000);
  });
  assert.deepEqual(errors,[]);console.log(`새 기능 브라우저 시나리오 ${count}개 통과`);
 }finally{await browser.close();}

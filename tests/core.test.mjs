@@ -1,6 +1,28 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULT_SCHEDULE, generateSchedule, scheduleTotals, calculatePay, recordStatus, monthStats, emptyState, validateState, validDate, csvText, calculateTax, shiftState, evaluateExpression } from '../core.js';
+import { DEFAULT_SCHEDULE, generateSchedule, scheduleTotals, calculatePay, recordStatus, monthStats, emptyState, validateState, validDate, csvText, calculateTax, shiftState, evaluateExpression, validateMemoDelta } from '../core.js';
+
+test('메모의 모든 서식과 본문이 JSON 백업 왕복 후 보존된다', () => {
+  const data = emptyState(); data.workMemo = '업무 설명\n준비물';
+  data.workMemoDelta = { ops: [{ insert: '업무 설명', attributes: { bold: true, underline: true, size: '24px', color: '#cc2211', background: '#fff59d' } }, { insert: '\n준비물\n' }] };
+  assert.deepEqual(validateState(JSON.parse(JSON.stringify(data))), data);
+});
+test('v1·v2 일반 메모와 기존 기록은 v3에서 서식 없이 보존된다', () => {
+  for (const version of [1, 2]) {
+    const data = { ...emptyState(), version, workMemo: '기존 메모\n줄바꿈 유지\n' }; delete data.workMemoDelta;
+    const restored = validateState(data); assert.equal(restored.version, 3); assert.equal(restored.workMemo, data.workMemo); assert.equal(restored.workMemoDelta, null);
+  }
+});
+test('메모에 HTML·이미지·스크립트·임의 CSS를 서식으로 저장할 수 없다', () => {
+  for (const attributes of [{ color: 'url(javascript:alert(1))' }, { color: 'red' }, { background: '#fff;position:fixed' }, { size: '1000px' }, { onclick: 'alert(1)' }, { bold: '<script>' }]) assert.throws(() => validateMemoDelta({ ops: [{ insert: '메모\n', attributes }] }, '메모'));
+  assert.throws(() => validateMemoDelta({ ops: [{ insert: { image: 'x' } }] }, ''));
+});
+test('메모 본문·서식 불일치와 제한 초과 백업을 거부한다', () => {
+  assert.throws(() => validateMemoDelta({ ops: [{ insert: '다른 내용\n' }] }, '메모'));
+  assert.throws(() => validateMemoDelta({ ops: [{ insert: '메모' }] }, '메모'));
+  assert.throws(() => validateMemoDelta({ ops: [{ insert: '가'.repeat(30001) + '\n' }] }, '가'.repeat(30001)));
+  assert.ok(validateMemoDelta({ ops: [{ insert: '가'.repeat(30000) + '\n' }] }, '가'.repeat(30000)));
+});
 
 const pay = { start: '10:00', end: '19:00', breakMinutes: 60, payType: 'hourly', rate: 12000, extra: 0, deduction: 0, taxType:'none',taxExempt:0 };
 const record = (changes = {}) => ({ ...pay, id: 'record-one', date: '2026-09-30', workplace: '우리 카페', task: '판매', dueDate: '2026-10-05', note: '', payments: [], ...changes });
@@ -191,7 +213,7 @@ test('v1 백업을 v2로 읽으면서 급여·입금·수동 배정을 보존한
   old.schedule.generatedConfig=structuredClone(old.schedule.config);old.schedule.rows=generateSchedule(old.schedule.config);old.schedule.rows[0].rest=2;
   const r=record({payments:[{date:'2026-10-01',amount:30000}]});delete r.taxType;delete r.taxExempt;old.records=[r];
   const updated=validateState(JSON.parse(JSON.stringify(old)));
-  assert.equal(updated.version,2);assert.equal(updated.records[0].taxType,'none');assert.equal(calculatePay(updated.records[0]).expected,96000);
+  assert.equal(updated.version,3);assert.equal(updated.records[0].taxType,'none');assert.equal(calculatePay(updated.records[0]).expected,96000);
   assert.equal(updated.records[0].payments[0].amount,30000);assert.equal(updated.schedule.rows[0].rest,2);assert.equal(updated.schedule.config.names[0],'');assert.equal(updated.schedule.config.names[1],'민수');
 });
 test('교대 식사·업무 메모·세금 유형이 JSON 왕복 후 유지된다',()=>{

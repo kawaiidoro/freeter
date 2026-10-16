@@ -1,5 +1,28 @@
 export const STORAGE_KEY = 'dangi-alba:data';
-export const VERSION = 2;
+export const VERSION = 3;
+export const MEMO_SIZES = ['14px', '16px', '17px', '18px', '20px', '24px', '28px', '32px'];
+export function validateMemoDelta(delta, text) {
+  if (delta == null) return null;
+  if (!delta || !Array.isArray(delta.ops) || delta.ops.length > 30001) throw new Error('메모 서식이 올바르지 않습니다.');
+  let length = 0;
+  const ops = delta.ops.map(op => {
+    if (!op || typeof op.insert !== 'string' || (length += op.insert.length) > 30001) throw new Error('메모에는 30,000자까지 입력할 수 있습니다.');
+    const attributes = {};
+    if (op.attributes !== undefined) {
+      if (!op.attributes || typeof op.attributes !== 'object' || Array.isArray(op.attributes)) throw new Error('메모 서식이 올바르지 않습니다.');
+      for (const [key, value] of Object.entries(op.attributes)) {
+        if (['bold', 'underline'].includes(key) && value === true) attributes[key] = true;
+        else if (key === 'size' && MEMO_SIZES.includes(value)) attributes.size = value;
+        else if (['color', 'background'].includes(key) && typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value)) attributes[key] = value.toLowerCase();
+        else throw new Error('지원하지 않는 메모 서식입니다.');
+      }
+    }
+    return { insert: op.insert, ...(Object.keys(attributes).length ? { attributes } : {}) };
+  });
+  const content = ops.map(op => op.insert).join('');
+  if (!content.endsWith('\n') || content.slice(0, -1) !== text) throw new Error('메모 본문과 서식 내용이 일치하지 않습니다.');
+  return { ops };
+}
 export const DEFAULT_SCHEDULE = {
   names: ['', '', ''], count: 3, start: '10:00', end: '19:00',
   lunchEnabled: true, lunchStart: '12:00', lunchEnd: '13:00', interval: 60, first: 0, fair: false,
@@ -155,7 +178,7 @@ export function monthStats(records, month) {
   return { days: new Set(work.map(r => r.date)).size, minutes: work.reduce((sum, r) => sum + calculatePay(r).paidMinutes, 0), expected, receivedForWork, outstanding, cash, work };
 }
 export function emptyState() {
-  return { version: VERSION, settings: { theme: 'light' }, schedule: { config: structuredClone(DEFAULT_SCHEDULE), generatedConfig: null, rows: [] }, workplaces: [], records: [], calculator: null, workMemo: '' };
+  return { version: VERSION, settings: { theme: 'light' }, schedule: { config: structuredClone(DEFAULT_SCHEDULE), generatedConfig: null, rows: [] }, workplaces: [], records: [], calculator: null, workMemo: '', workMemoDelta: null };
 }
 const textValue = (value, max = 2000) => typeof value === 'string' && value.length <= max;
 export function validateRecord(record) {
@@ -165,7 +188,7 @@ export function validateRecord(record) {
   return record;
 }
 export function validateState(data) {
-  if (!data || ![1, VERSION].includes(data.version) || !data.settings || !['light', 'dark'].includes(data.settings.theme) || !data.schedule || !Array.isArray(data.records) || data.records.length > 50000 || !Array.isArray(data.workplaces) || data.workplaces.some(w => !textValue(w, 100)) || (data.workMemo !== undefined && !textValue(data.workMemo, 30000))) throw new Error('지원하지 않는 백업 형식 또는 버전입니다.');
+  if (!data || ![1, 2, VERSION].includes(data.version) || !data.settings || !['light', 'dark'].includes(data.settings.theme) || !data.schedule || !Array.isArray(data.records) || data.records.length > 50000 || !Array.isArray(data.workplaces) || data.workplaces.some(w => !textValue(w, 100)) || (data.workMemo !== undefined && !textValue(data.workMemo, 30000))) throw new Error('지원하지 않는 백업 형식 또는 버전입니다.');
   const config = normalizeSchedule(data.schedule.config);
   if (!config || !Array.isArray(config.names) || config.names.length !== 3 || config.names.some(n => !textValue(n, 40)) || typeof config.lunchEnabled !== 'boolean' || typeof config.fair !== 'boolean') throw new Error('근무표 설정이 올바르지 않습니다.');
   // Draft input may be incomplete; validate types here and times when generating.
@@ -192,7 +215,7 @@ export function validateState(data) {
     return Object.fromEntries(Object.keys(DEFAULT_SCHEDULE).map(key => [key, key === 'names' ? n.names.map((name, i) => data.version === 1 && name === `근무자 ${'ABC'[i]}` ? '' : name) : n[key]]));
   };
   return {
-    version: VERSION, settings: { theme: data.settings.theme }, workMemo: data.workMemo ?? '',
+    version: VERSION, settings: { theme: data.settings.theme }, workMemo: data.workMemo ?? '', workMemoDelta: validateMemoDelta(data.workMemoDelta, data.workMemo ?? ''),
     schedule: { config: copyConfig(config), generatedConfig: rows.length ? copyConfig(data.schedule.generatedConfig) : null, rows: rows.map(row => ({ start: row.start, end: row.end, rest: row.rest, ...(row.lunchers ? { lunchers: [...row.lunchers] } : {}) })) },
     workplaces: [...new Set(data.workplaces)],
     records: data.records.map(r => ({ id: r.id, date: r.date, workplace: r.workplace, task: r.task, start: r.start, end: r.end, breakMinutes: Number(r.breakMinutes), payType: r.payType, rate: Number(r.rate), extra: Number(r.extra), deduction: Number(r.deduction), taxType: r.taxType ?? 'none', taxExempt: Number(r.taxExempt ?? 0), dueDate: r.dueDate, note: r.note, payments: r.payments.map(p => ({ date: p.date, amount: p.amount })) })),
