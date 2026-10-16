@@ -18,7 +18,7 @@ page.on('response', response => { if (response.status() >= 400) failures.push(`$
 const field = (name, root = page) => root.locator(`[name="${name}"]`);
 const action = name => page.locator(`[data-action="${name}"]`);
 async function check(name, callback) { await callback(); console.log(`PASS ${name}`); }
-async function go(route = '') { await page.goto(new URL(route, base).href); await page.locator('main h1').waitFor(); }
+async function go(route = '') { await page.goto(new URL(route, base).href); await page.locator('main[data-ready]').waitFor(); }
 async function download(actionName, fileName) {
   const pending = page.waitForEvent('download'); await action(actionName).click(); const item = await pending;
   const path = join(output, fileName); await item.saveAs(path); return readFile(path);
@@ -30,7 +30,7 @@ try {
     assert.ok((await page.locator('.recent-panel').innerText()).includes('첫 번째 알바'));
   });
   await check('근무표 요구사항 예시와 모든 비점심 구간의 2인 근무', async () => {
-    await go('schedule.html'); await field('lunchStart').fill('10:00'); await field('lunchEnd').fill('11:00');
+    await go('schedule.html'); await field('fair').uncheck(); await field('lunchStart').fill('10:00'); await field('lunchEnd').fill('11:00');
     await page.locator('#schedule-form button[type="submit"]').click();
     assert.equal(await page.locator('.schedule-table tbody tr').count(), 9);
     const totals = await page.locator('.person-totals strong').allTextContents(); assert.deepEqual(totals, ['5시간', '5시간', '6시간']);

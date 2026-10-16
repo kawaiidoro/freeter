@@ -7,16 +7,16 @@ const { chromium }=createRequire(import.meta.url)('playwright');
 const site=await serveSite(),browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{})});
 const output=process.env.TEST_OUTPUT_DIR||'/tmp/freeter-weather-tests';await mkdir(output,{recursive:true});
 const contexts=[],errors=[];let count=0;
-const sample=temperature=>({current_units:{temperature_2m:'°C'},current:{time:'2026-10-17T10:30',temperature_2m:temperature,apparent_temperature:temperature-1,weather_code:0,is_day:1},daily:{time:['2026-10-17'],temperature_2m_max:[temperature+4],temperature_2m_min:[temperature-5]}});
+const sample=temperature=>({current_units:{temperature_2m:'°C'},current:{time:'2026-10-17T10:30',temperature_2m:temperature,apparent_temperature:temperature-1,weather_code:0,is_day:1,relative_humidity_2m:64},daily:{time:['2026-10-17'],temperature_2m_max:[temperature+4],temperature_2m_min:[temperature-5],uv_index_max:[4.2],sunrise:['2026-10-17T06:40'],sunset:['2026-10-17T17:52']}});
 async function setup(options={}) {
  const context=await browser.newContext({viewport:{width:390,height:844},locale:'ko-KR',...options});contexts.push(context);
  const control={requests:[],mode:'ok',wait:null};
- await context.route('https://api.open-meteo.com/**',async route=>{
+ await context.route('https://*.open-meteo.com/**',async route=>{
   const request=route.request(),url=new URL(request.url());control.requests.push({url:url.href,headers:request.headers()});
   if(control.wait)await control.wait(url);
   if(control.mode==='offline')return route.abort('internetdisconnected');
   const data=control.mode==='invalid'?{current:{temperature_2m:'<img src=x onerror=bad()>'}}:sample(url.searchParams.get('latitude')==='35.18'?26:21);
-  await route.fulfill({status:control.mode==='http'?503:200,headers:{'content-type':'application/json','access-control-allow-origin':'*'},body:JSON.stringify(data)}).catch(error=>{if(!request.failure())throw error;});
+  await route.fulfill({status:control.mode==='http'?503:200,headers:{'content-type':'application/json','access-control-allow-origin':'*'},body:JSON.stringify(control.mode==='ok'&&url.hostname.startsWith('air-quality')?{current:{time:'2026-10-17T10:00',pm10:28,pm2_5:12},current_units:{pm10:'μg/m³',pm2_5:'μg/m³'}}:data)}).catch(error=>{if(!request.failure())throw error;});
  });
  const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));return{context,page,control};
 }
@@ -46,6 +46,8 @@ try {
  await check('곰씨를 누르면 현재 기온·최저·최고를 표시하고 선택 지역을 정확히 변경',async()=>{
   const{page,control}=await setup();await go(page);await show(page);await ready(page);
   assert.equal(await page.locator('.weather-place').innerText(),'서울');assert.equal(await page.locator('.weather-degrees strong').innerText(),'21');assert.equal(await page.locator('.weather-low').innerText(),'최저 16°');assert.equal(await page.locator('.weather-high').innerText(),'최고 25°');
+  for(const [key,value]of [['humidity','64%'],['uv','4.2'],['sunrise','06:40'],['sunset','17:52'],['pm10','28.0 ㎍/㎥'],['pm25','12.0 ㎍/㎥']])assert.equal(await page.locator(`[data-metric="${key}"] strong`).innerText(),value);
+  assert.ok((await page.locator('.weather-symbol').evaluate(node=>getComputedStyle(node).backgroundImage)).includes('weather-illustrations.png'));
   await page.locator('#weather-city').selectOption('busan');await page.waitForFunction(()=>document.querySelector('.weather-degrees strong')?.textContent==='26');assert.equal(await page.locator('.weather-place').innerText(),'부산');
   const requests=control.requests.length;await page.locator('.weather-close').click();await show(page);await ready(page);assert.equal(control.requests.length,requests,'A fresh in-memory weather result can be reused');await page.screenshot({path:join(output,'gomssi-weather-mobile.png')});
  });

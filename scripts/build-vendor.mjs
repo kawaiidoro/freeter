@@ -28,6 +28,8 @@ const quill = await build({ stdin: { contents: "import Quill from 'quill'; globa
 } }] });
 await emit('quill.js', '/* Quill 2.0.3, BSD-3-Clause. Freeter security patch: escaped-text HTML export; GHSA-v3m3-f69x-jf25. */\n'+quill.outputFiles[0].text);
 for (const [from,to] of [['dist/quill.core.css','quill.core.css'],['LICENSE','QUILL-LICENSE.txt']]) await emit(to,await readFile(new URL('node_modules/quill/'+from,root)));
+const image=await build({stdin:{contents:"export { toBlob } from 'html-to-image';",resolveDir:root.pathname},bundle:true,format:'iife',globalName:'FreeterImage',platform:'browser',target:['es2022'],minify:true,legalComments:'inline',write:false});
+await emit('html-to-image.js','/* html-to-image 1.11.13, MIT; see THIRD-PARTY-LICENSES.txt. */\nfunction loadFreeterImage(){\n'+image.outputFiles[0].text+'\nreturn FreeterImage;\n}\n');
 const lock=JSON.parse(await readFile(new URL('package-lock.json',root),'utf8')),licenses=[];
 for(const [path,pkg]of Object.entries(lock.packages)){
   if(!path.startsWith('node_modules/')||pkg.dev||pkg.optional)continue;
@@ -36,7 +38,7 @@ for(const [path,pkg]of Object.entries(lock.packages)){
   for(const name of names)licenses.push(`${path} @ ${pkg.version} — ${name}\n${(await readFile(new URL(path+'/'+name,root),'utf8')).replaceAll('\r\n','\n')}`);
 }
 await emit('THIRD-PARTY-LICENSES.txt',licenses.join('\n\n------------------------------------------------------------\n\n')+'\n');
-const files=['supabase.js','quill.js','quill.core.css'];
+const files=['supabase.js','quill.js','quill.core.css','html-to-image.js'];
 const hashes=Object.fromEntries(await Promise.all(files.map(async name=>[name,createHash('sha256').update(outputs.get(name)).digest('hex')])));
 await emit('checksums.json',JSON.stringify(hashes,null,2)+'\n');
 console.log(process.argv.includes('--check')?'Verified pinned and patched vendor assets.':'Built pinned Supabase SDK, patched Quill and vendor checksums.');

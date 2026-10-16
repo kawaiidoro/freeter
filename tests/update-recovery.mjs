@@ -49,7 +49,7 @@ try{
  await check('삼성 인터넷 터치 화면의 모든 페이지에서 기기 연결 UI·실행 코드 제거',async()=>{
   const[c,p]=await context(()=>Object.defineProperty(window,'RTCPeerConnection',{value:class{constructor(){throw Error('Device linking must not run');}},configurable:true}));
   for(const route of ['','schedule.html','calculator.html','records.html','stats.html','notes.html','guide.html','privacy.html','settings.html']){
-   await p.goto(base+'/freeter/'+route);await p.locator('main h1').waitFor();
+   await p.goto(base+'/freeter/'+route);await p.locator('main[data-ready]').waitFor();
    assert.equal(await p.locator('[data-action="open-sync"],[data-action^="sync-"],[data-sync-indicator],#sync-dialog').count(),0,route);
    assert.equal(await p.evaluate(()=>typeof globalThis.FreeterPeer),'undefined');
   }

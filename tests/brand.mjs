@@ -9,7 +9,7 @@ const output=process.env.TEST_OUTPUT_DIR||'/tmp/freeter-brand-tests';await mkdir
 const browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{})});
 const context=await browser.newContext({viewport:{width:390,height:844},locale:'ko-KR'}),page=await context.newPage(),errors=[];
 page.on('pageerror',error=>errors.push(error.message));
-const go=async route=>{await page.goto(new URL(route,base).href);await page.locator('main h1').waitFor();};
+const go=async route=>{await page.goto(new URL(route,base).href);await page.locator('main[data-ready]').waitFor();};
 let count=0;async function check(name,fn){await fn();count++;console.log('PASS '+name);}
 try{
  await check('모든 페이지 Freeter 이름·푸터 슬로건 제거·정적 공유 메타데이터',async()=>{

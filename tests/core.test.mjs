@@ -28,19 +28,19 @@ const pay = { start: '10:00', end: '19:00', breakMinutes: 60, payType: 'hourly',
 const record = (changes = {}) => ({ ...pay, id: 'record-one', date: '2026-09-30', workplace: '우리 카페', task: '판매', dueDate: '2026-10-05', note: '', payments: [], ...changes });
 
 test('요구사항 예시: 점심 10–11시, A·B 5시간 / C 6시간', () => {
-  const rows = generateSchedule({ ...DEFAULT_SCHEDULE, lunchStart: '10:00', lunchEnd: '11:00' });
+  const rows = generateSchedule({ ...DEFAULT_SCHEDULE, fair:false, lunchStart: '10:00', lunchEnd: '11:00' });
   assert.equal(rows.length, 9);
   assert.deepEqual(rows[0], { start: 600, end: 660, rest: null });
   assert.deepEqual(rows.slice(1).map(r => r.rest), [0, 1, 2, 0, 1, 2, 0, 1]);
   assert.deepEqual(scheduleTotals(rows).map(t => t.work), [300, 300, 360]);
 });
 test('점심은 교대 타이머를 멈추고 같은 휴식자가 남은 시간을 이어간다', () => {
-  const rows = generateSchedule({ ...DEFAULT_SCHEDULE, start: '10:00', end: '13:00', lunchStart: '10:20', lunchEnd: '11:10' });
+  const rows = generateSchedule({ ...DEFAULT_SCHEDULE, fair:false, start: '10:00', end: '13:00', lunchStart: '10:20', lunchEnd: '11:10' });
   assert.deepEqual(rows.slice(0, 3), [{ start: 600, end: 620, rest: 0 }, { start: 620, end: 670, rest: null }, { start: 670, end: 710, rest: 0 }]);
   assert.equal(rows.at(-1).end, 780);
 });
 test('마지막 자투리 시간과 마지막 점심도 정확하게 종료한다', () => {
-  const rows = generateSchedule({ ...DEFAULT_SCHEDULE, end: '18:25' });
+  const rows = generateSchedule({ ...DEFAULT_SCHEDULE, fair:false, end: '18:25' });
   assert.equal(rows.at(-1).end - rows.at(-1).start, 25);
   const endLunch = generateSchedule({ ...DEFAULT_SCHEDULE, lunchStart: '18:00', lunchEnd: '19:00' });
   assert.deepEqual(endLunch.at(-1), { start: 1080, end: 1140, rest: null });

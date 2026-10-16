@@ -10,7 +10,7 @@ const browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH
 const context=await browser.newContext({viewport:{width:1440,height:1080},locale:'ko-KR'}),page=await context.newPage(),errors=[];
 page.on('pageerror',error=>errors.push(error.message));
 const field=(name,root=page)=>root.locator(`[name="${name}"]`),action=name=>page.locator(`[data-action="${name}"]`);
-const go=async route=>{await page.goto(new URL(route,base).href);await page.locator('main h1').waitFor();};
+const go=async route=>{await page.goto(new URL(route,base).href);await page.locator('main[data-ready]').waitFor();};
 let count=0;async function check(name,fn){await fn();count++;console.log('PASS '+name);}
 try{
  await check('이름 입력 안내는 빈 값이며 실제 이름은 다시 눌러도 보존',async()=>{

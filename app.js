@@ -81,7 +81,7 @@ let calcSavedHash = '';
 let mobileScheduleSettingsOpen = false;
 let memoReading = false, memoQuill = null, memoSelection = { index: 0, length: 0 };
 const compactSchedule = () => window.matchMedia('(max-width: 800px)').matches;
-const titles = { home: '대시보드', schedule: '교대 근무표', calculator: '급여 계산기', records: '나의 알바 기록', stats: '수입 통계', guide: '사용 가이드', privacy: '개인정보 안내', settings: '데이터 · 설정', notes: '업무 메모장' };
+const titles = { home: '홈', schedule: '교대 근무표', calculator: '급여 계산기', records: '나의 알바 기록', stats: '수입 통계', guide: '사용 가이드', privacy: '개인정보 안내', settings: '데이터 · 설정', notes: '업무 메모장' };
 const routeFiles = { home: './', schedule: './schedule.html', calculator: './calculator.html', records: './records.html', stats: './stats.html', guide: './guide.html', privacy: './privacy.html', settings: './settings.html', notes:'./notes.html' };
 const descriptions = {
   home: '단기알바 근무시간부터 급여 기록까지, 한 번에 관리하세요.',
@@ -122,6 +122,7 @@ function render() {
   if (page === 'calculator') updateCalculator(false);
   if (page === 'records') updateRecords();
   if (page === 'notes' && !memoReading) setupMemoEditor();
+  $('#main').dataset.ready=page;
   $$('a[href^="#"]').forEach(link => {
     const route = link.getAttribute('href').slice(1);
     if (routeFiles[route]) { link.href = routeFiles[route]; link.dataset.route = route; }
@@ -135,7 +136,7 @@ const appTile = (route, image, name, color) => `<a class="app-tile" href="#${rou
 function homeView() {
   const stats = monthStats(state.records, monthNow());
   const recent = [...state.records].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4);
-  return `<header class="workspace-heading"><div><p class="eyebrow">FREETER WORKSPACE</p><h1>나의 워크스페이스</h1></div><span class="workspace-local">${icon('lock')}<span data-cloud-status data-status="${esc(cloud.phase)}">${esc(cloud.snapshot.label)}</span></span></header>
+  return `<h1 class="sr-only">Freeter</h1>
     <div class="workspace-grid">
       <section class="workspace-widget profile-widget" aria-label="나의 Freeter"><img class="profile-logo" src="./assets/freeter-512.png" width="96" height="96" alt="안전모를 비스듬히 쓴 Freeter F 로고"><div class="profile-copy"><img class="profile-wordmark freeter-wordmark" src="./assets/freeter-wordmark.png" width="220" height="73" alt="FREETER · 프리터"><p>근무부터 급여까지,<br>내 일의 흐름을 한곳에.</p></div><a href="#calculator" class="profile-link">급여 계산하기 ${icon('arrow')}</a></section>
       <section class="workspace-widget launcher-widget" aria-labelledby="apps-title"><div class="widget-heading"><h2 id="apps-title">나의 도구</h2><span>필요할 때, 바로</span></div><div class="app-launcher">${[['schedule','calendar','근무표','tile-orange'],['calculator','calculator','급여 계산','tile-black'],['records','notebook','알바 기록','tile-silver'],['notes','edit','업무 메모','tile-notes'],['stats','chart','수입 통계','tile-chart'],['settings','settings','데이터 · 설정','tile-settings']].map(args=>appTile(...args)).join('')}</div></section>
@@ -174,7 +175,7 @@ function scheduleView() {
       </fieldset><fieldset><legend>교대 규칙</legend><div class="form-grid"><label class="field"><span>교대 간격</span><select name="intervalPreset">${[30,60,90,120].map(n=>`<option value="${n}" ${config.interval===n?'selected':''}>${duration(n)}</option>`).join('')}<option value="custom" ${![30,60,90,120].includes(config.interval)?'selected':''}>사용자 지정</option></select></label>
         ${field('교대 간격 (분)','interval','number',config.interval,'min="1" max="1440" required')}
         <label class="field full"><span>첫 번째 휴식자</span><select name="first">${Array.from({length:count},(_,i)=>`<option value="${i}" ${config.first===i?'selected':''} data-person="${i}">${esc(personName(i))}</option>`).join('')}</select></label>
-      </div><label class="check-label fair-check"><input type="checkbox" name="fair" ${config.fair?'checked':''}><span>공평하게 배분 <small>교대 간격보다 근무시간 균형을 우선해요.</small></span></label></fieldset>
+      </div><label class="check-label fair-check"><input type="checkbox" name="fair" ${config.fair||config.rulesVersion===1?'checked':''}><span>공평하게 배분 <small>교대 간격보다 근무시간 균형을 우선해요.</small></span></label></fieldset>
       <div id="schedule-error" class="form-error" role="alert" hidden></div><button class="button primary full-width" type="submit">${icon('sparkle')}근무표 생성하기</button><button class="button ghost full-width" type="button" data-action="reset-schedule">설정과 근무표 초기화</button>
     </form></details></section><section id="schedule-result" class="panel result-panel" aria-live="polite"></section></div>
     <aside class="info-strip">${icon('help')}<p><strong>식사 중인 사람과 근무 중인 사람을 구분해요.</strong> 식사 교대가 모두 끝난 뒤 이전 휴식 순서와 남은 교대시간을 이어갑니다. 2명이 함께 식사하는 구간은 1명만 근무합니다. 배정용 도구로 급여는 계산하지 않아요.</p><a href="#guide">사용법 ${icon('arrow')}</a></aside>`;
@@ -182,7 +183,7 @@ function scheduleView() {
 function readSchedule() {
   const data = new FormData($('#schedule-form')), count = Number(data.get('count'));
   const lunchMode = count===2 && data.get('lunchMode')==='pair' ? 'single' : data.get('lunchMode');
-  return { names:[0,1,2].map(i=>String(data.get(`person${i}`)??'').slice(0,40)), count, start:data.get('start'), end:data.get('end'), lunchEnabled:data.has('lunchEnabled'), lunchStart:data.get('lunchStart'), lunchEnd:data.get('lunchEnd'), interval:Number(data.get('interval')), first:Math.min(Number(data.get('first')),count-1), fair:data.has('fair'), lunchMode, lunchMinutes:Number(data.get('lunchMinutes')), lunchFirst:Math.min(Number(data.get('lunchFirst')),count-1) };
+  return { names:[0,1,2].map(i=>String(data.get(`person${i}`)??'').slice(0,40)), count, start:data.get('start'), end:data.get('end'), lunchEnabled:data.has('lunchEnabled'), lunchStart:data.get('lunchStart'), lunchEnd:data.get('lunchEnd'), interval:Number(data.get('interval')), first:Math.min(Number(data.get('first')),count-1), fair:data.has('fair'), rulesVersion:2, lunchMode, lunchMinutes:Number(data.get('lunchMinutes')), lunchFirst:Math.min(Number(data.get('lunchFirst')),count-1) };
 }
 const personName = i => state.schedule.config.names[i]?.trim() || `근무자 ${'ABC'[i]}`;
 const resultCount = () => state.schedule.generatedConfig?.count ?? 3;
@@ -194,8 +195,10 @@ function renderScheduleResult() {
   if(!rows.length){ container.innerHTML=`<div class="result-placeholder"><span class="large-feature">${icon('calendar')}</span><span class="eyebrow">READY WHEN YOU ARE</span><h2>우리의 하루를<br>가볍게 계획해요.</h2><p>${state.schedule.config.count}인 교대와 식사 방식을 선택하고<br>근무표 생성하기를 눌러 주세요.</p></div>`;return; }
   const people=resultPeople(), totals=scheduleTotals(rows,people.length), names=people.map(personName);
   const gap=Math.max(...totals.map(t=>t.work))-Math.min(...totals.map(t=>t.work));
+  const oldRules=(state.schedule.generatedConfig.rulesVersion??1)<2;
   const dirty=JSON.stringify({...state.schedule.config,names:[]})!==JSON.stringify({...state.schedule.generatedConfig,names:[]});
   container.innerHTML=`<div class="panel-title"><div><h2>우리의 근무표</h2><p>${timeText(rows[0].start)} – ${timeText(rows.at(-1).end)} · ${people.length}인 교대</p></div><div class="result-toolbar"><span class="small-badge blue-badge">${state.schedule.generatedConfig.fair?'균형 우선':'순환 교대'}</span><button type="button" class="button secondary small" data-action="edit-schedule">${icon('settings')}설정</button></div></div>
+    ${oldRules?'<p class="inline-notice">점심 복귀와 공평 배분 규칙이 개선됐어요. 기존 배정을 보존했으니 근무표를 다시 생성해 적용해 주세요.</p>':''}
     ${dirty?'<p class="inline-notice">시간·인원·규칙이 변경됐어요. 생성 버튼을 눌러 반영해 주세요.</p>':''}
     <div class="schedule-legend"><span><i class="legend-dot work"></i>근무</span><span><i class="legend-dot rest"></i>휴식</span><span><i class="legend-dot lunch"></i>점심</span></div><p class="field-hint mobile-scroll-hint">근무자를 누르면 그 시간의 휴식자로 바꿀 수 있어요.</p>
     <div class="table-scroll schedule-scroll" tabindex="0" aria-label="교대 근무표"><table class="schedule-table"><thead><tr><th scope="col">시간</th>${names.map((n,i)=>`<th scope="col" data-person="${i}">${esc(n)}</th>`).join('')}<th scope="col" class="assignment-column">휴식자 변경</th></tr></thead><tbody>
@@ -325,7 +328,7 @@ function newFeaturesGuide() {
 }
 function openUpdates() {
   const dialog=ensureAppDialog('updates-dialog','updates-title');
-  dialog.innerHTML=`<div class="dialog-head"><div><p class="eyebrow">WHAT’S NEW</p><h2 id="updates-title">업데이트 내역</h2></div><button type="button" class="icon-button" data-action="close-updates" aria-label="업데이트 내역 닫기">${icon('close')}</button></div><div class="updates-layout"><section class="updates-content"><span class="update-date">2026.10.17 · FREETER UPDATE</span><h3>새로운 근무 관리 도구</h3><p class="updates-intro">곰씨와 함께, 오늘의 일을 조금 더 편하게.</p><ul class="update-list"><li><span>${icon('calendar')}</span><div><h4>우리 현장에 맞는 교대</h4><p>3인 밀어내기·2인 맞교대, 모두 함께·1명씩·2명 먼저 점심을 선택해요. 모바일에서도 표를 한눈에 볼 수 있어요.</p></div></li><li><span>${icon('calculator')}</span><div><h4>세금까지 계산하는 급여</h4><p>일용근로소득과 프리랜서 3.3%를 선택하고 예상 수령액을 확인해요. 작은 계산기로 추가 계산도 할 수 있어요.</p></div></li><li><span>${icon('check')}</span><div><h4>받은 급여는 지급 완료로</h4><p>실제 입금일과 금액을 남기면 지급 상태와 수입 통계에 함께 반영돼요.</p></div></li><li><span>${icon('edit')}</span><div><h4>입력 즉시 반응하는 업무 메모</h4><p>한글을 입력하는 순간 안내 문구가 사라져요. 굵게·크기·밑줄·글자색·형광펜으로 중요한 내용을 표시해요. 읽기 보기와 JSON 백업에도 서식이 유지돼요.</p></div></li><li><span>${icon('sun')}</span><div><h4>곰씨가 알려주는 오늘 날씨</h4><p>오른쪽 아래 움직이는 곰씨를 눌러 날씨·현재 기온·오늘 최고와 최저 기온을 확인해요. 지역을 고르거나 내 위치를 사용할 수 있어요.</p></div></li></ul></section><aside class="updates-mascot"><img src="./assets/gomssi.png" width="240" height="280" alt="노란 안전모와 작업 조끼를 입고 인사하는 노가다 곰씨"><span>노가다 곰씨</span><p>오늘도 안전하게,<br>기록은 꼼꼼하게.</p></aside></div>`;
+  dialog.innerHTML=`<div class="dialog-head"><div><p class="eyebrow">WHAT’S NEW</p><h2 id="updates-title">업데이트 내역</h2></div><button type="button" class="icon-button" data-action="close-updates" aria-label="업데이트 내역 닫기">${icon('close')}</button></div><div class="updates-layout"><section class="updates-content"><span class="update-date">2026.10.17 · FREETER UPDATE</span><h3>새로운 근무 관리 도구</h3><p class="updates-intro">곰씨와 함께, 오늘의 일을 조금 더 편하게.</p><ul class="update-list"><li><span>${icon('calendar')}</span><div><h4>우리 현장에 맞는 교대</h4><p>3인 밀어내기·2인 맞교대, 모두 함께·1명씩·2명 먼저 점심을 선택해요. 모바일에서도 표를 한눈에 볼 수 있어요.</p></div></li><li><span>${icon('calculator')}</span><div><h4>세금까지 계산하는 급여</h4><p>일용근로소득과 프리랜서 3.3%를 선택하고 예상 수령액을 확인해요. 작은 계산기로 추가 계산도 할 수 있어요.</p></div></li><li><span>${icon('check')}</span><div><h4>받은 급여는 지급 완료</h4><p>실제 입금일과 금액을 남기면 지급 상태와 수입 통계에 함께 반영돼요.</p></div></li><li><span>${icon('edit')}</span><div><h4>입력 즉시 반응하는 업무 메모</h4><p>한글을 입력하는 순간 안내 문구가 사라져요. 굵게·크기·밑줄·글자색·형광펜으로 중요한 내용을 표시해요. 읽기 보기와 JSON 백업에도 서식이 유지돼요.</p></div></li><li><span>${icon('sun')}</span><div><h4>곰씨가 알려주는 오늘 날씨</h4><p>오른쪽 아래 움직이는 곰씨를 눌러 날씨·현재 기온·오늘 최고와 최저 기온을 확인해요. 지역을 고르거나 내 위치를 사용할 수 있어요.</p></div></li></ul></section><aside class="updates-mascot"><img src="./assets/gomssi.png" width="240" height="280" alt="노란 안전모와 작업 조끼를 입고 인사하는 노가다 곰씨"><span>노가다 곰씨</span><p>오늘도 안전하게,<br>기록은 꼼꼼하게.</p></aside></div>`;
   dialog.showModal();
 }
 function ensureAppDialog(id,label) {
@@ -437,8 +440,8 @@ function privacyView() {
   return head('YOUR DATA, YOUR CHOICE','내 기록을 안전하게.','로그인 전 브라우저 저장과 Google 계정 저장의 차이를 안내합니다.')+`<article class="panel prose"><h2>로그인 전에는 이 브라우저에 저장합니다</h2><p>로그인 없이 만든 근무표·급여·입금·업무 메모와 서식은 브라우저 localStorage의 <code>${STORAGE_KEY}</code>에 저장합니다. 이 기록을 자동으로 서버에 올리지 않습니다. 같은 도메인과 브라우저에서는 경로가 바뀌어도 기존 기록을 읽을 수 있습니다.</p><h2>Google 로그인과 계정 동기화</h2><p>Google 로그인 시 Supabase Auth가 계정 식별자·이메일·인증 제공자의 기본 프로필과 세션을 처리합니다. 로그인한 상태에서 작성한 근무표·근무·급여·입금 내역·메모와 서식·설정은 Supabase 데이터베이스의 내 계정 공간에 저장되어 같은 계정의 기기에서 조회할 수 있습니다. 로그인 전 기록은 사용자가 브라우저 기록 가져오기를 확인한 경우에만 계정으로 옮깁니다. Freeter는 Google 비밀번호를 받지 않으며 Google Drive·메일 권한을 요청하지 않습니다.</p><h2>접근 권한과 기기 사본</h2><p>데이터베이스는 로그인한 사용자의 계정 ID로 접근을 제한합니다. 이는 다른 일반 사용자의 접근을 막는 방식이며 서비스 운영자의 관리자 접근까지 차단하는 종단간 암호화는 아닙니다. 계정 세션과 오프라인 편집 사본은 브라우저에 보관합니다. 명시적으로 로그아웃하면 현재 브라우저의 계정 사본과 복구 사본을 지우고 로그인 전 기록으로 돌아갑니다. 미전송 편집은 먼저 저장하거나 JSON으로 백업한 뒤 로그아웃합니다. 세션 만료나 연결 오류 시 미전송 자료는 복구를 위해 기기에 남을 수 있습니다.</p><h2>공용 기기와 보관 기간</h2><p>공용 기기에서는 사용 후 로그아웃하고 백업 파일을 직접 정리하세요. 브라우저 저장소와 기기 파일은 같은 기기를 사용하는 사람이 열람할 수 있습니다. 로그인 전 자료는 전체 삭제나 브라우저 데이터 삭제까지, 계정 자료는 사용자가 계정의 전체 데이터 삭제를 실행할 때까지 유지합니다. Supabase의 서비스 로그·백업 보관은 제공자의 정책과 프로젝트 설정을 따릅니다. 시크릿 모드 종료·브라우저 초기화 시 기기의 미전송 기록이 사라질 수 있습니다.</p><h2>백업·공유·동시 수정</h2><p>JSON·CSV·PNG·TXT 다운로드와 근무표 공유는 버튼을 누를 때만 실행합니다. 백업 파일은 암호화하지 않으므로 안전하게 보관하세요. 다른 항목의 변경은 합치고 같은 항목을 동시에 수정하면 자동 덮어쓰기를 멈춥니다. 사용자가 사용할 기록을 고르기 전에 기기·서버 자료를 각각 백업합니다.</p><h2>전체 데이터 삭제의 범위</h2><p>로그인 전 전체 삭제는 이 서비스의 브라우저 자료와 이전 버전의 복구 자료를 삭제합니다. 로그인 후에는 현재 계정의 기록을 비우며, 서버에 반영되면 같은 계정의 다른 기기에서도 반영합니다. 오프라인에서는 연결 후 삭제가 전송됩니다. Google 계정이나 로그인 전 별도 기록을 삭제하지 않습니다. 이미 내려받거나 공유한 파일은 직접 삭제하세요.</p><h2>곰씨 날씨와 위치</h2><p>곰씨를 눌러 날씨 창을 열 때만 선택한 지역의 좌표를 Open-Meteo에 보내 날씨를 조회합니다. 기본 지역은 서울이며 내 위치로 자동 판단하지 않습니다. 내 위치 버튼을 누르고 브라우저에서 허용한 경우에만 위치를 사용합니다. 전송 좌표는 소수점 둘째 자리로 줄이며 계정 기록·브라우저 저장소·오프라인 캐시에 위치를 저장하지 않습니다. 위치 권한 없이도 지역 선택으로 사용할 수 있습니다.</p><h2>호스팅·인증 서비스와 오프라인 캐시</h2><p>GitHub Pages가 정적 사이트를 제공하고, Google과 Supabase가 로그인·계정 저장을 제공합니다. 각 제공자는 접속·서비스 제공에 필요한 정보를 처리할 수 있습니다. 서비스 워커는 공개 사이트 파일만 캐시하고 인증 응답·개인 기록 API는 캐시하지 않습니다. 현재 광고·분석·추적 스크립트는 없습니다.</p><a class="button secondary" href="#settings">계정과 내 데이터 관리 ${icon('arrow')}</a></article>`;
 }
 
-function confirmAction(message, title = '한 번 더 확인해 주세요', label = '확인') {
-  const dialog = $('#confirm-dialog');
+function confirmAction(message, title = '한 번 더 확인해 주세요', label = '확인', {compact=false}={}) {
+  const dialog = $('#confirm-dialog');dialog.classList.toggle('memo-confirm',compact);
   const owner=cloud.user?.id||null;
   $('#confirm-title').textContent = title;
   $('#confirm-message').textContent = message;
@@ -506,37 +509,34 @@ async function copyText(text) {
   }
 }
 async function schedulePng() {
-  const rows = state.schedule.rows, totals = scheduleTotals(rows,resultCount());
-  // Paginate very small custom intervals to stay below browser canvas limits.
-  const pages = Math.ceil(rows.length / 100);
-  for (let part = 0; part < pages; part++) {
-    const subset = rows.slice(part * 100, (part + 1) * 100);
-    const canvas = document.createElement('canvas');
-    canvas.width = 1200; canvas.height = 320 + subset.length * 56 + 180;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#b74400'; ctx.font = 'bold 24px sans-serif'; ctx.fillText('Freeter', 55, 58);
-    ctx.fillStyle = '#111111'; ctx.font = 'bold 38px sans-serif'; ctx.fillText('우리의 교대 근무표', 55, 120);
-    ctx.fillStyle = '#66615a'; ctx.font = '22px sans-serif'; ctx.fillText(`${timeText(rows[0].start)} – ${timeText(rows.at(-1).end)}${pages > 1 ? ` · ${part + 1}/${pages}` : ''}`, 55, 166);
-    const col=750/resultCount(), widths=[340,...resultPeople().map(()=>col)], x=[55,...resultPeople().map(i=>395+i*col)];
-    ctx.fillStyle = '#f2ede6'; ctx.fillRect(55, 210, 1090, 65);
-    ['시간', ...resultPeople().map(personName)].forEach((name, i) => { ctx.fillStyle = '#111111'; ctx.font = 'bold 23px sans-serif'; ctx.fillText(name, x[i] + 16, 252, widths[i] - 30); });
-    subset.forEach((row, index) => {
-      const y = 282 + index * 56;
-      ctx.fillStyle = index % 2 ? '#faf5ef' : '#fff'; ctx.fillRect(55, y, 1090, 56);
-      ctx.fillStyle = '#57514a'; ctx.font = '21px sans-serif'; ctx.fillText(`${timeText(row.start)} – ${timeText(row.end)}`, 71, y + 36, 310);
-      for (let person = 0; person < resultCount(); person++) {
-        ctx.fillStyle = shiftState(row,person)==='lunch'?'#8c6e25':shiftState(row,person)==='rest'?'#8490a3':'#b74400';
-        ctx.fillText(shiftLabel[shiftState(row,person)], x[person + 1] + 16, y + 36);
-      }
-    });
-    const bottom = 320 + subset.length * 56;
-    totals.forEach((total, i) => { ctx.fillStyle = '#111111'; ctx.font = '20px sans-serif'; ctx.fillText(`${personName(i)}: 근무 ${duration(total.work)} · 휴식 ${duration(total.rest)}`, 55, bottom + i * 38, 1090); });
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-    if (!blob) throw new Error('이미지 생성에 실패했어요. CSV 또는 텍스트 저장을 이용해 주세요.');
-    download(blob, `교대-근무표${pages > 1 ? '-' + (part + 1) : ''}.png`);
-  }
-  toast(pages > 1 ? `근무표를 ${pages}장의 이미지로 저장했어요. 여러 파일 다운로드를 허용해 주세요.` : '근무표 이미지를 저장했어요.');
+  const source=$('#schedule-result');if(!source||!state.schedule.rows.length)return;
+  const owner=cloud.user?.id||null;
+  if(document.fonts?.ready)await document.fonts.ready;
+  const width=Math.ceil(source.getBoundingClientRect().width),ratio=2;
+  const rowNodes=[...source.querySelectorAll('tbody tr')];
+  const heights=rowNodes.map(row=>row.getBoundingClientRect().height);
+  const overhead=source.scrollHeight-heights.reduce((sum,height)=>sum+height,0);
+  const budget=Math.max(100,Math.min(6000,Math.floor(8000000/(width*ratio*ratio)))-overhead-50);
+  const parts=[];let from=0,used=0;
+  heights.forEach((height,index)=>{if(used+height>budget&&index>from){parts.push([from,index]);from=index;used=0;}used+=height;});parts.push([from,heights.length]);
+  const stage=document.createElement('div');stage.className='schedule-layout schedule-export-stage';stage.setAttribute('aria-hidden','true');stage.inert=true;
+  Object.assign(stage.style,{position:'fixed',left:'-100000px',top:'0',width:width+'px',display:'block',pointerEvents:'none'});document.body.append(stage);
+  try {
+    for(let part=0;part<parts.length;part++) {
+      const clone=source.cloneNode(true);clone.removeAttribute('id');clone.querySelectorAll('[id]').forEach(node=>node.removeAttribute('id'));
+      clone.querySelector('.export-actions')?.remove();
+      const [start,end]=parts[part];[...clone.querySelectorAll('tbody tr')].forEach((row,index)=>{if(index<start||index>=end)row.remove();});
+      Object.assign(clone.style,{width:width+'px',height:'auto',maxHeight:'none',overflow:'visible',margin:'0'});
+      clone.querySelectorAll('.schedule-scroll').forEach(node=>Object.assign(node.style,{height:'auto',maxHeight:'none',overflow:'visible'}));
+      if(parts.length>1){const label=document.createElement('p');label.className='field-hint';label.textContent=`${part+1} / ${parts.length} · 아래 합계는 전체 일정 기준입니다.`;clone.append(label);}
+      stage.replaceChildren(clone);
+      const blob=await loadFreeterImage().toBlob(clone,{pixelRatio:ratio,skipFonts:true,backgroundColor:getComputedStyle(source).backgroundColor,width});
+      if(owner!==(cloud.user?.id||null))throw new Error('계정이 변경되어 이미지 저장을 중지했어요.');
+      if(!blob)throw new Error('이미지 생성에 실패했어요. CSV 또는 텍스트 저장을 이용해 주세요.');
+      download(blob,`교대-근무표${parts.length>1?'-'+(part+1):''}.png`);
+    }
+  }finally{stage.remove();}
+  toast(parts.length>1?`화면 디자인 그대로 ${parts.length}장의 이미지로 저장했어요.`:'화면 디자인 그대로 근무표를 저장했어요.');
 }
 
 document.addEventListener('submit', async event => {
@@ -671,7 +671,7 @@ document.addEventListener('click', async event => {
     if(action==='complete-payment')openCompletePayment(button.dataset.id);
     if(action==='copy-memo')await copyText(state.workMemo);
     if(action==='download-memo')download(state.workMemo,`업무-메모-${today()}.txt`,'text/plain;charset=utf-8');
-    if(action==='clear-memo'&&await confirmAction('업무 메모 내용을 모두 비웁니다. 필요하면 먼저 TXT 또는 JSON으로 백업해 주세요.','업무 메모를 비울까요?','비우기')){state.workMemo='';state.workMemoDelta=null;persisted('업무 메모를 비웠어요.');render();}
+    if(action==='clear-memo'&&await confirmAction('업무 메모 내용을 모두 비웁니다. 필요하면 먼저 TXT 또는 JSON으로 백업해 주세요.','업무 메모를 비울까요?','비우기',{compact:true})){state.workMemo='';state.workMemoDelta=null;persisted('업무 메모를 비웠어요.');render();}
     if(action==='mini-key'){
       const key=button.dataset.key;
       if(key==='='){calculateMini();return;}
@@ -712,7 +712,7 @@ document.addEventListener('click', async event => {
       if (navigator.share) { try { await navigator.share({ title: 'Freeter | 근무표', text: scheduleText() }); } catch (failure) { if (failure.name !== 'AbortError') await copyText(scheduleText()); } }
       else await copyText(scheduleText());
     }
-    if (action === 'schedule-png') await schedulePng();
+    if (action === 'schedule-png'){button.disabled=true;try{await schedulePng();}finally{button.disabled=false;}}
   } catch (failure) { toast(failure.message || '작업을 완료하지 못했어요. 다시 확인해 주세요.'); }
 });
 $('#theme-toggle').addEventListener('click', () => { state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark'; save(); applyTheme(); if (page === 'settings') render(); });

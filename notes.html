@@ -2,11 +2,11 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://api.open-meteo.com https://dsqhfwhurecpcvxpbafo.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://api.open-meteo.com https://air-quality-api.open-meteo.com https://dsqhfwhurecpcvxpbafo.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'">
   <meta name="referrer" content="no-referrer">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#ff6b00">
-  <meta name="freeter-release" content="4eb8952db885">
+  <meta name="freeter-release" content="efa2e4ee07f0">
   <meta name="application-name" content="Freeter">
   <meta name="apple-mobile-web-app-title" content="Freeter">
   <meta name="description" content="전달받은 업무 설명과 준비물, 업무 순서를 브라우저에 자동 저장하는 무료 메모장입니다.">
@@ -31,10 +31,10 @@
   <title>업무 메모장 | Freeter</title>
   <link rel="icon" href="./assets/freeter-192.png" type="image/png">
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./style.css?v=4eb8952db885">
-  <link rel="stylesheet" href="./brand.css?v=4eb8952db885">
-  <link rel="stylesheet" href="./vendor/quill.core.css?v=4eb8952db885">
-  <script defer src="./site.js?v=4eb8952db885"></script>
+  <link rel="stylesheet" href="./style.css?v=efa2e4ee07f0">
+  <link rel="stylesheet" href="./brand.css?v=efa2e4ee07f0">
+  <link rel="stylesheet" href="./vendor/quill.core.css?v=efa2e4ee07f0">
+  <script defer src="./site.js?v=efa2e4ee07f0"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">본문으로 바로가기</a>
@@ -55,7 +55,7 @@
     </div>
   </aside>
   <div class="app-shell">
-    <header class="topbar"><a class="mobile-brand" href="#home"><img src="./assets/freeter-192.png" alt="" width="28" height="28"><span class="brand-lockup"><img class="freeter-wordmark" src="./assets/freeter-wordmark.png" width="148" height="49" alt="FREETER · 프리터"></span></a><div class="breadcrumb"><span>나의 워크스페이스</span><span class="slash">/</span><strong id="page-label">대시보드</strong></div><div class="top-actions"><span class="today" id="today-label"></span><a class="icon-button notes-top-link" href="#notes" aria-label="업무 메모장 열기"><span data-icon="edit"></span></a><button type="button" class="icon-button updates-top-link" data-action="open-updates" aria-label="업데이트 내역 열기"><span data-icon="clock"></span></button><button type="button" class="icon-button" id="theme-toggle" aria-label="다크모드로 전환"><span data-icon="moon"></span></button><button type="button" class="icon-button account-top-link" data-action="open-account" aria-label="Google 로그인 및 계정"><span data-icon="user"></span></button></div></header>
+    <header class="topbar"><a class="mobile-brand" href="#home"><img src="./assets/freeter-192.png" alt="" width="28" height="28"><span class="brand-lockup"><img class="freeter-wordmark" src="./assets/freeter-wordmark.png" width="148" height="49" alt="FREETER · 프리터"></span></a><div class="breadcrumb"><span>Freeter</span><span class="slash">/</span><strong id="page-label">대시보드</strong></div><div class="top-actions"><span class="today" id="today-label"></span><a class="icon-button notes-top-link" href="#notes" aria-label="업무 메모장 열기"><span data-icon="edit"></span></a><button type="button" class="icon-button updates-top-link" data-action="open-updates" aria-label="업데이트 내역 열기"><span data-icon="clock"></span></button><button type="button" class="icon-button" id="theme-toggle" aria-label="다크모드로 전환"><span data-icon="moon"></span></button><button type="button" class="icon-button account-top-link" data-action="open-account" aria-label="Google 로그인 및 계정"><span data-icon="user"></span></button></div></header>
     <main id="main" tabindex="-1"><article class="panel prose"><h1>업무 메모장</h1><p>전달받은 업무 설명과 준비물, 업무 순서를 브라우저에 자동 저장하는 무료 메모장입니다.</p><p>Freeter — 로그인 전에는 브라우저에, 로그인 후에는 내 계정에 기록합니다.</p></article></main>
     <footer class="site-footer"><nav aria-label="하단 메뉴"><a href="#guide">사용법</a><a href="#privacy">개인정보 안내</a><a href="#settings">백업 · 복원</a></nav><p>© <span id="year"></span> Freeter</p></footer>
   </div>

@@ -8,7 +8,7 @@ async function check(name,fn){try{await fn();count++;console.log('PASS '+name);}
 try{
  await check('모든 페이지에 스크립트 출처 제한·외부 참조 차단·리퍼러 비공개 적용',async()=>{
   for(const file of ['','schedule.html','calculator.html','records.html','stats.html','notes.html','settings.html','privacy.html','guide.html']){
-   await page.goto(new URL(file,site.base).href);await page.locator('main h1').waitFor();const csp=await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content');
+   await page.goto(new URL(file,site.base).href);await page.locator('main[data-ready]').waitFor();const csp=await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content');
    assert.ok(csp.includes("script-src 'self'"));assert.ok(!csp.includes('unsafe-eval'));assert.ok(!/script-src[^;]*unsafe-inline/.test(csp));assert.ok(csp.includes("object-src 'none'"));assert.ok(csp.includes("base-uri 'none'"));assert.equal(await page.locator('meta[name="referrer"]').getAttribute('content'),'no-referrer');
   }
  });
@@ -36,7 +36,7 @@ try{
  });
  await check('OAuth 콜백 코드·토큰을 주소와 서비스 워커 캐시에 남기지 않음',async()=>{
   await page.goto(site.base);await page.evaluate(async()=>{await navigator.serviceWorker.ready;if(!navigator.serviceWorker.controller)await new Promise(resolve=>navigator.serviceWorker.addEventListener('controllerchange',resolve,{once:true}));});
-  await page.goto(site.base+'?code=one_time_private_code&access_token=private_token');await page.locator('main h1').waitFor();assert.equal(new URL(page.url()).search,'');
+  await page.goto(site.base+'?code=one_time_private_code&access_token=private_token');await page.locator('main[data-ready]').waitFor();assert.equal(new URL(page.url()).search,'');
   const urls=await page.evaluate(async()=>{const all=[];for(const key of await caches.keys())all.push(...(await(await caches.open(key)).keys()).map(r=>r.url));return all;});assert.ok(urls.every(url=>!url.includes('one_time_private_code')&&!url.includes('private_token')&&!url.includes('/auth/v1/')&&!url.includes('/rest/v1/')));
  });
  console.log(`보안 브라우저 시나리오 ${count}개 통과`);

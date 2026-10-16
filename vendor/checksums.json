@@ -1,5 +1,6 @@
 {
   "supabase.js": "6f1b20c88e9843252b8a83cf7a31261225eecaf8c57900feed8b12a8f28cdc79",
   "quill.js": "cc7504f8bb55adf25203ae0d67be7dda147f1836beb7ba37937b5f008f99de39",
-  "quill.core.css": "1ad491e90881eaae64cdbbc87e82613c98350907e89c00e77faa4316d92098e5"
+  "quill.core.css": "1ad491e90881eaae64cdbbc87e82613c98350907e89c00e77faa4316d92098e5",
+  "html-to-image.js": "05323571bbd1b06d5496ad8dc4de3bba0f12186653080822a9ddf2be1b57a4f3"
 }

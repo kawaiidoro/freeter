@@ -95,6 +95,14 @@ ${_}`}var A=class extends Error{constructor({message:e,code:t,cause:s,name:n}){v
 return FreeterSupabase;
 }
 
+/* html-to-image 1.11.13, MIT; see THIRD-PARTY-LICENSES.txt. */
+function loadFreeterImage(){
+var FreeterImage=(()=>{var P=Object.defineProperty;var tt=Object.getOwnPropertyDescriptor;var et=Object.getOwnPropertyNames;var rt=Object.prototype.hasOwnProperty;var nt=(t,e)=>{for(var r in e)P(t,r,{get:e[r],enumerable:!0})},it=(t,e,r,n)=>{if(e&&typeof e=="object"||typeof e=="function")for(let i of et(e))!rt.call(t,i)&&i!==r&&P(t,i,{get:()=>e[i],enumerable:!(n=tt(e,i))||n.enumerable});return t};var ot=t=>it(P({},"__esModule",{value:!0}),t);var _t={};nt(_t,{toBlob:()=>Z});function A(t,e){if(t.match(/^[a-z]+:\/\//i))return t;if(t.match(/^\/\//))return window.location.protocol+t;if(t.match(/^[a-z]+:/i))return t;let r=document.implementation.createHTMLDocument(),n=r.createElement("base"),i=r.createElement("a");return r.head.appendChild(n),r.body.appendChild(i),e&&(n.href=e),i.href=t,i.href}var U=(()=>{let t=0,e=()=>`0000${(Math.random()*36**4<<0).toString(36)}`.slice(-4);return()=>(t+=1,`u${e()}${t}`)})();function f(t){let e=[];for(let r=0,n=t.length;r<n;r++)e.push(t[r]);return e}var g=null;function E(t={}){return g||(t.includeStyleProperties?(g=t.includeStyleProperties,g):(g=f(window.getComputedStyle(document.documentElement)),g))}function S(t,e){let n=(t.ownerDocument.defaultView||window).getComputedStyle(t).getPropertyValue(e);return n?parseFloat(n.replace("px","")):0}function at(t){let e=S(t,"border-left-width"),r=S(t,"border-right-width");return t.clientWidth+e+r}function st(t){let e=S(t,"border-top-width"),r=S(t,"border-bottom-width");return t.clientHeight+e+r}function T(t,e={}){let r=e.width||at(t),n=e.height||st(t);return{width:r,height:n}}function v(){let t,e;try{e=process}catch{}let r=e&&e.env?e.env.devicePixelRatio:null;return r&&(t=parseInt(r,10),Number.isNaN(t)&&(t=1)),t||window.devicePixelRatio||1}var u=16384;function k(t){(t.width>u||t.height>u)&&(t.width>u&&t.height>u?t.width>t.height?(t.height*=u/t.width,t.width=u):(t.width*=u/t.height,t.height=u):t.width>u?(t.height*=u/t.width,t.width=u):(t.width*=u/t.height,t.height=u))}function M(t,e={}){return t.toBlob?new Promise(r=>{t.toBlob(r,e.type?e.type:"image/png",e.quality?e.quality:1)}):new Promise(r=>{let n=window.atob(t.toDataURL(e.type?e.type:void 0,e.quality?e.quality:void 0).split(",")[1]),i=n.length,o=new Uint8Array(i);for(let a=0;a<i;a+=1)o[a]=n.charCodeAt(a);r(new Blob([o],{type:e.type?e.type:"image/png"}))})}function d(t){return new Promise((e,r)=>{let n=new Image;n.onload=()=>{n.decode().then(()=>{requestAnimationFrame(()=>e(n))})},n.onerror=r,n.crossOrigin="anonymous",n.decoding="async",n.src=t})}async function ct(t){return Promise.resolve().then(()=>new XMLSerializer().serializeToString(t)).then(encodeURIComponent).then(e=>`data:image/svg+xml;charset=utf-8,${e}`)}async function H(t,e,r){let n="http://www.w3.org/2000/svg",i=document.createElementNS(n,"svg"),o=document.createElementNS(n,"foreignObject");return i.setAttribute("width",`${e}`),i.setAttribute("height",`${r}`),i.setAttribute("viewBox",`0 0 ${e} ${r}`),o.setAttribute("width","100%"),o.setAttribute("height","100%"),o.setAttribute("x","0"),o.setAttribute("y","0"),o.setAttribute("externalResourcesRequired","true"),i.appendChild(o),o.appendChild(t),ct(i)}var l=(t,e)=>{if(t instanceof e)return!0;let r=Object.getPrototypeOf(t);return r===null?!1:r.constructor.name===e.name||l(r,e)};function lt(t){let e=t.getPropertyValue("content");return`${t.cssText} content: '${e.replace(/'|"/g,"")}';`}function ut(t,e){return E(e).map(r=>{let n=t.getPropertyValue(r),i=t.getPropertyPriority(r);return`${r}: ${n}${i?" !important":""};`}).join(" ")}function ft(t,e,r,n){let i=`.${t}:${e}`,o=r.cssText?lt(r):ut(r,n);return document.createTextNode(`${i}{${o}}`)}function V(t,e,r,n){let i=window.getComputedStyle(t,r),o=i.getPropertyValue("content");if(o===""||o==="none")return;let a=U();try{e.className=`${e.className} ${a}`}catch{return}let s=document.createElement("style");s.appendChild(ft(a,r,i,n)),e.appendChild(s)}function O(t,e,r){V(t,e,":before",r),V(t,e,":after",r)}var W="application/font-woff",B="image/jpeg",mt={woff:W,woff2:W,ttf:"application/font-truetype",eot:"application/vnd.ms-fontobject",png:"image/png",jpg:B,jpeg:B,gif:"image/gif",tiff:"image/tiff",svg:"image/svg+xml",webp:"image/webp"};function ht(t){let e=/\.([^./]*?)$/g.exec(t);return e?e[1]:""}function p(t){let e=ht(t).toLowerCase();return mt[e]||""}function gt(t){return t.split(/,/)[1]}function x(t){return t.search(/^(data:)/)!==-1}function $(t,e){return`data:${e};base64,${t}`}async function F(t,e,r){let n=await fetch(t,e);if(n.status===404)throw new Error(`Resource "${n.url}" not found`);let i=await n.blob();return new Promise((o,a)=>{let s=new FileReader;s.onerror=a,s.onloadend=()=>{try{o(r({res:n,result:s.result}))}catch(c){a(c)}},s.readAsDataURL(i)})}var L={};function dt(t,e,r){let n=t.replace(/\?.*/,"");return r&&(n=t),/ttf|otf|eot|woff2?/i.test(n)&&(n=n.replace(/.*\//,"")),e?`[${e}]${n}`:n}async function y(t,e,r){let n=dt(t,e,r.includeQueryParams);if(L[n]!=null)return L[n];r.cacheBust&&(t+=(/\?/.test(t)?"&":"?")+new Date().getTime());let i;try{let o=await F(t,r.fetchRequestInit,({res:a,result:s})=>(e||(e=a.headers.get("Content-Type")||""),gt(s)));i=$(o,e)}catch(o){i=r.imagePlaceholder||"";let a=`Failed to fetch resource: ${t}`;o&&(a=typeof o=="string"?o:o.message),a&&console.warn(a)}return L[n]=i,i}async function pt(t){let e=t.toDataURL();return e==="data:,"?t.cloneNode(!1):d(e)}async function yt(t,e){if(t.currentSrc){let o=document.createElement("canvas"),a=o.getContext("2d");o.width=t.clientWidth,o.height=t.clientHeight,a?.drawImage(t,0,0,o.width,o.height);let s=o.toDataURL();return d(s)}let r=t.poster,n=p(r),i=await y(r,n,e);return d(i)}async function wt(t,e){var r;try{if(!((r=t?.contentDocument)===null||r===void 0)&&r.body)return await b(t.contentDocument.body,e,!0)}catch{}return t.cloneNode(!1)}async function xt(t,e){return l(t,HTMLCanvasElement)?pt(t):l(t,HTMLVideoElement)?yt(t,e):l(t,HTMLIFrameElement)?wt(t,e):t.cloneNode(_(t))}var bt=t=>t.tagName!=null&&t.tagName.toUpperCase()==="SLOT",_=t=>t.tagName!=null&&t.tagName.toUpperCase()==="SVG";async function St(t,e,r){var n,i;if(_(e))return e;let o=[];return bt(t)&&t.assignedNodes?o=f(t.assignedNodes()):l(t,HTMLIFrameElement)&&(!((n=t.contentDocument)===null||n===void 0)&&n.body)?o=f(t.contentDocument.body.childNodes):o=f(((i=t.shadowRoot)!==null&&i!==void 0?i:t).childNodes),o.length===0||l(t,HTMLVideoElement)||await o.reduce((a,s)=>a.then(()=>b(s,r)).then(c=>{c&&e.appendChild(c)}),Promise.resolve()),e}function Et(t,e,r){let n=e.style;if(!n)return;let i=window.getComputedStyle(t);i.cssText?(n.cssText=i.cssText,n.transformOrigin=i.transformOrigin):E(r).forEach(o=>{let a=i.getPropertyValue(o);o==="font-size"&&a.endsWith("px")&&(a=`${Math.floor(parseFloat(a.substring(0,a.length-2)))-.1}px`),l(t,HTMLIFrameElement)&&o==="display"&&a==="inline"&&(a="block"),o==="d"&&e.getAttribute("d")&&(a=`path(${e.getAttribute("d")})`),n.setProperty(o,a,i.getPropertyPriority(o))})}function Rt(t,e){l(t,HTMLTextAreaElement)&&(e.innerHTML=t.value),l(t,HTMLInputElement)&&e.setAttribute("value",t.value)}function Ct(t,e){if(l(t,HTMLSelectElement)){let n=Array.from(e.children).find(i=>t.value===i.getAttribute("value"));n&&n.setAttribute("selected","")}}function Pt(t,e,r){return l(e,Element)&&(Et(t,e,r),O(t,e,r),Rt(t,e),Ct(t,e)),e}async function Tt(t,e){let r=t.querySelectorAll?t.querySelectorAll("use"):[];if(r.length===0)return t;let n={};for(let o=0;o<r.length;o++){let s=r[o].getAttribute("xlink:href");if(s){let c=t.querySelector(s),m=document.querySelector(s);!c&&m&&!n[s]&&(n[s]=await b(m,e,!0))}}let i=Object.values(n);if(i.length){let o="http://www.w3.org/1999/xhtml",a=document.createElementNS(o,"svg");a.setAttribute("xmlns",o),a.style.position="absolute",a.style.width="0",a.style.height="0",a.style.overflow="hidden",a.style.display="none";let s=document.createElementNS(o,"defs");a.appendChild(s);for(let c=0;c<i.length;c++)s.appendChild(i[c]);t.appendChild(a)}return t}async function b(t,e,r){return!r&&e.filter&&!e.filter(t)?null:Promise.resolve(t).then(n=>xt(n,e)).then(n=>St(t,n,e)).then(n=>Pt(t,n,e)).then(n=>Tt(n,e))}var q=/url\((['"]?)([^'"]+?)\1\)/g,Lt=/url\([^)]+\)\s*format\((["']?)([^"']+)\1\)/g,$t=/src:\s*(?:url\([^)]+\)\s*format\([^)]+\)[,;]\s*)+/g;function Ft(t){let e=t.replace(/([.*+?^${}()|\[\]\/\\])/g,"\\$1");return new RegExp(`(url\\(['"]?)(${e})(['"]?\\))`,"g")}function It(t){let e=[];return t.replace(q,(r,n,i)=>(e.push(i),r)),e.filter(r=>!x(r))}async function Dt(t,e,r,n,i){try{let o=r?A(e,r):e,a=p(e),s;if(i){let c=await i(o);s=$(c,a)}else s=await y(o,a,n);return t.replace(Ft(e),`$1${s}$3`)}catch{}return t}function At(t,{preferredFontFormat:e}){return e?t.replace($t,r=>{for(;;){let[n,,i]=Lt.exec(r)||[];if(!i)return"";if(i===e)return`src: ${n};`}}):t}function I(t){return t.search(q)!==-1}async function R(t,e,r){if(!I(t))return t;let n=At(t,r);return It(n).reduce((o,a)=>o.then(s=>Dt(s,a,e,r)),Promise.resolve(n))}async function w(t,e,r){var n;let i=(n=e.style)===null||n===void 0?void 0:n.getPropertyValue(t);if(i){let o=await R(i,null,r);return e.style.setProperty(t,o,e.style.getPropertyPriority(t)),!0}return!1}async function Ut(t,e){await w("background",t,e)||await w("background-image",t,e),await w("mask",t,e)||await w("-webkit-mask",t,e)||await w("mask-image",t,e)||await w("-webkit-mask-image",t,e)}async function vt(t,e){let r=l(t,HTMLImageElement);if(!(r&&!x(t.src))&&!(l(t,SVGImageElement)&&!x(t.href.baseVal)))return;let n=r?t.src:t.href.baseVal,i=await y(n,p(n),e);await new Promise((o,a)=>{t.onload=o,t.onerror=e.onImageErrorHandler?(...c)=>{try{o(e.onImageErrorHandler(...c))}catch(m){a(m)}}:a;let s=t;s.decode&&(s.decode=o),s.loading==="lazy"&&(s.loading="eager"),r?(t.srcset="",t.src=i):t.href.baseVal=i})}async function kt(t,e){let n=f(t.childNodes).map(i=>D(i,e));await Promise.all(n).then(()=>t)}async function D(t,e){l(t,Element)&&(await Ut(t,e),await vt(t,e),await kt(t,e))}function j(t,e){let{style:r}=t;e.backgroundColor&&(r.backgroundColor=e.backgroundColor),e.width&&(r.width=`${e.width}px`),e.height&&(r.height=`${e.height}px`);let n=e.style;return n!=null&&Object.keys(n).forEach(i=>{r[i]=n[i]}),t}var z={};async function G(t){let e=z[t];if(e!=null)return e;let n=await(await fetch(t)).text();return e={url:t,cssText:n},z[t]=e,e}async function X(t,e){let r=t.cssText,n=/url\(["']?([^"')]+)["']?\)/g,o=(r.match(/url\([^)]+\)/g)||[]).map(async a=>{let s=a.replace(n,"$1");return s.startsWith("https://")||(s=new URL(s,t.url).href),F(s,e.fetchRequestInit,({result:c})=>(r=r.replace(a,`url(${c})`),[a,c]))});return Promise.all(o).then(()=>r)}function J(t){if(t==null)return[];let e=[],r=/(\/\*[\s\S]*?\*\/)/gi,n=t.replace(r,""),i=new RegExp("((@.*?keyframes [\\s\\S]*?){([\\s\\S]*?}\\s*?)})","gi");for(;;){let c=i.exec(n);if(c===null)break;e.push(c[0])}n=n.replace(i,"");let o=/@import[\s\S]*?url\([^)]*\)[\s\S]*?;/gi,a="((\\s*?(?:\\/\\*[\\s\\S]*?\\*\\/)?\\s*?@media[\\s\\S]*?){([\\s\\S]*?)}\\s*?})|(([\\s\\S]*?){([\\s\\S]*?)})",s=new RegExp(a,"gi");for(;;){let c=o.exec(n);if(c===null){if(c=s.exec(n),c===null)break;o.lastIndex=s.lastIndex}else s.lastIndex=o.lastIndex;e.push(c[0])}return e}async function Mt(t,e){let r=[],n=[];return t.forEach(i=>{if("cssRules"in i)try{f(i.cssRules||[]).forEach((o,a)=>{if(o.type===CSSRule.IMPORT_RULE){let s=a+1,c=o.href,m=G(c).then(h=>X(h,e)).then(h=>J(h).forEach(C=>{try{i.insertRule(C,C.startsWith("@import")?s+=1:i.cssRules.length)}catch(N){console.error("Error inserting rule from remote css",{rule:C,error:N})}})).catch(h=>{console.error("Error loading remote css",h.toString())});n.push(m)}})}catch(o){let a=t.find(s=>s.href==null)||document.styleSheets[0];i.href!=null&&n.push(G(i.href).then(s=>X(s,e)).then(s=>J(s).forEach(c=>{a.insertRule(c,a.cssRules.length)})).catch(s=>{console.error("Error loading remote stylesheet",s)})),console.error("Error inlining remote css file",o)}}),Promise.all(n).then(()=>(t.forEach(i=>{if("cssRules"in i)try{f(i.cssRules||[]).forEach(o=>{r.push(o)})}catch(o){console.error(`Error while reading CSS rules from ${i.href}`,o)}}),r))}function Ht(t){return t.filter(e=>e.type===CSSRule.FONT_FACE_RULE).filter(e=>I(e.style.getPropertyValue("src")))}async function Vt(t,e){if(t.ownerDocument==null)throw new Error("Provided element is not within a Document");let r=f(t.ownerDocument.styleSheets),n=await Mt(r,e);return Ht(n)}function K(t){return t.trim().replace(/["']/g,"")}function Ot(t){let e=new Set;function r(n){(n.style.fontFamily||getComputedStyle(n).fontFamily).split(",").forEach(o=>{e.add(K(o))}),Array.from(n.children).forEach(o=>{o instanceof HTMLElement&&r(o)})}return r(t),e}async function Q(t,e){let r=await Vt(t,e),n=Ot(t);return(await Promise.all(r.filter(o=>n.has(K(o.style.fontFamily))).map(o=>{let a=o.parentStyleSheet?o.parentStyleSheet.href:null;return R(o.cssText,a,e)}))).join(`
+`)}async function Y(t,e){let r=e.fontEmbedCSS!=null?e.fontEmbedCSS:e.skipFonts?null:await Q(t,e);if(r){let n=document.createElement("style"),i=document.createTextNode(r);n.appendChild(i),t.firstChild?t.insertBefore(n,t.firstChild):t.appendChild(n)}}async function Wt(t,e={}){let{width:r,height:n}=T(t,e),i=await b(t,e,!0);return await Y(i,e),await D(i,e),j(i,e),await H(i,r,n)}async function Bt(t,e={}){let{width:r,height:n}=T(t,e),i=await Wt(t,e),o=await d(i),a=document.createElement("canvas"),s=a.getContext("2d"),c=e.pixelRatio||v(),m=e.canvasWidth||r,h=e.canvasHeight||n;return a.width=m*c,a.height=h*c,e.skipAutoScale||k(a),a.style.width=`${m}`,a.style.height=`${h}`,e.backgroundColor&&(s.fillStyle=e.backgroundColor,s.fillRect(0,0,a.width,a.height)),s.drawImage(o,0,0,a.width,a.height),a}async function Z(t,e={}){let r=await Bt(t,e);return await M(r)}return ot(_t);})();
+
+return FreeterImage;
+}
+
 const CLOUD_CONFIG = {"url":"https://dsqhfwhurecpcvxpbafo.supabase.co","publishableKey":"sb_publishable_wwAJDFAUZdwMD8Ium6fjIg_9Hs5PGFv"};
 const STORAGE_KEY = 'dangi-alba:data';
 const VERSION = 3;
@@ -123,7 +131,7 @@ function validateMemoDelta(delta, text) {
 }
 const DEFAULT_SCHEDULE = {
   names: ['', '', ''], count: 3, start: '10:00', end: '19:00',
-  lunchEnabled: true, lunchStart: '12:00', lunchEnd: '13:00', interval: 60, first: 0, fair: false,
+  lunchEnabled: true, lunchStart: '12:00', lunchEnd: '13:00', interval: 60, first: 0, fair: true, rulesVersion: 2,
   lunchMode: 'together', lunchMinutes: 60, lunchFirst: 0,
 };
 const today = () => {
@@ -182,9 +190,46 @@ function calculateTax(gross, taxType = 'none', exempt = 0) {
 }
 function normalizeSchedule(config) {
   return { ...DEFAULT_SCHEDULE, ...config, names: [...config.names], count: config.count ?? 3,
-    lunchMode: config.lunchMode ?? 'together', lunchMinutes: config.lunchMinutes ?? 60, lunchFirst: config.lunchFirst ?? 0 };
+    lunchMode: config.lunchMode ?? 'together', lunchMinutes: config.lunchMinutes ?? 60, lunchFirst: config.lunchFirst ?? 0, rulesVersion: config.rulesVersion ?? 1 };
 }
 function generateSchedule(config) {
+  config = normalizeSchedule(config);
+  if(![1,2].includes(config.rulesVersion))throw new Error('지원하지 않는 근무표 규칙입니다.');
+  const original = generateOriginalSchedule(config);
+  if (config.rulesVersion < 2 || !config.lunchEnabled || config.lunchMode === 'together') return original;
+  const meals = original.filter(row => row.rest === null);
+  const start = original[0].start, end = original.at(-1).end;
+  const before = meals[0].start - start, after = end - meals.at(-1).end;
+  if (!before && !after) return meals;
+  const count = config.count, first = Number(config.first), interval = Number(config.interval), active = before + after;
+  const order = Array.from({ length:count }, (_,i)=>(first+i)%count);
+  const lastMeal = meals.at(-1).lunchers;
+  const eligible = order.filter(person=>!lastMeal.includes(person));
+  const quotas = order.reduce((list,person,i)=>{list[person]=Math.floor(active/count)+(i<active%count?1:0);return list;},[]);
+  // Reserve an eligible person's rest for after lunch, so the final diner works first.
+  let postFirst = eligible.find(person=>quotas[person]>0) ?? eligible[0];
+  if (config.fair && after && quotas[postFirst]===0) {
+    const donor=order.find(person=>quotas[person]>0);quotas[donor]--;quotas[postFirst]++;
+  }
+  const reserved = config.fair ? Math.min(interval,after,quotas[postFirst]) : 0;
+  const rows=[];let next=first;
+  const build = (cursor,remaining,reserve) => {
+    while(remaining>0) {
+      const available=person=>config.fair?quotas[person]-(reserve&&person===postFirst?reserved:0):Infinity;
+      let searched=0;while(available(next)<=0&&searched++<count)next=(next+1)%count;
+      if(available(next)<=0)throw new Error('근무시간을 배분하지 못했어요. 시간을 다시 확인해 주세요.');
+      const minutes=Math.min(interval,remaining,available(next));
+      rows.push({start:cursor,end:cursor+minutes,rest:next});
+      if(config.fair)quotas[next]-=minutes;
+      cursor+=minutes;remaining-=minutes;next=(next+1)%count;
+    }
+  };
+  build(start,before,true);rows.push(...meals);
+  if(!config.fair){postFirst=next;while(lastMeal.includes(postFirst))postFirst=(postFirst+1)%count;}
+  next=postFirst;build(meals.at(-1).end,after,false);
+  return rows;
+}
+function generateOriginalSchedule(config) {
   config = normalizeSchedule(config);
   const count = config.count;
   if (![2, 3].includes(count)) throw new Error('근무자 수를 2명 또는 3명으로 선택해 주세요.');
@@ -291,7 +336,7 @@ function validateState(data) {
   if (!config || !Array.isArray(config.names) || config.names.length !== 3 || config.names.some(n => !textValue(n, 40)) || typeof config.lunchEnabled !== 'boolean' || typeof config.fair !== 'boolean') throw new Error('근무표 설정이 올바르지 않습니다.');
   // Draft input may be incomplete; validate types here and times when generating.
   for (const key of ['start', 'end', 'lunchStart', 'lunchEnd']) if (typeof config[key] !== 'string' || (config[key] !== '' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(config[key]))) throw new Error('근무표 시간 형식이 올바르지 않습니다.');
-  if (!Number.isInteger(config.interval) || config.interval < 1 || config.interval > 1440 || ![2, 3].includes(config.count) || !Number.isInteger(config.first) || config.first < 0 || config.first >= config.count || !['together', 'single', 'pair'].includes(config.lunchMode) || (config.count === 2 && config.lunchMode === 'pair') || !Number.isInteger(config.lunchMinutes) || config.lunchMinutes < 1 || config.lunchMinutes > 480 || !Number.isInteger(config.lunchFirst) || config.lunchFirst < 0 || config.lunchFirst >= config.count) throw new Error('교대 설정이 올바르지 않습니다.');
+  if (!Number.isInteger(config.interval) || config.interval < 1 || config.interval > 1440 || ![1,2].includes(config.rulesVersion) || ![2, 3].includes(config.count) || !Number.isInteger(config.first) || config.first < 0 || config.first >= config.count || !['together', 'single', 'pair'].includes(config.lunchMode) || (config.count === 2 && config.lunchMode === 'pair') || !Number.isInteger(config.lunchMinutes) || config.lunchMinutes < 1 || config.lunchMinutes > 480 || !Number.isInteger(config.lunchFirst) || config.lunchFirst < 0 || config.lunchFirst >= config.count) throw new Error('교대 설정이 올바르지 않습니다.');
   const rows = data.schedule.rows;
   if (!Array.isArray(rows) || rows.length > 3000) throw new Error('저장된 근무표가 올바르지 않습니다.');
   if (rows.length) {
@@ -622,8 +667,8 @@ function weatherUrl(lat, lon) {
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat)>90 || Math.abs(lon)>180) throw new Error('위치를 확인하지 못했어요. 지역을 선택해 주세요.');
   const url = new URL('https://api.open-meteo.com/v1/forecast');
   url.search = new URLSearchParams({ latitude:lat.toFixed(2), longitude:lon.toFixed(2),
-    current:'temperature_2m,apparent_temperature,weather_code,is_day',
-    daily:'temperature_2m_max,temperature_2m_min', temperature_unit:'celsius', timezone:'auto', forecast_days:'1' }).toString();
+    current:'temperature_2m,apparent_temperature,weather_code,is_day,relative_humidity_2m',
+    daily:'temperature_2m_max,temperature_2m_min,uv_index_max,sunrise,sunset', temperature_unit:'celsius', timezone:'auto', forecast_days:'1' }).toString();
   return url.href;
 }
 function weatherCondition(code, daytime=true) {
@@ -644,12 +689,57 @@ function parseWeather(data) {
   if (data?.current_units?.temperature_2m!=='°C' || ![temperature,feelsLike,high,low].every(value=>Number.isFinite(value)&&value>=-150&&value<=100)
       || low>high || !Number.isInteger(current?.weather_code) || ![0,1].includes(current?.is_day)
       || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(current?.time||'') || daily?.time?.[0]!==current.time.slice(0,10)) throw new Error('날씨 응답을 확인하지 못했어요. 잠시 후 다시 시도해 주세요.');
-  return { temperature, feelsLike, high, low, time:current.time, ...weatherCondition(current.weather_code,current.is_day===1) };
+  const bounded=(value,min,max)=>Number.isFinite(value)&&value>=min&&value<=max?value:null;
+  const sunTime=value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)&&value.slice(0,10)===current.time.slice(0,10)?value.slice(11):null;
+  return { temperature, feelsLike, high, low, time:current.time, humidity:bounded(current.relative_humidity_2m,0,100),uv:bounded(daily.uv_index_max?.[0],0,40),sunrise:sunTime(daily.sunrise?.[0]),sunset:sunTime(daily.sunset?.[0]), ...weatherCondition(current.weather_code,current.is_day===1) };
+}
+function airQualityUrl(lat,lon) {
+  const url=new URL(weatherUrl(lat,lon));url.hostname='air-quality-api.open-meteo.com';url.pathname='/v1/air-quality';
+  url.search=new URLSearchParams({latitude:lat.toFixed(2),longitude:lon.toFixed(2),current:'pm10,pm2_5',timezone:'auto',forecast_days:'1'}).toString();return url.href;
+}
+function parseAirQuality(data) {
+  const current=data?.current,units=data?.current_units;
+  if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(current?.time||'')||![current.pm10,current.pm2_5].every(value=>Number.isFinite(value)&&value>=0&&value<=5000)||![units?.pm10,units?.pm2_5].every(unit=>['μg/m³','µg/m³'].includes(unit)))throw new Error('대기질 정보가 올바르지 않습니다.');
+  return {pm10:current.pm10,pm25:current.pm2_5,time:current.time};
+}
+function dustGrade(value,fine=false) {
+  if(!Number.isFinite(value))return '정보 없음';const limits=fine?[15,35,75]:[30,80,150];return ['좋음','보통','나쁨','매우 나쁨'][limits.filter(limit=>value>limit).length];
+}
+const GOMSSI_HELP = Object.freeze([
+  '근무표에서 이름 칸을 누르면 휴식자를 바꿀 수 있어요.',
+  '공평하게 배분을 켜면 근무시간 차이를 줄여 드려요.',
+  '점심은 함께, 한 명씩, 두 명 먼저 골라 보세요.',
+  '급여 계산기에서 일용근로·프리랜서 세금을 선택해요.',
+  '급여를 받았다면 기록장의 지급 완료 버튼을 눌러요.',
+  '업무 메모에서 중요한 글자는 형광펜으로 표시해요.',
+  '메모를 읽기 모드로 바꾸면 업무에 집중하기 좋아요.',
+  'Google로 로그인하면 PC와 모바일 기록이 함께 보여요.',
+  '설정에서 JSON 백업을 받아 소중한 기록을 보관해요.',
+  'PNG 저장으로 지금 보는 근무표를 이미지로 나눠요.',
+]);
+const GOMSSI_CHAT = Object.freeze([
+  '오늘도 출근한 당신, 곰씨가 조용히 응원할게요.',
+  '안전모는 꽉, 어깨 힘은 살짝 빼고 시작해요.',
+  '물을 한 모금 마실 시간 아닐까요?',
+  '바쁜 날에도 밥은 꼭 챙겨 먹어요.',
+  '잠깐 기지개! 굳은 어깨를 풀어 주세요.',
+  '오늘의 작은 성취도 기록할 만한 일이에요.',
+  '퇴근 후 나에게 줄 작은 보상은 뭘까요?',
+  '곰씨의 주머니에는 응원 한 움큼이 있어요.',
+  '구름이 지나가듯 바쁜 시간도 지나갈 거예요.',
+  '급할수록 한 번 더 확인해요. 오늘도 안전하게!',
+]);
+function gomssiTipDeck(random=Math.random) {
+  let bag=[],previous='';return()=>{
+    if(!bag.length){bag=[...GOMSSI_HELP,...GOMSSI_CHAT];for(let i=bag.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]];}if(bag.at(-1)===previous)[bag[0],bag[bag.length-1]]=[bag.at(-1),bag[0]];}
+    previous=bag.pop();return previous;
+  };
 }
 async function fetchWeather(lat, lon, { signal, request=(...args)=>globalThis.fetch(...args) }={}) {
-  const response=await request(weatherUrl(lat,lon),{signal,credentials:'omit',referrerPolicy:'no-referrer',cache:'no-store'});
-  if (!response.ok) throw new Error('날씨를 불러오지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.');
-  return parseWeather(await response.json());
+  const get=async url=>{const response=await request(url,{signal,credentials:'omit',referrerPolicy:'no-referrer',cache:'no-store'});if(!response.ok)throw new Error('날씨를 불러오지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.');return response.json();};
+  const [forecast,quality]=await Promise.allSettled([get(weatherUrl(lat,lon)),get(airQualityUrl(lat,lon))]);if(forecast.status==='rejected')throw forecast.reason;
+  let airQuality=null;try{if(quality.status==='fulfilled')airQuality=parseAirQuality(quality.value);}catch{/* Keep weather usable when air quality is unavailable. */}
+  return {...parseWeather(forecast.value),airQuality};
 }
 function mountWeatherWidget() {
   const root=document.createElement('aside');root.className='gomssi-weather';root.setAttribute('aria-label','곰씨 날씨 도우미');
@@ -658,28 +748,37 @@ function mountWeatherWidget() {
     <div class="weather-location"><label><span class="sr-only">날씨 지역</span><select id="weather-city"><option value="current" hidden>내 위치</option>${WEATHER_CITIES.map(city=>`<option value="${city.id}" ${city.id==='seoul'?'selected':''}>${city.name}</option>`).join('')}</select></label><button type="button" class="weather-locate">⌖ 내 위치</button></div>
     <p class="weather-status" role="status" aria-live="polite"></p><div class="weather-content" aria-busy="false"></div>
     <p class="weather-location-note">지역을 선택하거나 내 위치를 허용해 주세요.</p>
-    <a class="weather-source" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">날씨 제공 Open-Meteo ↗</a>
-    </section><button type="button" class="gomssi-button" aria-label="노가다 곰씨 · 오늘 날씨와 기온 보기" aria-controls="gomssi-weather-panel" aria-haspopup="dialog" aria-expanded="false"><span class="gomssi-bubble">오늘 날씨</span><img src="./assets/gomssi.png" width="90" height="90" alt="" draggable="false"></button>`;
+    <a class="weather-source" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo · CAMS 대기질 예측 ↗</a>
+    </section><button type="button" class="gomssi-button" aria-label="노가다 곰씨 · 오늘 날씨와 기온 보기" aria-controls="gomssi-weather-panel" aria-haspopup="dialog" aria-expanded="false"><span class="gomssi-bubble" aria-live="off"><span class="gomssi-tip"></span><small>곰씨를 누르면 오늘 날씨 ↗</small></span><img src="./assets/gomssi.png" width="90" height="90" alt="" draggable="false"></button>`;
   document.body.append(root);
   const find=selector=>root.querySelector(selector), panel=find('.weather-panel'), toggle=find('.gomssi-button'), content=find('.weather-content'), status=find('.weather-status'), citySelect=find('#weather-city');
   let open=false, serial=0, active=null, location={...WEATHER_CITIES[0]}, cache=null;
+  const nextTip=gomssiTipDeck();find('.gomssi-tip').textContent=nextTip();
+  setInterval(()=>{if(!document.hidden&&!open&&!document.querySelector('dialog[open]')&&!document.activeElement?.closest('input,textarea,[contenteditable="true"]'))find('.gomssi-tip').textContent=nextTip();},14000);
   const setStatus=(message,error=false)=>{status.textContent=message;status.dataset.error=String(error);};
   const close=(focus=true)=>{open=false;serial++;active?.abort();panel.hidden=true;toggle.setAttribute('aria-expanded','false');if(focus)toggle.focus({preventScroll:true});};
   const showWeather=data=>{
     // API strings never enter HTML. Only validated numbers and local labels are displayed.
-    content.innerHTML='<div class="weather-now"><div><p class="weather-place"></p><div class="weather-degrees"><strong></strong><span>°C</span></div><p class="weather-description"></p></div><span class="weather-symbol" aria-hidden="true"></span></div><div class="weather-range"><span class="weather-low"></span><span class="weather-high"></span></div><p class="weather-tip"></p>';
+    const metricIcon=kind=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${kind==='humidity'?'<path d="M12 3C9 8 5 11 5 15a7 7 0 0 0 14 0c0-4-4-7-7-12Z"/><path d="M8 15a4 4 0 0 0 4 4"/>':kind==='uv'?'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1 1m12 12 1 1M5 19l1-1M18 6l1-1"/>':kind.startsWith('sun')?'<path d="M3 18h18M6 15a6 6 0 0 1 12 0M12 2v4m-8 3 2 2m12 0 2-2M8 21h8"/>':'<path d="M3 8h12a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 17h6"/>'}</svg>`;
+    content.innerHTML='<div class="weather-now"><div><p class="weather-place"></p><div class="weather-degrees"><strong></strong><span>°C</span></div><p class="weather-description"></p></div><span class="weather-symbol" aria-hidden="true"></span></div><div class="weather-range"><span class="weather-low"></span><span class="weather-high"></span></div><div class="weather-metrics">'+[['humidity','습도'],['uv','오늘 최대 자외선'],['sunrise','일출'],['sunset','일몰'],['pm10','미세먼지 PM10'],['pm25','초미세먼지 PM2.5']].map(([key,label])=>`<div class="weather-metric" data-metric="${key}"><span class="weather-metric-label">${metricIcon(key)}${label}</span><strong></strong><small></small></div>`).join('')+'</div><p class="weather-air-note"></p><p class="weather-tip"></p>';
     find('.weather-place').textContent=location.name;
     find('.weather-degrees strong').textContent=String(Math.round(data.temperature));
     find('.weather-description').textContent=`${data.label} · 체감 ${Math.round(data.feelsLike)}°`;
-    find('.weather-symbol').textContent=data.symbol;find('.weather-symbol').dataset.kind=data.kind;
+    find('.weather-symbol').dataset.kind=data.kind;
     find('.weather-low').textContent=`최저 ${Math.round(data.low)}°`;find('.weather-high').textContent=`최고 ${Math.round(data.high)}°`;
+    const metric=(key,value,note='')=>{find(`[data-metric="${key}"] strong`).textContent=value;find(`[data-metric="${key}"] small`).textContent=note;};
+    metric('humidity',data.humidity===null?'확인 불가':Math.round(data.humidity)+'%');
+    metric('uv',data.uv===null?'확인 불가':data.uv.toFixed(1),data.uv===null?'':['낮음','보통','높음','매우 높음','위험'][[3,6,8,11].filter(limit=>data.uv>=limit).length]);
+    metric('sunrise',data.sunrise||'확인 불가');metric('sunset',data.sunset||'확인 불가');
+    for(const key of ['pm10','pm25'])metric(key,data.airQuality?data.airQuality[key].toFixed(1)+' ㎍/㎥':'확인 불가',data.airQuality?dustGrade(data.airQuality[key],key==='pm25'):'정보 없음');
+    find('.weather-air-note').textContent=data.airQuality?`대기질 ${data.airQuality.time.slice(11)} 기준 · CAMS 모델 예측값`:'대기질 정보를 불러오지 못했어요. 날씨 창을 다시 열어 확인해 주세요.';
     find('.weather-tip').textContent=data.kind==='storm'?'천둥·번개가 있으면 야외 작업에 주의해요.':data.kind==='rain'?'비 오는 현장은 미끄럼에 주의해요.':data.temperature>=30?'더운 날엔 물과 휴식 챙기기.':data.temperature<=5?'체온이 떨어지지 않게 따뜻하게.':'오늘도 안전하게, 곰씨가 응원해요.';
     setStatus(`${data.time.slice(5,10).replace('-','월 ')}일 · ${data.time.slice(11)} 기준`);
   };
   const load=async(force=false)=>{
     const ticket=++serial;active?.abort();
     const key=weatherUrl(location.lat,location.lon);
-    if(!force&&cache?.key===key&&Date.now()-cache.at<300000){showWeather(cache.data);content.setAttribute('aria-busy','false');return;}
+    if(!force&&cache?.key===key&&cache.data.airQuality&&Date.now()-cache.at<300000){showWeather(cache.data);content.setAttribute('aria-busy','false');return;}
     const controller=new AbortController();active=controller;
     const timer=setTimeout(()=>controller.abort(),12000);
     setStatus('곰씨가 날씨를 확인하고 있어요…');content.setAttribute('aria-busy','true');content.innerHTML='<div class="weather-loading" aria-hidden="true"><span>☁</span></div>';
@@ -719,7 +818,7 @@ function mountWeatherWidget() {
 }
 
 
-const APP_RELEASE = '4eb8952db885';
+const APP_RELEASE = 'efa2e4ee07f0';
 let latestRelease = APP_RELEASE;
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -800,7 +899,7 @@ let calcSavedHash = '';
 let mobileScheduleSettingsOpen = false;
 let memoReading = false, memoQuill = null, memoSelection = { index: 0, length: 0 };
 const compactSchedule = () => window.matchMedia('(max-width: 800px)').matches;
-const titles = { home: '대시보드', schedule: '교대 근무표', calculator: '급여 계산기', records: '나의 알바 기록', stats: '수입 통계', guide: '사용 가이드', privacy: '개인정보 안내', settings: '데이터 · 설정', notes: '업무 메모장' };
+const titles = { home: '홈', schedule: '교대 근무표', calculator: '급여 계산기', records: '나의 알바 기록', stats: '수입 통계', guide: '사용 가이드', privacy: '개인정보 안내', settings: '데이터 · 설정', notes: '업무 메모장' };
 const routeFiles = { home: './', schedule: './schedule.html', calculator: './calculator.html', records: './records.html', stats: './stats.html', guide: './guide.html', privacy: './privacy.html', settings: './settings.html', notes:'./notes.html' };
 const descriptions = {
   home: '단기알바 근무시간부터 급여 기록까지, 한 번에 관리하세요.',
@@ -841,6 +940,7 @@ function render() {
   if (page === 'calculator') updateCalculator(false);
   if (page === 'records') updateRecords();
   if (page === 'notes' && !memoReading) setupMemoEditor();
+  $('#main').dataset.ready=page;
   $$('a[href^="#"]').forEach(link => {
     const route = link.getAttribute('href').slice(1);
     if (routeFiles[route]) { link.href = routeFiles[route]; link.dataset.route = route; }
@@ -854,7 +954,7 @@ const appTile = (route, image, name, color) => `<a class="app-tile" href="#${rou
 function homeView() {
   const stats = monthStats(state.records, monthNow());
   const recent = [...state.records].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4);
-  return `<header class="workspace-heading"><div><p class="eyebrow">FREETER WORKSPACE</p><h1>나의 워크스페이스</h1></div><span class="workspace-local">${icon('lock')}<span data-cloud-status data-status="${esc(cloud.phase)}">${esc(cloud.snapshot.label)}</span></span></header>
+  return `<h1 class="sr-only">Freeter</h1>
     <div class="workspace-grid">
       <section class="workspace-widget profile-widget" aria-label="나의 Freeter"><img class="profile-logo" src="./assets/freeter-512.png" width="96" height="96" alt="안전모를 비스듬히 쓴 Freeter F 로고"><div class="profile-copy"><img class="profile-wordmark freeter-wordmark" src="./assets/freeter-wordmark.png" width="220" height="73" alt="FREETER · 프리터"><p>근무부터 급여까지,<br>내 일의 흐름을 한곳에.</p></div><a href="#calculator" class="profile-link">급여 계산하기 ${icon('arrow')}</a></section>
       <section class="workspace-widget launcher-widget" aria-labelledby="apps-title"><div class="widget-heading"><h2 id="apps-title">나의 도구</h2><span>필요할 때, 바로</span></div><div class="app-launcher">${[['schedule','calendar','근무표','tile-orange'],['calculator','calculator','급여 계산','tile-black'],['records','notebook','알바 기록','tile-silver'],['notes','edit','업무 메모','tile-notes'],['stats','chart','수입 통계','tile-chart'],['settings','settings','데이터 · 설정','tile-settings']].map(args=>appTile(...args)).join('')}</div></section>
@@ -893,7 +993,7 @@ function scheduleView() {
       </fieldset><fieldset><legend>교대 규칙</legend><div class="form-grid"><label class="field"><span>교대 간격</span><select name="intervalPreset">${[30,60,90,120].map(n=>`<option value="${n}" ${config.interval===n?'selected':''}>${duration(n)}</option>`).join('')}<option value="custom" ${![30,60,90,120].includes(config.interval)?'selected':''}>사용자 지정</option></select></label>
         ${field('교대 간격 (분)','interval','number',config.interval,'min="1" max="1440" required')}
         <label class="field full"><span>첫 번째 휴식자</span><select name="first">${Array.from({length:count},(_,i)=>`<option value="${i}" ${config.first===i?'selected':''} data-person="${i}">${esc(personName(i))}</option>`).join('')}</select></label>
-      </div><label class="check-label fair-check"><input type="checkbox" name="fair" ${config.fair?'checked':''}><span>공평하게 배분 <small>교대 간격보다 근무시간 균형을 우선해요.</small></span></label></fieldset>
+      </div><label class="check-label fair-check"><input type="checkbox" name="fair" ${config.fair||config.rulesVersion===1?'checked':''}><span>공평하게 배분 <small>교대 간격보다 근무시간 균형을 우선해요.</small></span></label></fieldset>
       <div id="schedule-error" class="form-error" role="alert" hidden></div><button class="button primary full-width" type="submit">${icon('sparkle')}근무표 생성하기</button><button class="button ghost full-width" type="button" data-action="reset-schedule">설정과 근무표 초기화</button>
     </form></details></section><section id="schedule-result" class="panel result-panel" aria-live="polite"></section></div>
     <aside class="info-strip">${icon('help')}<p><strong>식사 중인 사람과 근무 중인 사람을 구분해요.</strong> 식사 교대가 모두 끝난 뒤 이전 휴식 순서와 남은 교대시간을 이어갑니다. 2명이 함께 식사하는 구간은 1명만 근무합니다. 배정용 도구로 급여는 계산하지 않아요.</p><a href="#guide">사용법 ${icon('arrow')}</a></aside>`;
@@ -901,7 +1001,7 @@ function scheduleView() {
 function readSchedule() {
   const data = new FormData($('#schedule-form')), count = Number(data.get('count'));
   const lunchMode = count===2 && data.get('lunchMode')==='pair' ? 'single' : data.get('lunchMode');
-  return { names:[0,1,2].map(i=>String(data.get(`person${i}`)??'').slice(0,40)), count, start:data.get('start'), end:data.get('end'), lunchEnabled:data.has('lunchEnabled'), lunchStart:data.get('lunchStart'), lunchEnd:data.get('lunchEnd'), interval:Number(data.get('interval')), first:Math.min(Number(data.get('first')),count-1), fair:data.has('fair'), lunchMode, lunchMinutes:Number(data.get('lunchMinutes')), lunchFirst:Math.min(Number(data.get('lunchFirst')),count-1) };
+  return { names:[0,1,2].map(i=>String(data.get(`person${i}`)??'').slice(0,40)), count, start:data.get('start'), end:data.get('end'), lunchEnabled:data.has('lunchEnabled'), lunchStart:data.get('lunchStart'), lunchEnd:data.get('lunchEnd'), interval:Number(data.get('interval')), first:Math.min(Number(data.get('first')),count-1), fair:data.has('fair'), rulesVersion:2, lunchMode, lunchMinutes:Number(data.get('lunchMinutes')), lunchFirst:Math.min(Number(data.get('lunchFirst')),count-1) };
 }
 const personName = i => state.schedule.config.names[i]?.trim() || `근무자 ${'ABC'[i]}`;
 const resultCount = () => state.schedule.generatedConfig?.count ?? 3;
@@ -913,8 +1013,10 @@ function renderScheduleResult() {
   if(!rows.length){ container.innerHTML=`<div class="result-placeholder"><span class="large-feature">${icon('calendar')}</span><span class="eyebrow">READY WHEN YOU ARE</span><h2>우리의 하루를<br>가볍게 계획해요.</h2><p>${state.schedule.config.count}인 교대와 식사 방식을 선택하고<br>근무표 생성하기를 눌러 주세요.</p></div>`;return; }
   const people=resultPeople(), totals=scheduleTotals(rows,people.length), names=people.map(personName);
   const gap=Math.max(...totals.map(t=>t.work))-Math.min(...totals.map(t=>t.work));
+  const oldRules=(state.schedule.generatedConfig.rulesVersion??1)<2;
   const dirty=JSON.stringify({...state.schedule.config,names:[]})!==JSON.stringify({...state.schedule.generatedConfig,names:[]});
   container.innerHTML=`<div class="panel-title"><div><h2>우리의 근무표</h2><p>${timeText(rows[0].start)} – ${timeText(rows.at(-1).end)} · ${people.length}인 교대</p></div><div class="result-toolbar"><span class="small-badge blue-badge">${state.schedule.generatedConfig.fair?'균형 우선':'순환 교대'}</span><button type="button" class="button secondary small" data-action="edit-schedule">${icon('settings')}설정</button></div></div>
+    ${oldRules?'<p class="inline-notice">점심 복귀와 공평 배분 규칙이 개선됐어요. 기존 배정을 보존했으니 근무표를 다시 생성해 적용해 주세요.</p>':''}
     ${dirty?'<p class="inline-notice">시간·인원·규칙이 변경됐어요. 생성 버튼을 눌러 반영해 주세요.</p>':''}
     <div class="schedule-legend"><span><i class="legend-dot work"></i>근무</span><span><i class="legend-dot rest"></i>휴식</span><span><i class="legend-dot lunch"></i>점심</span></div><p class="field-hint mobile-scroll-hint">근무자를 누르면 그 시간의 휴식자로 바꿀 수 있어요.</p>
     <div class="table-scroll schedule-scroll" tabindex="0" aria-label="교대 근무표"><table class="schedule-table"><thead><tr><th scope="col">시간</th>${names.map((n,i)=>`<th scope="col" data-person="${i}">${esc(n)}</th>`).join('')}<th scope="col" class="assignment-column">휴식자 변경</th></tr></thead><tbody>
@@ -1044,7 +1146,7 @@ function newFeaturesGuide() {
 }
 function openUpdates() {
   const dialog=ensureAppDialog('updates-dialog','updates-title');
-  dialog.innerHTML=`<div class="dialog-head"><div><p class="eyebrow">WHAT’S NEW</p><h2 id="updates-title">업데이트 내역</h2></div><button type="button" class="icon-button" data-action="close-updates" aria-label="업데이트 내역 닫기">${icon('close')}</button></div><div class="updates-layout"><section class="updates-content"><span class="update-date">2026.10.17 · FREETER UPDATE</span><h3>새로운 근무 관리 도구</h3><p class="updates-intro">곰씨와 함께, 오늘의 일을 조금 더 편하게.</p><ul class="update-list"><li><span>${icon('calendar')}</span><div><h4>우리 현장에 맞는 교대</h4><p>3인 밀어내기·2인 맞교대, 모두 함께·1명씩·2명 먼저 점심을 선택해요. 모바일에서도 표를 한눈에 볼 수 있어요.</p></div></li><li><span>${icon('calculator')}</span><div><h4>세금까지 계산하는 급여</h4><p>일용근로소득과 프리랜서 3.3%를 선택하고 예상 수령액을 확인해요. 작은 계산기로 추가 계산도 할 수 있어요.</p></div></li><li><span>${icon('check')}</span><div><h4>받은 급여는 지급 완료로</h4><p>실제 입금일과 금액을 남기면 지급 상태와 수입 통계에 함께 반영돼요.</p></div></li><li><span>${icon('edit')}</span><div><h4>입력 즉시 반응하는 업무 메모</h4><p>한글을 입력하는 순간 안내 문구가 사라져요. 굵게·크기·밑줄·글자색·형광펜으로 중요한 내용을 표시해요. 읽기 보기와 JSON 백업에도 서식이 유지돼요.</p></div></li><li><span>${icon('sun')}</span><div><h4>곰씨가 알려주는 오늘 날씨</h4><p>오른쪽 아래 움직이는 곰씨를 눌러 날씨·현재 기온·오늘 최고와 최저 기온을 확인해요. 지역을 고르거나 내 위치를 사용할 수 있어요.</p></div></li></ul></section><aside class="updates-mascot"><img src="./assets/gomssi.png" width="240" height="280" alt="노란 안전모와 작업 조끼를 입고 인사하는 노가다 곰씨"><span>노가다 곰씨</span><p>오늘도 안전하게,<br>기록은 꼼꼼하게.</p></aside></div>`;
+  dialog.innerHTML=`<div class="dialog-head"><div><p class="eyebrow">WHAT’S NEW</p><h2 id="updates-title">업데이트 내역</h2></div><button type="button" class="icon-button" data-action="close-updates" aria-label="업데이트 내역 닫기">${icon('close')}</button></div><div class="updates-layout"><section class="updates-content"><span class="update-date">2026.10.17 · FREETER UPDATE</span><h3>새로운 근무 관리 도구</h3><p class="updates-intro">곰씨와 함께, 오늘의 일을 조금 더 편하게.</p><ul class="update-list"><li><span>${icon('calendar')}</span><div><h4>우리 현장에 맞는 교대</h4><p>3인 밀어내기·2인 맞교대, 모두 함께·1명씩·2명 먼저 점심을 선택해요. 모바일에서도 표를 한눈에 볼 수 있어요.</p></div></li><li><span>${icon('calculator')}</span><div><h4>세금까지 계산하는 급여</h4><p>일용근로소득과 프리랜서 3.3%를 선택하고 예상 수령액을 확인해요. 작은 계산기로 추가 계산도 할 수 있어요.</p></div></li><li><span>${icon('check')}</span><div><h4>받은 급여는 지급 완료</h4><p>실제 입금일과 금액을 남기면 지급 상태와 수입 통계에 함께 반영돼요.</p></div></li><li><span>${icon('edit')}</span><div><h4>입력 즉시 반응하는 업무 메모</h4><p>한글을 입력하는 순간 안내 문구가 사라져요. 굵게·크기·밑줄·글자색·형광펜으로 중요한 내용을 표시해요. 읽기 보기와 JSON 백업에도 서식이 유지돼요.</p></div></li><li><span>${icon('sun')}</span><div><h4>곰씨가 알려주는 오늘 날씨</h4><p>오른쪽 아래 움직이는 곰씨를 눌러 날씨·현재 기온·오늘 최고와 최저 기온을 확인해요. 지역을 고르거나 내 위치를 사용할 수 있어요.</p></div></li></ul></section><aside class="updates-mascot"><img src="./assets/gomssi.png" width="240" height="280" alt="노란 안전모와 작업 조끼를 입고 인사하는 노가다 곰씨"><span>노가다 곰씨</span><p>오늘도 안전하게,<br>기록은 꼼꼼하게.</p></aside></div>`;
   dialog.showModal();
 }
 function ensureAppDialog(id,label) {
@@ -1156,8 +1258,8 @@ function privacyView() {
   return head('YOUR DATA, YOUR CHOICE','내 기록을 안전하게.','로그인 전 브라우저 저장과 Google 계정 저장의 차이를 안내합니다.')+`<article class="panel prose"><h2>로그인 전에는 이 브라우저에 저장합니다</h2><p>로그인 없이 만든 근무표·급여·입금·업무 메모와 서식은 브라우저 localStorage의 <code>${STORAGE_KEY}</code>에 저장합니다. 이 기록을 자동으로 서버에 올리지 않습니다. 같은 도메인과 브라우저에서는 경로가 바뀌어도 기존 기록을 읽을 수 있습니다.</p><h2>Google 로그인과 계정 동기화</h2><p>Google 로그인 시 Supabase Auth가 계정 식별자·이메일·인증 제공자의 기본 프로필과 세션을 처리합니다. 로그인한 상태에서 작성한 근무표·근무·급여·입금 내역·메모와 서식·설정은 Supabase 데이터베이스의 내 계정 공간에 저장되어 같은 계정의 기기에서 조회할 수 있습니다. 로그인 전 기록은 사용자가 브라우저 기록 가져오기를 확인한 경우에만 계정으로 옮깁니다. Freeter는 Google 비밀번호를 받지 않으며 Google Drive·메일 권한을 요청하지 않습니다.</p><h2>접근 권한과 기기 사본</h2><p>데이터베이스는 로그인한 사용자의 계정 ID로 접근을 제한합니다. 이는 다른 일반 사용자의 접근을 막는 방식이며 서비스 운영자의 관리자 접근까지 차단하는 종단간 암호화는 아닙니다. 계정 세션과 오프라인 편집 사본은 브라우저에 보관합니다. 명시적으로 로그아웃하면 현재 브라우저의 계정 사본과 복구 사본을 지우고 로그인 전 기록으로 돌아갑니다. 미전송 편집은 먼저 저장하거나 JSON으로 백업한 뒤 로그아웃합니다. 세션 만료나 연결 오류 시 미전송 자료는 복구를 위해 기기에 남을 수 있습니다.</p><h2>공용 기기와 보관 기간</h2><p>공용 기기에서는 사용 후 로그아웃하고 백업 파일을 직접 정리하세요. 브라우저 저장소와 기기 파일은 같은 기기를 사용하는 사람이 열람할 수 있습니다. 로그인 전 자료는 전체 삭제나 브라우저 데이터 삭제까지, 계정 자료는 사용자가 계정의 전체 데이터 삭제를 실행할 때까지 유지합니다. Supabase의 서비스 로그·백업 보관은 제공자의 정책과 프로젝트 설정을 따릅니다. 시크릿 모드 종료·브라우저 초기화 시 기기의 미전송 기록이 사라질 수 있습니다.</p><h2>백업·공유·동시 수정</h2><p>JSON·CSV·PNG·TXT 다운로드와 근무표 공유는 버튼을 누를 때만 실행합니다. 백업 파일은 암호화하지 않으므로 안전하게 보관하세요. 다른 항목의 변경은 합치고 같은 항목을 동시에 수정하면 자동 덮어쓰기를 멈춥니다. 사용자가 사용할 기록을 고르기 전에 기기·서버 자료를 각각 백업합니다.</p><h2>전체 데이터 삭제의 범위</h2><p>로그인 전 전체 삭제는 이 서비스의 브라우저 자료와 이전 버전의 복구 자료를 삭제합니다. 로그인 후에는 현재 계정의 기록을 비우며, 서버에 반영되면 같은 계정의 다른 기기에서도 반영합니다. 오프라인에서는 연결 후 삭제가 전송됩니다. Google 계정이나 로그인 전 별도 기록을 삭제하지 않습니다. 이미 내려받거나 공유한 파일은 직접 삭제하세요.</p><h2>곰씨 날씨와 위치</h2><p>곰씨를 눌러 날씨 창을 열 때만 선택한 지역의 좌표를 Open-Meteo에 보내 날씨를 조회합니다. 기본 지역은 서울이며 내 위치로 자동 판단하지 않습니다. 내 위치 버튼을 누르고 브라우저에서 허용한 경우에만 위치를 사용합니다. 전송 좌표는 소수점 둘째 자리로 줄이며 계정 기록·브라우저 저장소·오프라인 캐시에 위치를 저장하지 않습니다. 위치 권한 없이도 지역 선택으로 사용할 수 있습니다.</p><h2>호스팅·인증 서비스와 오프라인 캐시</h2><p>GitHub Pages가 정적 사이트를 제공하고, Google과 Supabase가 로그인·계정 저장을 제공합니다. 각 제공자는 접속·서비스 제공에 필요한 정보를 처리할 수 있습니다. 서비스 워커는 공개 사이트 파일만 캐시하고 인증 응답·개인 기록 API는 캐시하지 않습니다. 현재 광고·분석·추적 스크립트는 없습니다.</p><a class="button secondary" href="#settings">계정과 내 데이터 관리 ${icon('arrow')}</a></article>`;
 }
 
-function confirmAction(message, title = '한 번 더 확인해 주세요', label = '확인') {
-  const dialog = $('#confirm-dialog');
+function confirmAction(message, title = '한 번 더 확인해 주세요', label = '확인', {compact=false}={}) {
+  const dialog = $('#confirm-dialog');dialog.classList.toggle('memo-confirm',compact);
   const owner=cloud.user?.id||null;
   $('#confirm-title').textContent = title;
   $('#confirm-message').textContent = message;
@@ -1225,37 +1327,34 @@ async function copyText(text) {
   }
 }
 async function schedulePng() {
-  const rows = state.schedule.rows, totals = scheduleTotals(rows,resultCount());
-  // Paginate very small custom intervals to stay below browser canvas limits.
-  const pages = Math.ceil(rows.length / 100);
-  for (let part = 0; part < pages; part++) {
-    const subset = rows.slice(part * 100, (part + 1) * 100);
-    const canvas = document.createElement('canvas');
-    canvas.width = 1200; canvas.height = 320 + subset.length * 56 + 180;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#b74400'; ctx.font = 'bold 24px sans-serif'; ctx.fillText('Freeter', 55, 58);
-    ctx.fillStyle = '#111111'; ctx.font = 'bold 38px sans-serif'; ctx.fillText('우리의 교대 근무표', 55, 120);
-    ctx.fillStyle = '#66615a'; ctx.font = '22px sans-serif'; ctx.fillText(`${timeText(rows[0].start)} – ${timeText(rows.at(-1).end)}${pages > 1 ? ` · ${part + 1}/${pages}` : ''}`, 55, 166);
-    const col=750/resultCount(), widths=[340,...resultPeople().map(()=>col)], x=[55,...resultPeople().map(i=>395+i*col)];
-    ctx.fillStyle = '#f2ede6'; ctx.fillRect(55, 210, 1090, 65);
-    ['시간', ...resultPeople().map(personName)].forEach((name, i) => { ctx.fillStyle = '#111111'; ctx.font = 'bold 23px sans-serif'; ctx.fillText(name, x[i] + 16, 252, widths[i] - 30); });
-    subset.forEach((row, index) => {
-      const y = 282 + index * 56;
-      ctx.fillStyle = index % 2 ? '#faf5ef' : '#fff'; ctx.fillRect(55, y, 1090, 56);
-      ctx.fillStyle = '#57514a'; ctx.font = '21px sans-serif'; ctx.fillText(`${timeText(row.start)} – ${timeText(row.end)}`, 71, y + 36, 310);
-      for (let person = 0; person < resultCount(); person++) {
-        ctx.fillStyle = shiftState(row,person)==='lunch'?'#8c6e25':shiftState(row,person)==='rest'?'#8490a3':'#b74400';
-        ctx.fillText(shiftLabel[shiftState(row,person)], x[person + 1] + 16, y + 36);
-      }
-    });
-    const bottom = 320 + subset.length * 56;
-    totals.forEach((total, i) => { ctx.fillStyle = '#111111'; ctx.font = '20px sans-serif'; ctx.fillText(`${personName(i)}: 근무 ${duration(total.work)} · 휴식 ${duration(total.rest)}`, 55, bottom + i * 38, 1090); });
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-    if (!blob) throw new Error('이미지 생성에 실패했어요. CSV 또는 텍스트 저장을 이용해 주세요.');
-    download(blob, `교대-근무표${pages > 1 ? '-' + (part + 1) : ''}.png`);
-  }
-  toast(pages > 1 ? `근무표를 ${pages}장의 이미지로 저장했어요. 여러 파일 다운로드를 허용해 주세요.` : '근무표 이미지를 저장했어요.');
+  const source=$('#schedule-result');if(!source||!state.schedule.rows.length)return;
+  const owner=cloud.user?.id||null;
+  if(document.fonts?.ready)await document.fonts.ready;
+  const width=Math.ceil(source.getBoundingClientRect().width),ratio=2;
+  const rowNodes=[...source.querySelectorAll('tbody tr')];
+  const heights=rowNodes.map(row=>row.getBoundingClientRect().height);
+  const overhead=source.scrollHeight-heights.reduce((sum,height)=>sum+height,0);
+  const budget=Math.max(100,Math.min(6000,Math.floor(8000000/(width*ratio*ratio)))-overhead-50);
+  const parts=[];let from=0,used=0;
+  heights.forEach((height,index)=>{if(used+height>budget&&index>from){parts.push([from,index]);from=index;used=0;}used+=height;});parts.push([from,heights.length]);
+  const stage=document.createElement('div');stage.className='schedule-layout schedule-export-stage';stage.setAttribute('aria-hidden','true');stage.inert=true;
+  Object.assign(stage.style,{position:'fixed',left:'-100000px',top:'0',width:width+'px',display:'block',pointerEvents:'none'});document.body.append(stage);
+  try {
+    for(let part=0;part<parts.length;part++) {
+      const clone=source.cloneNode(true);clone.removeAttribute('id');clone.querySelectorAll('[id]').forEach(node=>node.removeAttribute('id'));
+      clone.querySelector('.export-actions')?.remove();
+      const [start,end]=parts[part];[...clone.querySelectorAll('tbody tr')].forEach((row,index)=>{if(index<start||index>=end)row.remove();});
+      Object.assign(clone.style,{width:width+'px',height:'auto',maxHeight:'none',overflow:'visible',margin:'0'});
+      clone.querySelectorAll('.schedule-scroll').forEach(node=>Object.assign(node.style,{height:'auto',maxHeight:'none',overflow:'visible'}));
+      if(parts.length>1){const label=document.createElement('p');label.className='field-hint';label.textContent=`${part+1} / ${parts.length} · 아래 합계는 전체 일정 기준입니다.`;clone.append(label);}
+      stage.replaceChildren(clone);
+      const blob=await loadFreeterImage().toBlob(clone,{pixelRatio:ratio,skipFonts:true,backgroundColor:getComputedStyle(source).backgroundColor,width});
+      if(owner!==(cloud.user?.id||null))throw new Error('계정이 변경되어 이미지 저장을 중지했어요.');
+      if(!blob)throw new Error('이미지 생성에 실패했어요. CSV 또는 텍스트 저장을 이용해 주세요.');
+      download(blob,`교대-근무표${parts.length>1?'-'+(part+1):''}.png`);
+    }
+  }finally{stage.remove();}
+  toast(parts.length>1?`화면 디자인 그대로 ${parts.length}장의 이미지로 저장했어요.`:'화면 디자인 그대로 근무표를 저장했어요.');
 }
 
 document.addEventListener('submit', async event => {
@@ -1390,7 +1489,7 @@ document.addEventListener('click', async event => {
     if(action==='complete-payment')openCompletePayment(button.dataset.id);
     if(action==='copy-memo')await copyText(state.workMemo);
     if(action==='download-memo')download(state.workMemo,`업무-메모-${today()}.txt`,'text/plain;charset=utf-8');
-    if(action==='clear-memo'&&await confirmAction('업무 메모 내용을 모두 비웁니다. 필요하면 먼저 TXT 또는 JSON으로 백업해 주세요.','업무 메모를 비울까요?','비우기')){state.workMemo='';state.workMemoDelta=null;persisted('업무 메모를 비웠어요.');render();}
+    if(action==='clear-memo'&&await confirmAction('업무 메모 내용을 모두 비웁니다. 필요하면 먼저 TXT 또는 JSON으로 백업해 주세요.','업무 메모를 비울까요?','비우기',{compact:true})){state.workMemo='';state.workMemoDelta=null;persisted('업무 메모를 비웠어요.');render();}
     if(action==='mini-key'){
       const key=button.dataset.key;
       if(key==='='){calculateMini();return;}
@@ -1431,7 +1530,7 @@ document.addEventListener('click', async event => {
       if (navigator.share) { try { await navigator.share({ title: 'Freeter | 근무표', text: scheduleText() }); } catch (failure) { if (failure.name !== 'AbortError') await copyText(scheduleText()); } }
       else await copyText(scheduleText());
     }
-    if (action === 'schedule-png') await schedulePng();
+    if (action === 'schedule-png'){button.disabled=true;try{await schedulePng();}finally{button.disabled=false;}}
   } catch (failure) { toast(failure.message || '작업을 완료하지 못했어요. 다시 확인해 주세요.'); }
 });
 $('#theme-toggle').addEventListener('click', () => { state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark'; save(); applyTheme(); if (page === 'settings') render(); });

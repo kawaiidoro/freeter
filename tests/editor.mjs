@@ -9,7 +9,7 @@ const browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH
 const context=await browser.newContext({viewport:{width:390,height:844},permissions:['clipboard-read','clipboard-write']});
 const a=await context.newPage(),errors=[],failures=[];
 for(const page of[a]){page.on('pageerror',error=>errors.push(error.message));page.on('response',r=>{if(r.status()>=400)failures.push(r.status()+' '+r.url());});}
-const go=async(page,route)=>{await page.goto(new URL(route,base).href);await page.locator('main h1').waitFor();};
+const go=async(page,route)=>{await page.goto(new URL(route,base).href);await page.locator('main[data-ready]').waitFor();};
 const state=page=>page.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data')));
 const editor=page=>page.locator('#work-memo .ql-editor');
 const memo=page=>page.locator('#work-memo').evaluate(node=>Quill.find(node).getText().slice(0,-1));
