@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://kawaiidoro.github.io/dangi-alba/sitemap.xml

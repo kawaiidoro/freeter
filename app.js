@@ -1,0 +1,463 @@
+import { STORAGE_KEY, VERSION, DEFAULT_SCHEDULE, today, money, duration, timeText, calculatePay, generateSchedule, scheduleTotals, recordStatus, STATUS, monthStats, emptyState, validateRecord, validateState, validDate, csvText } from './core.js';
+
+const $ = (selector, root = document) => root.querySelector(selector);
+const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+const icons = {
+  home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/>',
+  calendar: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18M7 15h2m4 0h4M7 18h2"/>',
+  calculator: '<rect x="5" y="2" width="14" height="20" rx="3"/><path d="M8 6h8M8 10h1m6 0h1m-8 4h1m6 0h1m-8 4h1m6 0h1"/>',
+  notebook: '<path d="M8 3H5v18h14V3H8Zm0 0v18M11 8h5m-5 4h5m-5 4h3M3 7h4M3 12h4M3 17h4"/>',
+  chart: '<path d="M4 3v17h17M9 15v-4m5 4V7m5 8V4"/>',
+  shield: '<path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6Zm-4 9 3 3 5-6"/>',
+  help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4m0 3h.01"/>',
+  settings: '<path d="m9 3-1 3-3 1-2 5 2 5 3 1 1 3h6l1-3 3-1 2-5-2-5-3-1-1-3Z"/><circle cx="12" cy="12" r="3"/>',
+  moon: '<path d="M21 13A9 9 0 0 1 11 3a9 9 0 1 0 10 10Z"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/>',
+  arrow: '<path d="M4 12h15m-6-6 6 6-6 6"/>',
+  chevron: '<path d="m9 5 7 7-7 7"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  wallet: '<path d="M20 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h15V8H5a2 2 0 0 1 0-4m15 8h-5v5h5m-3-2.5h.01"/>',
+  check: '<path d="m5 12 4 4L19 6"/>',
+  download: '<path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/>',
+  upload: '<path d="M12 16V4m-5 5 5-5 5 5M4 16v5h16v-5"/>',
+  copy: '<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V3H3v13h5"/>',
+  share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.5 10.5 7-4m-7 7 7 4"/>',
+  edit: '<path d="m15 4 5 5M4 20l5-1L21 7l-5-5L4 14Z"/>',
+  trash: '<path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/>',
+  close: '<path d="m6 6 12 12M6 18 18 6"/>',
+  search: '<circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/>',
+  lock: '<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/>',
+  sparkle: '<path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5ZM20 2v4m-2-2h4"/>',
+  coffee: '<path d="M4 8h12v9a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4Zm12 0h2a3 3 0 0 1 0 6h-2M7 3v2m5-2v2"/>',
+};
+const icon = (name, className = '') => `<svg class="icon ${className}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.notebook}</svg>`;
+$$('[data-icon]').forEach(node => { node.innerHTML = icon(node.dataset.icon); });
+$('.topbar').before($('#storage-alert'));
+
+let state = emptyState(), storageBlocked = false, rawStored = null;
+try {
+  rawStored = localStorage.getItem(STORAGE_KEY);
+  if (rawStored !== null) state = validateState(JSON.parse(rawStored));
+} catch {
+  storageBlocked = true;
+  $('#storage-alert').hidden = false;
+  $('#storage-alert').textContent = rawStored === null
+    ? '이 환경에서는 브라우저 저장소를 사용할 수 없습니다. 새 탭에서 사이트를 열거나 JSON으로 백업해 주세요. 계산은 가능하지만 새로고침하면 변경이 사라집니다.'
+    : '저장 데이터를 읽을 수 없습니다. 원본은 보존했습니다. 데이터 · 설정에서 원본을 백업해 주세요. 지금 변경한 내용은 저장되지 않습니다.';
+}
+function save() {
+  if (storageBlocked) return false;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    return true;
+  } catch {
+    $('#storage-alert').hidden = false;
+    $('#storage-alert').textContent = '브라우저 저장 공간에 기록하지 못했습니다. 현재 내용을 JSON으로 백업하고 저장 공간·브라우저 설정을 확인해 주세요. 새로고침하면 저장되지 않은 변경이 사라집니다.';
+    return false;
+  }
+}
+let toastTimer;
+function toast(message) {
+  clearTimeout(toastTimer);
+  $('#toast').textContent = message;
+  $('#toast').hidden = false;
+  toastTimer = setTimeout(() => { $('#toast').hidden = true; }, 4500);
+}
+function persisted(message) { toast(save() ? message : '현재 화면에 반영했습니다. 브라우저에 저장되지 않았으니 JSON으로 백업해 주세요.'); }
+const monthNow = () => today().slice(0, 7);
+const monthLabel = month => `${Number(month.slice(0, 4))}년 ${Number(month.slice(5))}월`;
+let page = 'home', statsMonth = monthNow();
+let recordFilters = { month: monthNow(), workplace: '', status: '', search: '', sort: 'desc' };
+let calcSavedHash = '';
+const titles = { home: '대시보드', schedule: '밀어내기 근무표', calculator: '급여 계산기', records: '나의 알바 기록', stats: '수입 통계', guide: '사용 가이드', privacy: '개인정보 안내', settings: '데이터 · 설정' };
+const routeFiles = { home: './', schedule: './schedule.html', calculator: './calculator.html', records: './records.html', stats: './stats.html', guide: './guide.html', privacy: './privacy.html', settings: './settings.html' };
+const descriptions = {
+  home: '단기알바 근무시간부터 급여 기록까지, 한 번에 관리하세요.',
+  schedule: '항상 두 명은 근무, 한 명은 휴식. 3인 밀어내기 근무표를 무료로 생성하고 공유하세요.',
+  calculator: '시급·일급과 분 단위 근무시간으로 예상 급여를 계산하고 기록하세요.',
+  records: '여러 근무지의 출퇴근, 예상 급여와 입금 내역을 브라우저에서 관리하세요.',
+  stats: '근무한 달의 예상 급여와 실제 입금한 달의 수입을 구분해 확인하세요.',
+  guide: '근무표 생성과 급여 계산, 알바 기록과 백업 방법을 안내합니다.',
+  privacy: '개인 기록의 브라우저 저장 방식과 개인정보 보호 안내입니다.',
+  settings: '전체 기록을 JSON으로 백업·복원하고 테마와 데이터를 관리하세요.',
+};
+function applyTheme() {
+  document.documentElement.dataset.theme = state.settings.theme;
+  $('#theme-toggle').innerHTML = icon(state.settings.theme === 'dark' ? 'sun' : 'moon');
+  $('#theme-toggle').setAttribute('aria-label', state.settings.theme === 'dark' ? '라이트모드로 전환' : '다크모드로 전환');
+  $('meta[name="theme-color"]').content = state.settings.theme === 'dark' ? '#111827' : '#3869ee';
+}
+function render() {
+  const filename = location.pathname.split('/').at(-1);
+  page = location.hash.slice(1).split('?')[0] || Object.keys(routeFiles).find(key => routeFiles[key] === `./${filename}`) || 'home';
+  if (!titles[page]) page = 'home';
+  document.title = page === 'home' ? '저는 단기알바입니다.' : `${titles[page]} | 저는 단기알바입니다.`;
+  $('meta[name="description"]').content = descriptions[page];
+  const canonical = $('link[rel="canonical"]');
+  canonical.href = new URL(routeFiles[page], canonical.href).href;
+  $('#page-label').textContent = titles[page];
+  $$('[data-page]').forEach(link => {
+    link.classList.toggle('active', link.dataset.page === page);
+    if (link.dataset.page === page) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
+  });
+  $('#main').innerHTML = ({ home: homeView, schedule: scheduleView, calculator: calculatorView, records: recordsView, stats: statsView, guide: guideView, privacy: privacyView, settings: settingsView })[page]();
+  applyTheme();
+  if (page === 'schedule') renderScheduleResult();
+  if (page === 'calculator') updateCalculator(false);
+  if (page === 'records') updateRecords();
+  $$('a[href^="#"]').forEach(link => {
+    const route = link.getAttribute('href').slice(1);
+    if (routeFiles[route]) { link.href = routeFiles[route]; link.dataset.route = route; }
+  });
+}
+const head = (eyebrow, title, text, action = '') => `<div class="page-heading"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1><p>${text}</p></div>${action}</div>`;
+const field = (label, name, type, value, options = '') => `<label class="field"><span>${label}</span><input type="${type}" name="${name}" value="${esc(value)}" ${options}></label>`;
+const smallEmpty = (title, text, button = '') => `<div class="empty-state"><div class="empty-icon">${icon('notebook')}</div><h3>${title}</h3><p>${text}</p>${button}</div>`;
+const workplaceOptions = () => [...new Set([...state.workplaces, ...state.records.map(r => r.workplace)])].sort((a, b) => a.localeCompare(b, 'ko'));
+function illustration() {
+  return `<div class="hero-art" aria-hidden="true"><div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div><span class="art-spark spark-one">✦</span><span class="art-spark spark-two">✦</span><div class="art-calendar"><div class="art-rings"><i></i><i></i></div><div class="art-calendar-top"><span>MY WORK, MY LIFE</span><span>•••</span></div><div class="art-week"><b>M</b><b>T</b><b>W</b><b>T</b><b>F</b></div><div class="art-days"><span>12</span><span>13</span><span class="marked">14</span><span>15</span><span>16</span><span>19</span><span class="marked-light">20</span><span>21</span><span>22</span><span class="marked-light">23</span></div></div><div class="art-check">${icon('check')}</div><div class="art-pill"><span class="coin">₩</span><span>차곡차곡 쌓이는 나의 하루</span></div></div>`;
+}
+function homeView() {
+  const stats = monthStats(state.records, monthNow());
+  const recent = [...state.records].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4);
+  return `<div class="home-greeting"><span>나의 하루를 더 가볍게 ${icon('sparkle')}</span><div class="privacy-pill">${icon('lock')}기록은 이 브라우저에만 저장돼요</div></div>
+    <section class="hero"><div class="hero-copy"><span class="hero-tag"><span></span>일하는 당신을 위한 작은 도구</span><h1>열심히 일한 하루,<br><span>꼼꼼하게 챙겨요.</span></h1><p>단기알바 근무시간부터 급여 기록까지,<br>복잡한 계산 없이 한 번에 관리하세요.</p><a class="button primary" href="#calculator">내 급여 계산하기 ${icon('arrow')}</a><div class="hero-assurance">${icon('check')}회원가입 없이 ${icon('check')}모든 기능 무료</div></div>${illustration()}</section>
+    <section class="shortcut-section" aria-labelledby="shortcut-title"><div class="section-heading"><h2 id="shortcut-title">무엇부터 시작할까요?</h2><span>알바 생활에 필요한 것만 모았어요</span></div><div class="shortcut-grid">
+      ${[['schedule', 'calendar', 'blue', '밀어내기 근무표', '3명이 번갈아, 공평하게', '근무표 만들기'], ['calculator', 'calculator', 'purple', '급여 계산기', '내가 받을 급여, 정확하게', '급여 계산하기'], ['records', 'notebook', 'green', '나의 알바 기록', '흩어진 근무 기록을 한곳에', '기록장 열기'], ['stats', 'chart', 'orange', '수입 통계', '이번 달의 수고를 한눈에', '통계 살펴보기']].map(([route, image, color, title, description, cta]) => `<a href="#${route}" class="shortcut-card"><span class="feature-icon ${color}">${icon(image)}</span><h3>${title}</h3><p>${description}</p><span class="card-cta">${cta}${icon('arrow')}</span></a>`).join('')}
+    </div></section>
+    <section aria-labelledby="month-title"><div class="section-heading"><h2 id="month-title">${new Date().getMonth() + 1}월, 나의 알바 현황 <span class="small-badge">이번 달</span></h2><a href="#stats" class="text-link">자세히 보기 ${icon('chevron')}</a></div><div class="summary-grid home-summary">
+      ${summaryCard('calendar', 'blue', '근무한 날', `${stats.days}<small>일</small>`, `${duration(stats.minutes)} 근무`, false)}
+      ${summaryCard('wallet', 'purple', '예상 급여', numberWon(stats.expected), '이번 달 근무 기준', false)}
+      ${summaryCard('check', 'green', '실제 받은 급여', numberWon(stats.cash), '이번 달 입금 기준', false)}
+      ${summaryCard('clock', 'orange', '아직 못 받은 급여', numberWon(stats.outstanding), '이번 달 근무의 미수령액', false)}
+    </div></section>
+    <div class="dashboard-bottom"><section class="panel recent-panel"><div class="section-heading"><h2>최근 알바 기록</h2><a href="#records" class="text-link">전체 보기 ${icon('chevron')}</a></div>${recent.length ? `<div class="recent-list">${recent.map(r => `<button class="recent-row" data-action="edit-record" data-id="${esc(r.id)}"><span class="workplace-avatar">${esc(r.workplace.slice(0, 1))}</span><span class="recent-details"><strong>${esc(r.workplace)}</strong><span>${esc(r.date)} · ${duration(calculatePay(r).paidMinutes)}</span></span><span class="recent-amount"><strong>${money(calculatePay(r).expected)}</strong><span class="status ${recordStatus(r)}">${STATUS[recordStatus(r)]}</span></span>${icon('chevron')}</button>`).join('')}</div>` : smallEmpty('첫 번째 알바를 기록해 보세요', '근무한 하루를 남기면, 급여 관리가 쉬워져요.', '<button class="button secondary small" data-action="add-record">' + icon('plus') + '첫 기록 추가하기</button>')}</section>
+    <aside class="tip-card"><span class="tip-tag">알아두면 좋아요</span><div class="tip-icon">${icon('shield')}</div><h2>기록은 내 브라우저에,<br>백업은 내 손으로.</h2><p>소중한 기록은 이 브라우저에만 저장돼요.<br>기기를 바꾸기 전, JSON 백업을 잊지 마세요.</p><a href="#settings">내 기록 백업하기 ${icon('arrow')}</a></aside></div>
+    <div class="bottom-note">${icon('coffee')}오늘도 수고한 당신, 잠깐의 휴식도 꼭 챙기세요.</div>`;
+}
+const numberWon = value => `${Math.round(value).toLocaleString('ko-KR')}<small>원</small>`;
+const summaryCard = (image, color, label, value, note) => `<article class="summary-card"><div class="summary-label"><span>${label}</span><span class="mini-icon ${color}">${icon(image)}</span></div><strong>${value}</strong><p>${note}</p></article>`;
+
+function scheduleView() {
+  const config = state.schedule.config;
+  return head('SHIFT PLANNER', '밀어내기 근무표', '두 명은 근무하고, 한 명은 쉬고. 복잡한 교대 순서를 간단하게 정해요.') + `<div class="tool-layout schedule-layout"><section class="panel form-panel"><div class="panel-title"><h2>${icon('settings')}근무 설정</h2><span class="small-badge">3인 교대</span></div><form id="schedule-form"><fieldset><legend>함께 일하는 사람</legend><div class="three-fields">${config.names.map((name, i) => field(`근무자 ${'ABC'[i]}`, `person${i}`, 'text', name, 'maxlength="40" autocomplete="off" placeholder="이름"')).join('')}</div></fieldset><fieldset><legend>전체 일정</legend><div class="form-grid">${field('시작시간', 'start', 'time', config.start, 'required')}${field('종료시간', 'end', 'time', config.end, 'required')}</div><p class="field-hint">종료가 시작보다 이르면 다음 날로 계산해요.</p></fieldset><fieldset><legend><label class="check-label"><input type="checkbox" name="lunchEnabled" ${config.lunchEnabled ? 'checked' : ''}>모두 함께 쉬는 점심시간</label></legend><div class="form-grid" id="lunch-fields">${field('점심 시작', 'lunchStart', 'time', config.lunchStart)}${field('점심 종료', 'lunchEnd', 'time', config.lunchEnd)}</div></fieldset><fieldset><legend>교대 규칙</legend><div class="form-grid"><label class="field"><span>교대 간격</span><select name="intervalPreset">${[30, 60, 90, 120].map(n => `<option value="${n}" ${config.interval === n ? 'selected' : ''}>${duration(n)}</option>`).join('')}<option value="custom" ${![30, 60, 90, 120].includes(config.interval) ? 'selected' : ''}>사용자 지정</option></select></label>${field('교대 간격 (분)', 'interval', 'number', config.interval, 'min="1" max="1440" required')}<label class="field full"><span>첫 번째 휴식자</span><select name="first">${config.names.map((n, i) => `<option value="${i}" ${config.first === i ? 'selected' : ''} data-person="${i}">${esc(n || `근무자 ${'ABC'[i]}`)}</option>`).join('')}</select></label></div><label class="check-label fair-check"><input type="checkbox" name="fair" ${config.fair ? 'checked' : ''}><span>공평하게 배분 <small>교대 간격보다 근무시간 균형을 우선해요.</small></span></label></fieldset><div id="schedule-error" class="form-error" role="alert" hidden></div><button class="button primary full-width" type="submit">${icon('sparkle')}근무표 생성하기</button><button class="button ghost full-width" type="button" data-action="reset-schedule">설정과 근무표 초기화</button></form></section><section id="schedule-result" class="panel result-panel" aria-live="polite"></section></div><aside class="info-strip">${icon('help')}<p><strong>점심시간에도 순서는 그대로.</strong> 교대 중 점심시간이 오면 남은 교대시간을 점심 후에 이어가요. 이 도구는 근무 배정용이며 급여는 계산하지 않아요.</p><a href="#guide">자세한 사용법 ${icon('arrow')}</a></aside>`;
+}
+function readSchedule() {
+  const form = $('#schedule-form');
+  const data = new FormData(form);
+  return { names: [0, 1, 2].map(i => String(data.get(`person${i}`)).slice(0, 40)), start: data.get('start'), end: data.get('end'), lunchEnabled: data.has('lunchEnabled'), lunchStart: data.get('lunchStart'), lunchEnd: data.get('lunchEnd'), interval: Number(data.get('interval')), first: Number(data.get('first')), fair: data.has('fair') };
+}
+const personName = i => state.schedule.config.names[i]?.trim() || `근무자 ${'ABC'[i]}`;
+function renderScheduleResult() {
+  const container = $('#schedule-result');
+  if (!container) return;
+  const rows = state.schedule.rows;
+  if (!rows.length) {
+    container.innerHTML = `<div class="result-placeholder"><span class="large-feature">${icon('calendar')}</span><span class="eyebrow">READY WHEN YOU ARE</span><h2>우리의 하루를<br>가볍게 계획해요.</h2><p>근무시간과 이름을 입력하고<br>근무표 생성하기를 눌러 주세요.</p><div class="schedule-preview" aria-hidden="true"><span>시간</span><span>A</span><span>B</span><span>C</span><span>10:00</span><i class="rest"></i><i></i><i></i><span>11:00</span><i></i><i class="rest"></i><i></i><span>12:00</span><i></i><i></i><i class="rest"></i></div></div>`;
+    return;
+  }
+  const totals = scheduleTotals(rows), gap = Math.max(...totals.map(t => t.work)) - Math.min(...totals.map(t => t.work));
+  const names = [0, 1, 2].map(personName);
+  const dirty = JSON.stringify({ ...state.schedule.config, names: [] }) !== JSON.stringify({ ...state.schedule.generatedConfig, names: [] });
+  container.innerHTML = `<div class="panel-title"><div><h2>우리의 근무표</h2><p>${timeText(rows[0].start)} – ${timeText(rows.at(-1).end)} · ${rows.filter(r => r.rest !== null).length}개 근무 구간</p></div><span class="small-badge blue-badge">${state.schedule.generatedConfig.fair ? '균형 우선' : '순환 교대'}</span></div>${dirty ? '<p class="inline-notice">시간·규칙이 변경됐어요. 생성 버튼을 눌러 근무표에 반영해 주세요.</p>' : ''}<div class="schedule-legend"><span><i class="legend-dot work"></i>근무</span><span><i class="legend-dot rest"></i>휴식</span><span><i class="legend-dot lunch"></i>점심</span></div><div class="table-scroll" tabindex="0" aria-label="교대 근무표, 가로 스크롤 가능"><table class="schedule-table"><thead><tr><th scope="col">시간</th>${names.map((n, i) => `<th scope="col" data-person="${i}">${esc(n)}</th>`).join('')}<th scope="col">휴식자 변경</th></tr></thead><tbody>${rows.map((row, index) => `<tr class="${row.rest === null ? 'lunch-row' : ''}"><th scope="row">${timeText(row.start)}<span>– ${timeText(row.end)}</span></th>${names.map((n, i) => `<td><span class="shift-badge ${row.rest === null ? 'lunch' : row.rest === i ? 'rest' : 'work'}">${row.rest === null ? '점심' : row.rest === i ? '휴식' : '근무'}</span></td>`).join('')}<td>${row.rest === null ? '<span class="muted">모두 휴식</span>' : `<select class="rest-select" data-row="${index}" aria-label="${timeText(row.start)} 휴식자">${names.map((n, i) => `<option value="${i}" ${row.rest === i ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>`}</td></tr>`).join('')}</tbody></table></div><div class="person-totals">${totals.map((t, i) => `<div><span data-person="${i}">${esc(names[i])}</span><strong>${duration(t.work)}</strong><small>휴식 ${duration(t.rest)} · 점심 ${duration(t.lunch)}</small></div>`).join('')}</div><p class="field-hint">개인별 근무시간 차이: <strong>${gap}분</strong>${gap ? ' · 첫 휴식자를 바꾸거나 공평하게 배분을 사용해 보세요.' : ' · 세 사람의 근무시간이 같아요.'}</p><div class="export-actions"><button class="button secondary small" data-action="schedule-png">${icon('download')}PNG 저장</button><button class="button secondary small" data-action="schedule-csv">${icon('download')}CSV</button><button class="button secondary small" data-action="schedule-copy">${icon('copy')}텍스트 복사</button><button class="button secondary small" data-action="schedule-share">${icon('share')}공유</button></div><p class="field-hint">기기 공유 메뉴에서 카카오톡 등을 선택할 수 있어요. 공유를 지원하지 않으면 텍스트 복사를 이용해 주세요.</p>`;
+}
+
+function calculatorDefaults() { return state.calculator || { date: today(), workplace: '', payType: 'hourly', rate: '12000', start: '10:00', end: '19:00', breakMinutes: '60', extra: '0', deduction: '0' }; }
+function payFields(record) {
+  return `<div class="form-grid">${field('출근시간', 'start', 'time', record.start, 'required')}${field('퇴근시간', 'end', 'time', record.end, 'required')}${field('무급 휴게시간 (분)', 'breakMinutes', 'number', record.breakMinutes, 'required min="0" max="1439" step="1"')}<label class="field"><span>급여 기준</span><select name="payType"><option value="hourly" ${record.payType === 'hourly' ? 'selected' : ''}>시급</option><option value="daily" ${record.payType === 'daily' ? 'selected' : ''}>일급</option></select></label>${field('시급 / 일급 (원)', 'rate', 'number', record.rate, 'required min="0" max="1000000000" step="1"')}${field('추가 지급액 (원)', 'extra', 'number', record.extra, 'required min="0" max="1000000000" step="1"')}${field('기타 공제액 (원)', 'deduction', 'number', record.deduction, 'required min="0" max="1000000000" step="1"')}</div>`;
+}
+function calculatorView() {
+  const calc = calculatorDefaults();
+  return head('PAY CALCULATOR', '급여 계산기', '오늘 일한 만큼, 얼마를 받을 수 있을까요? 분 단위까지 꼼꼼하게 계산해요.') + `<div class="tool-layout"><section class="panel form-panel"><div class="panel-title"><h2>${icon('calculator')}근무 정보</h2><span class="small-badge">자동 계산</span></div><form id="calculator-form"><div class="form-grid">${field('근무 날짜', 'date', 'date', calc.date, 'required min="1900-01-01" max="9999-12-31"')}${field('근무지 이름', 'workplace', 'text', calc.workplace, 'maxlength="100" list="workplaces" placeholder="예: 동네 카페"')}</div><div class="form-divider"></div>${payFields(calc)}<p class="field-hint">퇴근이 출근보다 이르면 다음 날 퇴근으로 계산해요.<br>추가 지급액·공제액은 계약 내용을 확인해 직접 입력해 주세요.</p><button class="button primary full-width" type="submit">${icon('calculator')}급여 계산하기</button></form></section><section class="panel calculation-panel"><div class="panel-title"><h2>내 예상 급여</h2><span class="small-badge blue-badge">예상 금액</span></div><div id="calculation-result" aria-live="polite"></div><div id="calculator-error" class="form-error" role="alert" hidden></div><button class="button primary full-width" data-action="save-calculation" id="save-calculation">${icon('plus')}계산 결과를 기록장에 저장</button><p class="field-hint centered">근무 날짜와 근무지 이름을 입력하면 바로 저장돼요.</p><a href="#records" class="text-link centered-link">나의 알바 기록 보기 ${icon('arrow')}</a></section></div><aside class="info-strip">${icon('shield')}<p><strong>계약과 실제 지급액을 꼭 확인해 주세요.</strong> 표시 금액은 입력에 따른 예상액입니다. 3.3% 공제는 기본 적용하지 않으며 주휴·야간·연장 등 법정 수당도 자동 계산하지 않습니다.</p><a href="#guide">계산 방법 ${icon('arrow')}</a></aside>${workplacesDatalist()}`;
+}
+function workplacesDatalist() { return `<datalist id="workplaces">${workplaceOptions().map(name => `<option value="${esc(name)}"></option>`).join('')}</datalist>`; }
+function formValues(form) { return Object.fromEntries(new FormData(form)); }
+function updateCalculator(showError) {
+  const form = $('#calculator-form');
+  if (!form) return;
+  const data = formValues(form), error = $('#calculator-error');
+  try {
+    const result = calculatePay(data);
+    error.hidden = true;
+    $('#calculation-result').innerHTML = `<div class="pay-total"><span>추가 지급 · 공제 반영 예상액</span><strong>${numberWon(result.expected)}</strong><span class="pay-caption">${result.overnight ? '자정을 넘긴 근무 · ' : ''}${data.payType === 'hourly' ? '시급제' : '일급제'} 기준</span></div><dl class="calculation-breakdown"><div><dt>전체 근무시간</dt><dd>${duration(result.total)}</dd></div><div><dt>무급 휴게시간</dt><dd>${duration(Number(data.breakMinutes))}</dd></div><div class="emphasis"><dt>유급 근무시간</dt><dd>${duration(result.paidMinutes)}</dd></div><div class="breakdown-divider"><dt>세전 기본급</dt><dd>${money(result.base)}</dd></div><div><dt>추가 지급액</dt><dd>+ ${money(result.extra)}</dd></div><div><dt>입력한 공제액</dt><dd>− ${money(result.deduction)}</dd></div></dl><div class="formula-note">${data.payType === 'hourly' ? `${result.paidMinutes}분 ÷ 60 × ${money(Number(data.rate))}` : `계약 일급 ${money(Number(data.rate))}`} = 기본급 ${money(result.base)}<br>기본급은 원 단위로 반올림해요.</div>`;
+    $('#save-calculation').disabled = calcSavedHash === JSON.stringify(data);
+    $('#save-calculation').innerHTML = calcSavedHash === JSON.stringify(data) ? `${icon('check')}기록장에 저장했어요` : `${icon('plus')}계산 결과를 기록장에 저장`;
+    return data;
+  } catch (failure) {
+    $('#calculation-result').innerHTML = smallEmpty('근무 정보를 확인해 주세요', '올바른 시간을 입력하면 예상 급여가 표시돼요.');
+    error.hidden = !showError;
+    error.textContent = failure.message;
+    $('#save-calculation').disabled = true;
+    return null;
+  }
+}
+
+function recordsView() {
+  return head('MY WORK LOG', '나의 알바 기록', '차곡차곡 남긴 나의 하루. 근무와 입금 내역을 한곳에서 관리해요.', `<button class="button primary" data-action="add-record">${icon('plus')}알바 기록 추가</button>`) + `<section class="panel records-panel"><form id="record-filters" class="filters"><label class="field"><span>근무 월</span><input type="month" name="month" value="${esc(recordFilters.month)}" min="1900-01" max="9999-12"><small>비우면 전체 기간</small></label><label class="field"><span>근무지</span><select name="workplace"><option value="">모든 근무지</option>${workplaceOptions().map(w => `<option value="${esc(w)}" ${recordFilters.workplace === w ? 'selected' : ''}>${esc(w)}</option>`).join('')}</select></label><label class="field"><span>지급 상태</span><select name="status"><option value="">모든 상태</option>${Object.entries(STATUS).map(([key, value]) => `<option value="${key}" ${recordFilters.status === key ? 'selected' : ''}>${value}</option>`).join('')}</select></label><label class="field search-field"><span>기록 검색</span><div>${icon('search')}<input type="search" name="search" value="${esc(recordFilters.search)}" placeholder="근무지, 업무, 메모 검색"></div></label><label class="field"><span>정렬</span><select name="sort"><option value="desc" ${recordFilters.sort === 'desc' ? 'selected' : ''}>최근 날짜순</option><option value="asc" ${recordFilters.sort === 'asc' ? 'selected' : ''}>오래된 날짜순</option></select></label></form><div id="record-results" aria-live="polite"></div></section><aside class="info-strip">${icon('help')}<p>지급 상태는 입금 내역과 지급 예정일로 자동 표시돼요. 예정일이 지났고 입금이 없으면 <strong>미지급</strong>, 일부만 입금되면 <strong>일부 지급</strong>으로 표시해요. 기록을 열어 입금 내역을 추가할 수 있어요.</p><a href="#settings">백업 관리 ${icon('arrow')}</a></aside>`;
+}
+function filteredRecords() {
+  return state.records.filter(r => (!recordFilters.month || r.date.startsWith(recordFilters.month)) && (!recordFilters.workplace || r.workplace === recordFilters.workplace) && (!recordFilters.status || recordStatus(r) === recordFilters.status) && `${r.workplace} ${r.task} ${r.note}`.toLowerCase().includes(recordFilters.search.toLowerCase())).sort((a, b) => recordFilters.sort === 'asc' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
+}
+function updateRecords() {
+  const records = filteredRecords();
+  const expected = records.reduce((sum, r) => sum + calculatePay(r).expected, 0), received = records.reduce((sum, r) => sum + r.payments.reduce((s, p) => s + p.amount, 0), 0);
+  $('#record-results').innerHTML = `<div class="record-summary"><span>총 <strong>${records.length}건</strong>의 기록</span><div>예상 <strong>${money(expected)}</strong><span class="summary-separator"></span>수령 <strong>${money(received)}</strong><button class="button ghost small" data-action="records-csv">${icon('download')}CSV</button></div></div>${records.length ? `<div class="table-scroll"><table class="records-table"><thead><tr><th scope="col">근무일 · 근무지</th><th scope="col">근무시간</th><th scope="col">예상 급여</th><th scope="col">실제 입금액</th><th scope="col">지급 상태</th><th scope="col">관리</th></tr></thead><tbody>${records.map(r => `<tr><td><strong>${esc(r.workplace)}</strong><span>${esc(r.date)}${r.task ? ' · ' + esc(r.task) : ''}</span></td><td><strong>${duration(calculatePay(r).paidMinutes)}</strong><span>${esc(r.start)}–${esc(r.end)}${calculatePay(r).overnight ? ' (+1일)' : ''}</span></td><td>${money(calculatePay(r).expected)}</td><td>${money(r.payments.reduce((s, p) => s + p.amount, 0))}</td><td><span class="status ${recordStatus(r)}">${STATUS[recordStatus(r)]}</span>${r.dueDate ? `<span class="due-date">예정 ${esc(r.dueDate)}</span>` : ''}</td><td><div class="row-actions"><button class="icon-button" data-action="edit-record" data-id="${esc(r.id)}" aria-label="${esc(r.workplace)} ${esc(r.date)} 기록 수정">${icon('edit')}</button><button class="icon-button delete-button" data-action="delete-record" data-id="${esc(r.id)}" aria-label="${esc(r.workplace)} ${esc(r.date)} 기록 삭제">${icon('trash')}</button></div></td></tr>`).join('')}</tbody></table></div><div class="workplace-summary"><h3>조회한 기록의 근무지별 수령액</h3>${[...new Set(records.map(r => r.workplace))].map(w => `<div><span>${esc(w)}</span><strong>${money(records.filter(r => r.workplace === w).reduce((sum, r) => sum + r.payments.reduce((s, p) => s + p.amount, 0), 0))}</strong></div>`).join('')}</div>` : smallEmpty(state.records.length ? '조건에 맞는 기록이 없어요' : '아직 기록된 알바가 없어요', state.records.length ? '기간이나 검색 조건을 바꿔서 다시 확인해 보세요.' : '첫 근무를 추가하고, 나의 수고를 차곡차곡 모아 보세요.', '<button class="button secondary small" data-action="add-record">' + icon('plus') + '알바 기록 추가</button>')}`;
+}
+
+function statsView() {
+  const stats = monthStats(state.records, statsMonth);
+  const months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(`${statsMonth}-15T12:00:00`);
+    d.setMonth(d.getMonth() - (5 - i));
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const comparison = months.map(month => ({ month, ...monthStats(state.records, month) }));
+  const max = Math.max(1, ...comparison.flatMap(s => [s.expected, s.cash]));
+  const workplaces = [...new Set(stats.work.map(r => r.workplace))];
+  return head('INCOME INSIGHTS', '수입 통계', '나의 수고를 숫자로 확인해요. 일한 달과 돈을 받은 달을 구분해 보여드려요.', `<label class="month-control"><span class="sr-only">통계 근무 월</span><input type="month" id="stats-month" value="${statsMonth}" min="1901-01" max="9999-12" required></label>`) + `<div class="summary-grid stats-summary">${summaryCard('calendar', 'blue', '총 근무 일수', `${stats.days}<small>일</small>`, `${duration(stats.minutes)} 유급 근무`)}${summaryCard('wallet', 'purple', '예상 급여', numberWon(stats.expected), `${monthLabel(statsMonth)} 근무 기준`)}${summaryCard('check', 'green', '실제 입금액', numberWon(stats.cash), `${monthLabel(statsMonth)} 입금일 기준`)}${summaryCard('clock', 'orange', '미수령 급여', numberWon(stats.outstanding), '선택한 달 근무의 남은 급여')}</div><div class="stats-layout"><section class="panel chart-panel"><div class="section-heading"><div><h2>월별 수입 비교</h2><p>최근 6개월, 수입의 흐름을 살펴보세요.</p></div><div class="chart-legend"><span><i class="legend-dot expected"></i>근무 월 예상</span><span><i class="legend-dot cash"></i>입금 월 실제</span></div></div><div class="chart" role="img" aria-label="${esc(comparison.map(s => `${monthLabel(s.month)}: 근무 예상 ${money(s.expected)}, 실제 입금 ${money(s.cash)}`).join('. '))}"><div class="chart-y"><span>${money(max)}</span><span>${money(Math.round(max / 2))}</span><span>0원</span></div><div class="chart-plot">${comparison.map(s => `<div class="chart-group"><div class="bar-pair"><div class="chart-bar expected" style="--bar-height:${s.expected / max * 100}%" title="근무 월 예상 ${money(s.expected)}"><span class="sr-only">${money(s.expected)}</span></div><div class="chart-bar cash" style="--bar-height:${s.cash / max * 100}%" title="입금 월 실제 ${money(s.cash)}"><span class="sr-only">${money(s.cash)}</span></div></div><span class="chart-month ${s.month === statsMonth ? 'selected' : ''}">${Number(s.month.slice(5))}월</span></div>`).join('')}</div></div><details class="chart-data"><summary>수입 비교를 표로 보기</summary><div class="table-scroll"><table><thead><tr><th scope="col">월</th><th scope="col">근무 예상</th><th scope="col">실제 입금</th></tr></thead><tbody>${comparison.map(s => `<tr><th scope="row">${s.month}</th><td>${money(s.expected)}</td><td>${money(s.cash)}</td></tr>`).join('')}</tbody></table></div></details></section><section class="panel workplace-panel"><h2>근무지별 수입</h2><p class="panel-subtitle">선택한 달에 근무한 기록 기준</p>${workplaces.length ? `<div class="workplace-stats">${workplaces.map((w, i) => {
+    const group = stats.work.filter(r => r.workplace === w), expected = group.reduce((s, r) => s + calculatePay(r).expected, 0), received = group.reduce((s, r) => s + r.payments.reduce((t, p) => t + p.amount, 0), 0);
+    return `<div><div class="workplace-stat-label"><span><i class="workplace-dot color-${i % 4}"></i>${esc(w)}</span><strong>${money(expected)}</strong></div><div class="progress-track"><span class="color-${i % 4}" style="width:${stats.expected ? expected / stats.expected * 100 : 0}%"></span></div><small>근무 예상 · 해당 기록 수령 ${money(received)}</small></div>`;
+  }).join('')}</div>` : smallEmpty('수입이 쌓일 공간이에요', '알바를 기록하면 근무지별 수입을 보여드려요.')}</section></div><aside class="info-strip">${icon('help')}<p><strong>같은 달의 예상액과 입금액은 다를 수 있어요.</strong> 예를 들어 9월 근무 급여가 10월에 입금되면, 예상은 9월에 실제 입금은 10월에 집계해요. 미수령은 선택한 근무 월 기록의 모든 입금을 반영하며, 초과 입금이 다른 기록의 미수령액을 줄이지 않아요.</p></aside>`;
+}
+
+function settingsView() {
+  return head('YOUR DATA, YOUR CONTROL', '데이터 · 설정', '내 기록은 나의 것. 주기적인 백업으로 안전하게 보관해 주세요.') + `<div class="settings-grid"><section class="panel settings-card"><span class="feature-icon blue">${icon('download')}</span><h2>백업과 복원</h2><p>이름, 근무표, 알바 기록과 입금 내역, 설정을 하나의 JSON 파일로 보관해요. 다른 기기에서는 이 파일을 불러오세요.</p><div class="stack-actions"><button class="button primary" data-action="backup">${icon('download')}전체 기록 JSON 다운로드</button><button class="button secondary" data-action="restore">${icon('upload')}JSON 파일 불러오기 · 복원</button><button class="button ghost" data-action="all-records-csv">${icon('download')}전체 알바 기록 CSV 다운로드</button>${rawStored !== null ? '<button class="button ghost" data-action="raw-backup">기존 브라우저 저장 원본 다운로드</button>' : ''}</div><input type="file" id="restore-file" accept=".json,application/json" hidden><p class="field-hint">복원 전 파일 구조를 검사하고 덮어쓰기 여부를 확인해요.<br>CSV는 엑셀 열람용이에요. 복원하려면 JSON을 사용해 주세요.</p></section><section class="panel settings-card"><span class="feature-icon purple">${icon('moon')}</span><h2>내게 편한 화면</h2><p>늦은 시간에도 편안하게. 테마 설정도 이 브라우저에 저장돼요.</p><div class="theme-options"><button class="theme-option ${state.settings.theme === 'light' ? 'selected' : ''}" data-action="set-theme" data-theme="light">${icon('sun')}라이트 모드</button><button class="theme-option ${state.settings.theme === 'dark' ? 'selected' : ''}" data-action="set-theme" data-theme="dark">${icon('moon')}다크 모드</button></div><div class="data-count"><span>이 브라우저의 알바 기록</span><strong>${state.records.length}건</strong></div><p class="field-hint">저장 형식 버전 ${VERSION} · 회원가입 및 서버 전송 없음</p></section><section class="panel settings-card wide"><div class="privacy-info">${icon('shield')}<div><h2>브라우저 저장, 꼭 알아두세요</h2><ul><li>같은 기기라도 다른 브라우저에는 자동으로 동기화되지 않아요.</li><li>시크릿 모드를 종료하거나 브라우저 데이터를 지우면 기록이 사라질 수 있어요.</li><li>공용 PC에서는 같은 브라우저를 쓰는 다른 사람에게 기록이 보일 수 있어요.</li><li>JSON과 CSV 백업 파일에도 개인 기록이 담겨 있어요. 안전한 곳에 보관해 주세요.</li></ul><a class="text-link" href="#privacy">개인정보 안내 자세히 보기 ${icon('arrow')}</a></div></div></section><section class="panel settings-card wide danger-zone"><div><h2>전체 데이터 삭제</h2><p>이 서비스의 근무표·근무 기록·입금 내역·설정을 모두 삭제해요. 되돌릴 수 없으니 먼저 백업해 주세요.</p></div><button class="button danger-outline" data-action="delete-all">${icon('trash')}전체 삭제</button></section></div>`;
+}
+function guideView() {
+  return head('A LITTLE HELP', '처음이어도 괜찮아요.', '복잡한 건 줄이고, 나의 하루에 집중하세요. 서비스 사용법을 알려드릴게요.') + `<div class="guide-grid"><article class="panel guide-card"><span class="guide-step">01</span><h2>세 사람이 함께하는 밀어내기 근무표</h2><p>이름, 일정, 점심시간, 교대 간격과 첫 휴식자를 입력하고 근무표를 생성하세요. 각 근무 구간에는 두 명 근무, 한 명 휴식이 배정됩니다.</p><p>점심에는 모두 쉬고 교대 타이머도 잠시 멈춥니다. 예를 들어 1시간 교대 중 20분 후 점심을 시작하면 점심 이후 남은 40분을 이어갑니다. 마지막 구간은 남은 시간에 맞춰 줄어듭니다.</p><p><strong>10:00–19:00, 점심 10:00–11:00, 1시간 교대, 첫 휴식자 A</strong>라면 A·B는 5시간, C는 6시간 근무합니다. 첫 휴식자를 바꾸어 날짜별 차이를 조절해 보세요.</p><p>공평하게 배분 모드는 휴식시간을 분 단위로 나누어 총 근무시간의 차이를 최대 1분으로 줄입니다. 이 과정에서 설정한 간격보다 짧은 구간이 생길 수 있어요. 수동 변경 후에는 실제 차이를 다시 보여드립니다.</p><p>표의 휴식자 선택으로 배정을 조정하고 PNG·CSV·텍스트로 공유하세요. 이름을 바꾸면 표에도 바로 반영돼요. 시간이나 규칙을 바꾸면 생성 버튼을 다시 눌러 주세요.</p><a class="text-link" href="#schedule">근무표 만들기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">02</span><h2>내 예상 급여 계산하기</h2><p><strong>시급제:</strong> (전체 근무시간 − 무급 휴게시간) ÷ 60 × 시급. 분 단위로 계산한 뒤 기본급을 원 단위로 반올림합니다.</p><div class="guide-example">10:00–19:00 · 휴게 60분 · 시급 12,000원<br><strong>유급 8시간 × 12,000원 = 96,000원</strong></div><p><strong>일급제:</strong> 근무시간과 관계없이 입력한 계약 일급을 기본급으로 사용합니다. 추가 지급액을 더하고 직접 입력한 공제액을 빼면 최종 예상액이 됩니다.</p><p>자정을 넘는 근무를 지원하며, 같은 출퇴근 시각은 0시간과 24시간을 구분할 수 없어 허용하지 않아요. 3.3%와 주휴·야간·연장 수당을 자동 적용하지 않습니다. 실제 근로 조건과 법정 수당은 별도로 확인해 주세요.</p><a class="text-link" href="#calculator">급여 계산하기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">03</span><h2>근무 기록과 입금 관리하기</h2><p>급여 계산기에서 근무일과 근무지를 입력하고 저장하거나, 기록장에서 직접 알바를 추가하세요. 업무·지급 예정일·메모도 남길 수 있습니다.</p><p>입금이 생길 때마다 기록을 열어 <strong>입금 내역 추가</strong>로 금액과 날짜를 남기세요. 여러 번 나눠 받은 내역도 그대로 관리할 수 있어요. 총입금이 예상액 이상이면 지급 완료, 일부 입금이면 일부 지급, 미입금이고 예정일이 지났으면 미지급, 나머지는 지급 예정으로 표시됩니다.</p><p>월별 실적은 <strong>근무 날짜</strong>, 실제 현금 수입은 <strong>입금 날짜</strong>로 집계됩니다. 미수령액은 각 기록의 예상액에서 입금액을 뺀 금액(최소 0원)의 합계입니다.</p><a class="text-link" href="#records">나의 기록장 열기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">04</span><h2>기기를 바꾸기 전에는 백업</h2><p>모든 기록은 현재 브라우저의 localStorage에 자동 저장됩니다. 별도의 계정이나 동기화 서버는 없습니다.</p><p>데이터 · 설정에서 <strong>전체 기록 JSON 다운로드</strong>를 누르세요. 다른 기기에서 같은 페이지를 열어 JSON 파일을 복원하면 됩니다. 복원은 현재 기록 전체를 대체하므로 먼저 양쪽 기록을 백업하세요.</p><p>CSV는 한글 UTF-8 BOM 형식으로 내려받아 엑셀에서 열 수 있어요. 파일 가져오기 시 UTF-8을 선택하세요. 데이터가 손상되거나 저장 공간이 부족하면 경고가 표시됩니다. 이때 새로고침하기 전에 JSON을 다운로드해 주세요.</p><a class="text-link" href="#settings">백업 · 복원 관리 ${icon('arrow')}</a></article></div><section class="panel guide-pwa"><span class="feature-icon blue">${icon('home')}</span><div><h2>스마트폰 홈 화면에 추가해 보세요</h2><p>HTTPS에서 한 번 접속하면 핵심 화면과 도구를 오프라인에서도 사용할 수 있어요. Android Chrome의 메뉴 → 홈 화면에 추가, iPhone Safari의 공유 → 홈 화면에 추가를 이용하세요. 브라우저와 설치 방식에 따라 저장 공간이 별도로 관리될 수 있으니 먼저 백업해 주세요.</p></div></section><div class="ad-space" aria-label="향후 광고 영역"><span>서비스 소식</span><p>오늘도 당신의 알바 생활을 응원합니다.</p></div>`;
+}
+function privacyView() {
+  return head('PRIVACY FIRST', '내 기록은 내 브라우저에.', '저는 단기알바입니다.는 회원가입 없이 사용하는 개인용 근무 관리 도구입니다.') + `<article class="panel prose"><h2>개인 기록을 서버로 보내지 않습니다</h2><p>이 서비스는 이름, 근무지, 근무 내역, 급여와 입금 내역을 사용자 브라우저의 localStorage에만 저장합니다. 개인 기록을 GitHub 저장소에 저장하거나 외부 서버로 전송하지 않습니다. 로그인, 데이터베이스, 분석 도구와 실제 광고 코드는 사용하지 않습니다.</p><h2>저장 범위와 보관 기간</h2><p>저장 키는 <code>${STORAGE_KEY}</code>, 데이터 형식 버전은 ${VERSION}입니다. 근무자 이름, 마지막 근무표 설정과 결과, 근무지 목록, 알바·입금 내역, 계산기 입력과 테마가 저장됩니다. 사용자가 전체 삭제를 하거나 브라우저 저장 공간을 삭제할 때까지 유지됩니다. 같은 도메인에서는 경로가 달라도 브라우저 저장 공간을 공유할 수 있습니다.</p><h2>동기화 및 공용 기기 안내</h2><p>다른 기기나 다른 브라우저로 자동 동기화되지 않습니다. 시크릿 모드, 브라우저 초기화, 저장 공간 정책에 따라 데이터가 사라질 수 있습니다. 공용 PC에서 같은 브라우저를 사용하는 사람은 기록을 볼 수 있습니다. 공용 기기에서는 사용 후 백업하고 이 서비스의 데이터를 삭제하세요.</p><h2>백업과 공유는 사용자가 직접 선택합니다</h2><p>JSON·CSV·PNG 다운로드와 근무표 공유는 사용자가 버튼을 누를 때만 실행됩니다. 공유 대상 앱에는 선택한 근무표의 이름과 시간이 전달됩니다. 백업 파일은 암호화하지 않으므로 안전하게 보관해 주세요. JSON 복원 시 형식을 검사하고 기존 데이터 교체를 확인합니다.</p><h2>정적 호스팅과 오프라인 사용</h2><p>사이트 파일은 GitHub Pages 등의 호스팅에서 전송되며, 호스팅 제공자는 서비스 제공에 필요한 접속 정보를 처리할 수 있습니다. 오프라인 지원을 위해 서비스 워커가 사이트 파일을 캐시에 보관합니다. 개인 기록은 서비스 워커 캐시에 넣지 않습니다.</p><h2>기록 삭제</h2><p>데이터 · 설정의 전체 삭제 기능은 이 서비스의 저장 키만 삭제하며 같은 도메인의 다른 서비스 데이터에는 영향을 주지 않습니다. 다운로드한 백업 파일과 이미 공유한 근무표는 직접 삭제해 주세요.</p><h2>광고에 관하여</h2><p>현재 버전에는 광고·추적 스크립트가 없습니다. 향후 광고를 도입한다면 이 안내와 필요한 동의 절차를 먼저 갱신해야 합니다. 준비된 광고 영역은 입력창과 계산 버튼에서 떨어져 있습니다.</p><a class="button secondary" href="#settings">내 데이터 관리하기 ${icon('arrow')}</a></article>`;
+}
+
+function confirmAction(message, title = '한 번 더 확인해 주세요', label = '확인') {
+  const dialog = $('#confirm-dialog');
+  $('#confirm-title').textContent = title;
+  $('#confirm-message').textContent = message;
+  $('#confirm-yes').textContent = label;
+  dialog.returnValue = '';
+  return new Promise(resolve => {
+    const form = $('form', dialog);
+    const finish = approved => {
+      form.removeEventListener('submit', submit);
+      dialog.removeEventListener('cancel', cancel);
+      dialog.close(approved ? 'yes' : 'cancel');
+      resolve(approved);
+    };
+    const submit = event => { event.preventDefault(); finish(event.submitter?.value === 'yes'); };
+    const cancel = event => { event.preventDefault(); finish(false); };
+    form.addEventListener('submit', submit);
+    dialog.addEventListener('cancel', cancel);
+    dialog.showModal();
+  });
+}
+function paymentFields(payment = { date: today(), amount: '' }) {
+  return `<div class="payment-row">${field('실제 입금일', 'paymentDate', 'date', payment.date, 'required min="1900-01-01" max="9999-12-31"')}${field('실제 입금액 (원)', 'paymentAmount', 'number', payment.amount, 'required min="1" max="1000000000" step="1"')}<button type="button" class="icon-button delete-button" data-action="remove-payment" aria-label="이 입금 내역 삭제">${icon('trash')}</button></div>`;
+}
+function openRecord(id) {
+  const record = state.records.find(r => r.id === id) || { ...calculatorDefaults(), id: '', task: '', note: '', dueDate: '', payments: [] };
+  const dialog = $('#record-dialog');
+  dialog.innerHTML = `<div class="dialog-head"><div><span class="eyebrow">MY WORK LOG</span><h2 id="record-dialog-title">${id ? '알바 기록 수정' : '새로운 알바 기록'}</h2></div><button type="button" class="icon-button" data-action="close-record" aria-label="기록 편집 닫기">${icon('close')}</button></div><form id="record-form" data-id="${esc(record.id)}"><div class="form-grid">${field('근무 날짜', 'date', 'date', record.date, 'required min="1900-01-01" max="9999-12-31"')}${field('근무지', 'workplace', 'text', record.workplace, 'required maxlength="100" list="record-workplaces" placeholder="근무지 이름"')}${field('담당 업무', 'task', 'text', record.task, 'maxlength="200" placeholder="예: 매장 운영"')}${field('급여 지급 예정일 (선택)', 'dueDate', 'date', record.dueDate, 'min="1900-01-01" max="9999-12-31"')}</div><div class="form-divider"></div>${payFields(record)}<div class="modal-pay-preview" id="record-preview" aria-live="polite"></div><section class="payment-section"><div class="section-heading"><h3>급여 입금 내역</h3><button type="button" class="button secondary small" data-action="add-payment">${icon('plus')}입금 내역 추가</button></div><p class="field-hint">나누어 입금받았다면 날짜별로 추가하세요. 지급 상태는 자동으로 계산돼요.</p><div id="payments">${record.payments.map(paymentFields).join('')}</div></section><label class="field"><span>메모 (선택)</span><textarea name="note" rows="3" maxlength="2000" placeholder="기억해 두고 싶은 내용을 남겨 주세요.">${esc(record.note)}</textarea></label><div id="record-error" class="form-error" role="alert" hidden></div><div class="dialog-actions"><button type="button" class="button secondary" data-action="close-record">취소</button><button type="submit" class="button primary">${icon('check')}기록 저장</button></div><datalist id="record-workplaces">${workplaceOptions().map(w => `<option value="${esc(w)}"></option>`).join('')}</datalist></form>`;
+  dialog.showModal();
+  updateRecordPreview();
+}
+function updateRecordPreview() {
+  try { $('#record-preview').textContent = `유급 ${duration(calculatePay(formValues($('#record-form'))).paidMinutes)} · 예상 급여 ${money(calculatePay(formValues($('#record-form'))).expected)}`; }
+  catch (failure) { $('#record-preview').textContent = failure.message; }
+}
+function readRecord(form) {
+  const data = formValues(form);
+  const payments = $$('.payment-row', form).map(row => ({ date: $('[name="paymentDate"]', row).value, amount: Number($('[name="paymentAmount"]', row).value) }));
+  return validateRecord({ id: form.dataset.id || crypto.randomUUID(), date: data.date, workplace: data.workplace.trim(), task: data.task.trim(), start: data.start, end: data.end, breakMinutes: Number(data.breakMinutes), payType: data.payType, rate: Number(data.rate), extra: Number(data.extra), deduction: Number(data.deduction), dueDate: data.dueDate, note: data.note, payments });
+}
+function download(content, filename, mime) {
+  const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob), link = document.createElement('a');
+  link.href = url; link.download = filename; document.body.append(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function recordsCsv(records) {
+  return csvText([['근무일', '근무지', '담당 업무', '출근', '퇴근', '다음 날 퇴근', '무급 휴게(분)', '유급 근무(분)', '급여 기준', '시급/일급', '세전 기본급', '추가 지급액', '기타 공제액', '예상 급여', '지급 예정일', '실제 입금액 합계', '입금일별 내역', '지급 상태', '메모'], ...records.map(r => {
+    const pay = calculatePay(r);
+    return [r.date, r.workplace, r.task, r.start, r.end, pay.overnight ? '예' : '아니요', r.breakMinutes, pay.paidMinutes, r.payType === 'hourly' ? '시급' : '일급', r.rate, pay.base, r.extra, r.deduction, pay.expected, r.dueDate, r.payments.reduce((s, p) => s + p.amount, 0), r.payments.map(p => `${p.date}: ${p.amount}원`).join(' / '), STATUS[recordStatus(r)], r.note];
+  })]);
+}
+function scheduleMatrix() {
+  return [['시간', ...[0, 1, 2].map(personName)], ...state.schedule.rows.map(row => [`${timeText(row.start)}–${timeText(row.end)}`, ...[0, 1, 2].map(i => row.rest === null ? '점심' : row.rest === i ? '휴식' : '근무')])];
+}
+function scheduleText() {
+  const totals = scheduleTotals(state.schedule.rows);
+  return ['저는 단기알바입니다. | 밀어내기 근무표', ...scheduleMatrix().map(row => row.join(' | ')), '', ...totals.map((t, i) => `${personName(i)}: 근무 ${duration(t.work)}, 휴식 ${duration(t.rest)}, 점심 ${duration(t.lunch)}`)].join('\n');
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); toast('클립보드에 복사했어요. 원하는 곳에 붙여넣어 주세요.'); }
+  catch {
+    const node = document.createElement('textarea'); node.value = text; node.className = 'clipboard-fallback'; document.body.append(node); node.select();
+    const copied = document.execCommand('copy'); node.remove();
+    if (copied) toast('클립보드에 복사했어요.'); else download(text, '밀어내기-근무표.txt', 'text/plain;charset=utf-8');
+  }
+}
+async function schedulePng() {
+  const rows = state.schedule.rows, totals = scheduleTotals(rows);
+  // Paginate very small custom intervals to stay below browser canvas limits.
+  const pages = Math.ceil(rows.length / 100);
+  for (let part = 0; part < pages; part++) {
+    const subset = rows.slice(part * 100, (part + 1) * 100);
+    const canvas = document.createElement('canvas');
+    canvas.width = 1200; canvas.height = 320 + subset.length * 56 + 180;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#3869ee'; ctx.font = 'bold 24px sans-serif'; ctx.fillText('저는 단기알바입니다.', 55, 58);
+    ctx.fillStyle = '#182239'; ctx.font = 'bold 38px sans-serif'; ctx.fillText('우리의 밀어내기 근무표', 55, 120);
+    ctx.fillStyle = '#69758b'; ctx.font = '22px sans-serif'; ctx.fillText(`${timeText(rows[0].start)} – ${timeText(rows.at(-1).end)}${pages > 1 ? ` · ${part + 1}/${pages}` : ''}`, 55, 166);
+    const widths = [340, 250, 250, 250], x = [55, 395, 645, 895];
+    ctx.fillStyle = '#f1f4fa'; ctx.fillRect(55, 210, 1090, 65);
+    ['시간', ...[0, 1, 2].map(personName)].forEach((name, i) => { ctx.fillStyle = '#263249'; ctx.font = 'bold 23px sans-serif'; ctx.fillText(name, x[i] + 16, 252, widths[i] - 30); });
+    subset.forEach((row, index) => {
+      const y = 282 + index * 56;
+      ctx.fillStyle = index % 2 ? '#f8faff' : '#fff'; ctx.fillRect(55, y, 1090, 56);
+      ctx.fillStyle = '#4a5870'; ctx.font = '21px sans-serif'; ctx.fillText(`${timeText(row.start)} – ${timeText(row.end)}`, 71, y + 36, 310);
+      for (let person = 0; person < 3; person++) {
+        ctx.fillStyle = row.rest === null ? '#8c6e25' : row.rest === person ? '#8490a3' : '#3869ee';
+        ctx.fillText(row.rest === null ? '점심' : row.rest === person ? '휴식' : '근무', x[person + 1] + 16, y + 36);
+      }
+    });
+    const bottom = 320 + subset.length * 56;
+    totals.forEach((total, i) => { ctx.fillStyle = '#263249'; ctx.font = '20px sans-serif'; ctx.fillText(`${personName(i)}: 근무 ${duration(total.work)} · 휴식 ${duration(total.rest)}`, 55, bottom + i * 38, 1090); });
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('이미지 생성에 실패했어요. CSV 또는 텍스트 저장을 이용해 주세요.');
+    download(blob, `밀어내기-근무표${pages > 1 ? '-' + (part + 1) : ''}.png`);
+  }
+  toast(pages > 1 ? `근무표를 ${pages}장의 이미지로 저장했어요. 여러 파일 다운로드를 허용해 주세요.` : '근무표 이미지를 저장했어요.');
+}
+
+document.addEventListener('submit', async event => {
+  const form = event.target;
+  if (form.id === 'record-filters') { event.preventDefault(); return; }
+  if (!['schedule-form', 'calculator-form', 'record-form'].includes(form.id)) return;
+  event.preventDefault();
+  if (form.id === 'schedule-form') {
+    try {
+      const config = readSchedule(), rows = generateSchedule(config);
+      state.schedule = { config, generatedConfig: structuredClone(config), rows };
+      $('#schedule-error').hidden = true; persisted('근무표를 생성하고 저장했어요.'); renderScheduleResult();
+    } catch (failure) { $('#schedule-error').textContent = failure.message; $('#schedule-error').hidden = false; }
+  }
+  if (form.id === 'calculator-form') { if (updateCalculator(true)) { state.calculator = formValues(form); persisted('입력한 조건으로 급여를 계산했어요.'); } }
+  if (form.id === 'record-form') {
+    try {
+      const record = readRecord(form), index = state.records.findIndex(r => r.id === record.id);
+      if (index >= 0) state.records[index] = record; else state.records.push(record);
+      if (!state.workplaces.includes(record.workplace)) state.workplaces.push(record.workplace);
+      persisted('알바 기록을 저장했어요.'); $('#record-dialog').close(); render();
+    } catch (failure) { $('#record-error').textContent = failure.message; $('#record-error').hidden = false; }
+  }
+});
+document.addEventListener('input', event => {
+  const form = event.target.closest('form');
+  if (form?.id === 'calculator-form') { state.calculator = formValues(form); save(); updateCalculator(true); }
+  if (form?.id === 'schedule-form') {
+    if (event.target.name === 'intervalPreset') {
+      if (event.target.value !== 'custom') form.elements.interval.value = event.target.value;
+      else form.elements.interval.focus();
+    }
+    if (event.target.name === 'interval') form.elements.intervalPreset.value = [30, 60, 90, 120].includes(Number(event.target.value)) ? event.target.value : 'custom';
+    const config = readSchedule();
+    // Keep partially entered interval out of persisted state; generation still uses the form value.
+    if (Number.isInteger(config.interval) && config.interval > 0 && config.interval <= 1440) { state.schedule.config = config; save(); }
+    $$('[data-person]', form).forEach(node => { node.textContent = personName(Number(node.dataset.person)); });
+    renderScheduleResult();
+  }
+  if (form?.id === 'record-form') updateRecordPreview();
+  if (form?.id === 'record-filters') { recordFilters = formValues(form); updateRecords(); }
+});
+document.addEventListener('change', event => {
+  if (event.target.matches('.rest-select')) { state.schedule.rows[Number(event.target.dataset.row)].rest = Number(event.target.value); persisted('휴식자 배정을 변경했어요.'); renderScheduleResult(); }
+  if (event.target.id === 'stats-month' && /^\d{4}-\d{2}$/.test(event.target.value) && event.target.checkValidity()) { statsMonth = event.target.value; render(); }
+  if (event.target.id === 'restore-file') restoreFile(event.target.files[0]);
+});
+async function restoreFile(file) {
+  if (!file) return;
+  try {
+    if (file.size > 20 * 1024 * 1024) throw new Error('20MB 이하의 JSON 백업 파일을 선택해 주세요.');
+    let data;
+    try { data = JSON.parse(await file.text()); } catch { throw new Error('JSON 파일을 읽을 수 없습니다. 손상되지 않은 백업을 선택해 주세요.'); }
+    const restored = validateState(data);
+    if (!await confirmAction(`현재 기록 ${state.records.length}건과 근무표·설정을 백업 파일의 기록 ${restored.records.length}건으로 교체합니다. 현재 내용을 백업하셨나요?`, '백업 파일로 복원할까요?', '덮어쓰고 복원')) return;
+    // Atomic single-key write: failures leave the existing storage untouched.
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(restored));
+    state = restored; rawStored = JSON.stringify(restored); storageBlocked = false; calcSavedHash = '';
+    $('#storage-alert').hidden = true; render(); toast('백업 파일의 기록을 복원했어요.');
+  } catch (failure) { toast(`복원하지 않았습니다. ${failure.message}`); }
+  finally { if ($('#restore-file')) $('#restore-file').value = ''; }
+}
+document.addEventListener('click', async event => {
+  const routeLink = event.target.closest('a[data-route]');
+  if (routeLink && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+    event.preventDefault();
+    try { history.pushState({}, '', routeLink.href); }
+    catch (failure) {
+      if (failure.name !== 'SecurityError') throw failure;
+      location.hash = routeLink.dataset.route;
+      return;
+    }
+    render(); window.scrollTo({ top: 0, behavior: 'instant' }); $('#main').focus({ preventScroll: true });
+    return;
+  }
+  const button = event.target.closest('[data-action]');
+  if (!button || button.disabled) return;
+  const action = button.dataset.action;
+  try {
+    if (action === 'add-record') openRecord();
+    if (action === 'edit-record') openRecord(button.dataset.id);
+    if (action === 'close-record') $('#record-dialog').close();
+    if (action === 'add-payment') { $('#payments').insertAdjacentHTML('beforeend', paymentFields()); $$('.payment-row').at(-1).querySelector('input').focus(); }
+    if (action === 'remove-payment') button.closest('.payment-row').remove();
+    if (action === 'delete-record') {
+      const record = state.records.find(r => r.id === button.dataset.id);
+      if (record && await confirmAction(`${record.date} ${record.workplace}의 근무 기록과 입금 내역을 삭제합니다. 이 작업은 되돌릴 수 없습니다.`, '이 기록을 삭제할까요?', '기록 삭제')) { state.records = state.records.filter(r => r.id !== record.id); persisted('기록을 삭제했어요.'); render(); }
+    }
+    if (action === 'reset-schedule' && await confirmAction('이름과 일정 설정, 저장된 근무표를 초기화합니다. 알바 기록은 유지됩니다.', '근무표를 초기화할까요?', '초기화')) { state.schedule = { config: structuredClone(DEFAULT_SCHEDULE), generatedConfig: null, rows: [] }; persisted('근무표를 초기화했어요.'); render(); }
+    if (action === 'save-calculation') {
+      const values = updateCalculator(true);
+      if (!values) return;
+      if (!validDate(values.date) || !values.workplace.trim()) { $('#calculator-error').hidden = false; $('#calculator-error').textContent = '기록장에 저장하려면 올바른 근무 날짜와 근무지 이름을 입력해 주세요.'; (!validDate(values.date) ? $('[name="date"]') : $('[name="workplace"]')).focus(); return; }
+      const record = validateRecord({ ...values, id: crypto.randomUUID(), task: '', note: '', dueDate: '', payments: [] });
+      state.records.push(record);
+      if (!state.workplaces.includes(record.workplace)) state.workplaces.push(record.workplace);
+      calcSavedHash = JSON.stringify(values); persisted('계산 결과를 알바 기록장에 저장했어요.'); updateCalculator(false);
+    }
+    if (action === 'backup') { download(JSON.stringify(state, null, 2), `단기알바-전체백업-${today()}.json`, 'application/json;charset=utf-8'); toast('전체 기록의 JSON 백업을 다운로드했어요.'); }
+    if (action === 'raw-backup') download(rawStored, `단기알바-기존저장원본-${today()}.json`, 'application/json;charset=utf-8');
+    if (action === 'restore') $('#restore-file').click();
+    if (action === 'all-records-csv' || action === 'records-csv') { download(recordsCsv(action === 'records-csv' ? filteredRecords() : state.records), `단기알바-근무기록-${today()}.csv`, 'text/csv;charset=utf-8'); toast('한글 CSV를 다운로드했어요.'); }
+    if (action === 'delete-all' && await confirmAction('이 브라우저의 모든 근무표, 알바·입금 기록과 설정을 삭제합니다. 복구하려면 기존 JSON 백업이 필요합니다. 삭제 전 백업을 권장합니다.', '모든 데이터를 삭제할까요?', '전체 데이터 삭제')) {
+      localStorage.removeItem(STORAGE_KEY); state = emptyState(); rawStored = null; storageBlocked = false; calcSavedHash = ''; $('#storage-alert').hidden = true; render(); toast('이 서비스의 모든 브라우저 데이터를 삭제했어요.');
+    }
+    if (action === 'set-theme') { state.settings.theme = button.dataset.theme; persisted('화면 테마를 변경했어요.'); render(); }
+    if (action === 'schedule-csv') download(csvText([...scheduleMatrix(), [], ['개인별 합계', '근무', '휴식', '점심'], ...scheduleTotals(state.schedule.rows).map((t, i) => [personName(i), duration(t.work), duration(t.rest), duration(t.lunch)])]), `밀어내기-근무표-${today()}.csv`, 'text/csv;charset=utf-8');
+    if (action === 'schedule-copy') await copyText(scheduleText());
+    if (action === 'schedule-share') {
+      if (navigator.share) { try { await navigator.share({ title: '저는 단기알바입니다. | 근무표', text: scheduleText() }); } catch (failure) { if (failure.name !== 'AbortError') await copyText(scheduleText()); } }
+      else await copyText(scheduleText());
+    }
+    if (action === 'schedule-png') await schedulePng();
+  } catch (failure) { toast(failure.message || '작업을 완료하지 못했어요. 다시 확인해 주세요.'); }
+});
+$('#theme-toggle').addEventListener('click', () => { state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark'; save(); applyTheme(); if (page === 'settings') render(); });
+window.addEventListener('hashchange', () => { render(); window.scrollTo({ top: 0, behavior: 'instant' }); $('#main').focus({ preventScroll: true }); });
+window.addEventListener('popstate', () => render());
+// Do not silently overwrite another tab's updates.
+window.addEventListener('storage', event => {
+  if (event.key !== STORAGE_KEY) return;
+  try { state = event.newValue ? validateState(JSON.parse(event.newValue)) : emptyState(); rawStored = event.newValue; storageBlocked = false; calcSavedHash = ''; $('#record-dialog').close(); render(); toast('다른 탭의 최신 기록을 반영했어요. 저장 전 편집 내용은 반영되지 않습니다.'); }
+  catch { storageBlocked = true; $('#storage-alert').hidden = false; $('#storage-alert').textContent = '다른 탭의 데이터를 읽지 못해 저장을 중지했습니다. 현재 내용을 백업해 주세요.'; }
+});
+$('#today-label').textContent = new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' }).format(new Date());
+$('#year').textContent = new Date().getFullYear();
+render();
+if (globalThis.origin !== 'null' && 'serviceWorker' in navigator && (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname))) {
+  navigator.serviceWorker.register('./sw.js').catch(() => { /* Core tools remain available without offline caching. */ });
+}

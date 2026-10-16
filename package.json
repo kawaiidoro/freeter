@@ -1,0 +1,9 @@
+{
+  "name": "dangi-alba",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "저는 단기알바입니다. — 서버 없는 무료 근무 관리 도구",
+  "scripts": { "test": "node --test tests/core.test.mjs", "build": "node scripts/build-site.mjs", "check:bundle": "node scripts/build-site.mjs --check" },
+  "engines": { "node": ">=20" }
+}

@@ -1,0 +1,13 @@
+{
+  "id": "./",
+  "name": "저는 단기알바입니다.",
+  "short_name": "단기알바",
+  "description": "나의 근무와 수입을 관리하는 무료 알바 매니저",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f8fc",
+  "theme_color": "#3869ee",
+  "icons": [{ "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

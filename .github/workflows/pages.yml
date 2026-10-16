@@ -1,0 +1,49 @@
+name: Validate and deploy website
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify runtime bundle and core behavior
+        run: |
+          node scripts/build-site.mjs --check
+          node --check site.js
+          node --test tests/core.test.mjs
+      - name: Package public static files
+        run: |
+          mkdir _site
+          cp -- *.html style.css site.js sw.js icon.svg manifest.webmanifest robots.txt sitemap.xml .nojekyll _site/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

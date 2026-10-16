@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#3869ee">
+  <meta name="description" content="단기알바 근무시간부터 급여 기록까지, 한 번에. 무료 3인 밀어내기 근무표, 급여 계산기, 알바 기록장과 월별 수입 통계를 제공합니다.">
+  <link rel="canonical" href="https://kawaiidoro.github.io/dangi-alba/">
+  <title>저는 단기알바입니다.</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./style.css">
+  <script defer src="./site.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <aside class="sidebar" aria-label="주 메뉴">
+    <a class="brand" href="#home"><span class="brand-symbol" aria-hidden="true"><i></i><i></i><i></i></span><span>저는<br><strong>단기알바입니다.</strong></span></a>
+    <div class="nav-caption">나의 알바 매니저</div>
+    <nav class="main-nav">
+      <a href="#home" data-page="home"><span data-icon="home"></span>대시보드</a>
+      <a href="#schedule" data-page="schedule"><span data-icon="calendar"></span>밀어내기 근무표</a>
+      <a href="#calculator" data-page="calculator"><span data-icon="calculator"></span>급여 계산기</a>
+      <a href="#records" data-page="records"><span data-icon="notebook"></span>나의 알바 기록</a>
+      <a href="#stats" data-page="stats"><span data-icon="chart"></span>수입 통계</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="local-note"><span data-icon="shield"></span><strong>내 기록은 내 브라우저에</strong><p>회원가입 없이, 나만의 공간에서<br>안심하고 관리하세요.</p></div>
+      <nav class="utility-nav"><a href="#guide"><span data-icon="help"></span>사용 가이드</a><a href="#settings"><span data-icon="settings"></span>데이터 · 설정</a></nav>
+      <div class="sidebar-foot"><span class="live-dot"></span>누구나, 언제나 무료</div>
+    </div>
+  </aside>
+  <div class="app-shell">
+    <header class="topbar"><a class="mobile-brand" href="#home"><img src="./icon.svg" alt="" width="28" height="28">저는 단기알바입니다.</a><div class="breadcrumb"><span>나의 워크스페이스</span><span class="slash">/</span><strong id="page-label">대시보드</strong></div><div class="top-actions"><span class="today" id="today-label"></span><button type="button" class="icon-button" id="theme-toggle" aria-label="다크모드로 전환"><span data-icon="moon"></span></button><a class="avatar" href="#settings" aria-label="내 설정">나</a></div></header>
+    <main id="main" tabindex="-1"><section class="panel prose"><h1>저는 단기알바입니다.</h1><p>단기알바 근무시간부터 급여 기록까지, 한 번에 관리하세요. 3인 밀어내기 근무표, 급여 계산기, 알바 기록장과 월별 수입 통계를 무료로 제공합니다. 모든 개인 기록은 내 브라우저에만 저장됩니다.</p><p><a href="./guide.html">사용 가이드</a> · <a href="./privacy.html">개인정보 안내</a></p></section></main>
+    <footer class="site-footer"><div><strong>저는 단기알바입니다.</strong><span>오늘의 수고가, 내일의 여유가 되도록.</span></div><nav aria-label="하단 메뉴"><a href="#guide">사용법</a><a href="#privacy">개인정보 안내</a><a href="#settings">백업 · 복원</a></nav><p>© <span id="year"></span> 저는 단기알바입니다. · 모든 기능 무료</p></footer>
+  </div>
+  <nav class="mobile-nav" aria-label="모바일 메뉴"><a href="#home" data-page="home"><span data-icon="home"></span>홈</a><a href="#schedule" data-page="schedule"><span data-icon="calendar"></span>근무표</a><a href="#calculator" data-page="calculator"><span data-icon="calculator"></span>계산기</a><a href="#records" data-page="records"><span data-icon="notebook"></span>기록장</a><a href="#stats" data-page="stats"><span data-icon="chart"></span>통계</a></nav>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <div id="storage-alert" class="storage-alert" role="alert" hidden></div>
+  <dialog id="record-dialog" aria-labelledby="record-dialog-title"></dialog>
+  <dialog id="confirm-dialog" aria-labelledby="confirm-title"><form method="dialog"><div class="dialog-head"><h2 id="confirm-title">확인해 주세요</h2></div><p id="confirm-message"></p><div class="dialog-actions"><button class="button secondary" value="cancel">취소</button><button class="button danger" id="confirm-yes" value="yes">확인</button></div></form></dialog>
+  <noscript><p>이 사이트를 사용하려면 브라우저의 JavaScript를 활성화해 주세요. 기록은 사용 중인 브라우저에만 저장됩니다.</p></noscript>
+</body>
+</html>
