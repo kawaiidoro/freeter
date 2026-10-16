@@ -1,7 +1,7 @@
 /* Generated as sw.js by scripts/build-site.mjs. */
-const RELEASE = '21a74b52b64d';
+const RELEASE = 'bd8a720af6cc';
 const CACHE = `dangi-alba-shell-${RELEASE}`;
-const ASSETS = ["./","./index.html","./schedule.html","./calculator.html","./records.html","./stats.html","./guide.html","./privacy.html","./settings.html","./notes.html","./style.css?v=21a74b52b64d","./brand.css?v=21a74b52b64d","./vendor/quill.core.css?v=21a74b52b64d","./site.js?v=21a74b52b64d","./icon.svg","./manifest.webmanifest","./assets/freeter-display.woff2","./assets/freeter-192.png","./assets/freeter-512.png","./assets/gomssi.png"];
+const ASSETS = ["./","./index.html","./schedule.html","./calculator.html","./records.html","./stats.html","./guide.html","./privacy.html","./settings.html","./notes.html","./style.css?v=bd8a720af6cc","./brand.css?v=bd8a720af6cc","./vendor/quill.core.css?v=bd8a720af6cc","./site.js?v=bd8a720af6cc","./icon.svg","./manifest.webmanifest","./assets/freeter-display.woff2","./assets/freeter-192.png","./assets/freeter-512.png","./assets/gomssi.png"];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS.map(path => new Request(path, { cache: 'reload' })))));
   self.skipWaiting();

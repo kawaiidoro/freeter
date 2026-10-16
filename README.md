@@ -155,13 +155,16 @@ GitHub API 관리 권한이 제공되면 에이전트가 Pages를 활성화할 �
 
 ## 검증
 
-Node.js 20 이상이 있다면 별도 패키지 설치 없이 핵심 로직 테스트를 실행할 수 있습니다.
+Node.js 22 이상에서 고정된 의존성을 설치한 뒤 핵심·동기화·PostgreSQL 보안 검사를 실행합니다. 권장 런타임은 Node.js 24입니다.
 
 ```sh
+npm ci --ignore-scripts
 npm test
 node scripts/build-site.mjs --check
 node scripts/build-vendor.mjs --check
 node scripts/security-audit.mjs
+# 운영 Supabase 공개 API 검사 (인터넷 필요, 사용자 기록 접근 없음)
+npm run check:backend
 ```
 
 선택적으로 Playwright와 Chromium이 준비된 환경에서는 실제 브라우저 검증을 실행합니다. 웹사이트 실행 자체에는 Playwright나 Node.js가 필요하지 않습니다.

@@ -14,6 +14,7 @@ const alice='00000000-0000-4000-8000-000000000001',bob='00000000-0000-4000-8000-
 const server=new Map(),errors=[],contexts=[];let chosenUser=alice,pkceSeen=false,exchangeSeen=false,count=0;
 const token=id=>Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')+'.'+Buffer.from(JSON.stringify({sub:id,role:'authenticated',aud:'authenticated',iss:config.url+'/auth/v1',iat:Math.floor(Date.now()/1000),exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.isolated_test_signature';
 const user=id=>({id,aud:'authenticated',role:'authenticated',email:id===alice?'alice@example.test':'<img src=x onerror=bad()>@example.test',app_metadata:{provider:'google',providers:['google']},user_metadata:{},created_at:new Date().toISOString()});
+const jsonb=value=>Array.isArray(value)?value.map(jsonb):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).reverse().map(([key,item])=>[key,jsonb(item)])):value;
 async function context(){
  const c=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true,acceptDownloads:true});contexts.push(c);
  await c.route(config.url+'/**',async route=>{
@@ -39,7 +40,7 @@ async function context(){
   if(url.pathname==='/rest/v1/rpc/freeter_save_workspace'){
    const data=request.postDataJSON(),prior=server.get(id);
    if((prior?.revision||0)!==data.p_expected_revision||(prior?.generation||1)!==data.p_expected_generation)return reply({code:'40001',message:'FREETER_CONFLICT'},409);
-   const row={user_id:id,data:data.p_data,revision:(prior?.revision||0)+1,generation:(prior?.generation||1)+(prior&&data.p_reset?1:0),updated_at:new Date().toISOString()};server.set(id,row);return reply([{revision:row.revision,generation:row.generation,updated_at:row.updated_at}]);
+   const row={user_id:id,data:jsonb(data.p_data),revision:(prior?.revision||0)+1,generation:(prior?.generation||1)+(prior&&data.p_reset?1:0),updated_at:new Date().toISOString()};server.set(id,row);return reply([{revision:row.revision,generation:row.generation,updated_at:row.updated_at}]);
   }
   throw Error('Unexpected fixture request: '+url.pathname);
  });return c;
@@ -55,7 +56,7 @@ try{
  await check('모바일 계정 창과 공식 SDK의 Google PKCE 왕복·콜백 정리',async()=>{
   await a.goto(new URL('notes.html',site.base).href);await a.locator('#work-memo .ql-editor').fill('로그인 전의 소중한 메모');
   await login(a);assert.equal(pkceSeen,true);assert.equal(exchangeSeen,true);assert.equal(new URL(a.url()).searchParams.has('code'),false);assert.equal(server.size,0);
-  await a.locator('.account-top-link').click();assert.equal(await a.locator('#account-dialog .account-email').innerText(),'alice@example.test');await a.screenshot({path:join(output,'google-account-mobile.png')});await closeAccount(a);
+  await a.locator('.account-top-link').click();assert.equal(await a.locator('#account-dialog .account-email').innerText(),'alice@example.test');await a.waitForFunction(()=>document.querySelector('[data-cloud-verified]')?.textContent.startsWith('최근 서버 확인'));await a.screenshot({path:join(output,'google-account-mobile.png')});await closeAccount(a);
  });
  await check('기존 브라우저 기록은 자동 업로드하지 않으며 확인 후 백업하고 가져오기',async()=>{
   const guest=await a.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data')));assert.equal(guest.workMemo,'로그인 전의 소중한 메모');await a.locator('.account-top-link').click();await a.locator('[data-action="account-import"]').click();await a.locator('#confirm-dialog button[value="cancel"]').click();assert.equal(server.size,0);
@@ -65,7 +66,7 @@ try{
  const b=await newPage(await context());
  await check('같은 계정의 다른 기기에서 기존 기록과 메모 서식을 자동 동기화',async()=>{
   await b.goto(site.base);await login(b);await b.goto(new URL('notes.html',site.base).href);await waitMemo(b,'로그인 전의 소중한 메모');await a.goto(new URL('notes.html',site.base).href);await waitMemo(a,'로그인 전의 소중한 메모');
-  await b.locator('#work-memo .ql-editor').fill('모바일에서 수정한 업무');await b.locator('#work-memo .ql-editor').press('ControlOrMeta+a');await b.locator('[data-action="memo-format-bold"]').click();await waitMemo(a,'모바일에서 수정한 업무');assert.ok(await a.locator('#work-memo strong').isVisible());assert.equal(server.get(alice).data.workMemo,'모바일에서 수정한 업무');
+  await b.locator('#work-memo .ql-editor').fill('모바일에서 수정한 업무');await b.locator('#work-memo .ql-editor').press('ControlOrMeta+a');await b.locator('[data-action="memo-format-bold"]').click();await b.locator('[data-action="memo-format-underline"]').click();await b.locator('#memo-font-size').selectOption('24px');await b.locator('[data-action="memo-format-highlight"]').click();await waitMemo(a,'모바일에서 수정한 업무');assert.ok(await a.locator('#work-memo strong').isVisible());await a.waitForFunction(()=>document.querySelector('#work-memo [style*="24px"]'));assert.ok(await a.locator('#work-memo u').isVisible());assert.equal(server.get(alice).data.workMemo,'모바일에서 수정한 업무');
  });
  await check('로그아웃 시 계정 캐시를 지우고 로그인 전 메모로 돌아오기',async()=>{
   await a.locator('.account-top-link').click();await a.locator('[data-action="account-logout"]').click();await waitMemo(a,'로그인 전의 소중한 메모');const keys=await a.evaluate(()=>Object.keys(localStorage));assert.ok(keys.every(key=>!key.startsWith('freeter:account:')));assert.equal(server.get(alice).data.workMemo,'모바일에서 수정한 업무');await closeAccount(a);

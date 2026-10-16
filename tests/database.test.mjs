@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { emptyState } from '../core.js';
+import { mergeWorkspaces } from '../cloud.js';
 const db=new PGlite();
 const alice='00000000-0000-4000-8000-000000000001',bob='00000000-0000-4000-8000-000000000002';
 await db.exec(`create role anon; create role authenticated; create schema auth; create table auth.users(id uuid primary key); grant usage on schema public,auth to anon,authenticated; create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$; insert into auth.users values('${alice}'),('${bob}');`);
@@ -43,5 +44,10 @@ try{
  await test('DB: 마이그레이션 재적용 시 데이터 보존',async()=>{
   await db.exec(await readFile(new URL('../supabase/migrations/202610160001_workspaces.sql',import.meta.url),'utf8'));
   const rows=await as('authenticated',bob,()=>db.query('select data from public.freeter_workspaces'));assert.equal(rows.rows[0].data.workMemo,'Bob private');
+ });
+ await test('DB: 실제 JSONB 왕복의 서식 속성 순서 변경도 충돌 없이 병합',async()=>{
+  const base={...emptyState(),workMemo:'업무 안내',workMemoDelta:{ops:[{insert:'업무 안내',attributes:{underline:true,bold:true,size:'24px',color:'#cc2211',background:'#fff59d'}},{insert:'\n'}]}};
+  await as('authenticated',alice,()=>save(base,3,2));const result=await as('authenticated',alice,()=>db.query('select data from public.freeter_workspaces'));const remote=result.rows[0].data;
+  assert.notEqual(JSON.stringify(base.workMemoDelta),JSON.stringify(remote.workMemoDelta));const local=structuredClone(base);local.workMemo='수정한 업무';local.workMemoDelta.ops[0].insert='수정한 업무';const merged=mergeWorkspaces(base,local,remote);assert.deepEqual(merged.conflicts,[]);assert.equal(merged.data.workMemo,'수정한 업무');
  });
 }finally{await db.close();}

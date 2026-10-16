@@ -9,7 +9,8 @@
     "build": "node scripts/build-site.mjs",
     "check:bundle": "node scripts/build-site.mjs --check",
     "build:vendor": "node scripts/build-vendor.mjs",
-    "check:security": "node scripts/security-audit.mjs"
+    "check:security": "node scripts/security-audit.mjs",
+    "check:backend": "node scripts/backend-check.mjs"
   },
   "engines": {
     "node": ">=22"

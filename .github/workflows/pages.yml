@@ -79,6 +79,7 @@ jobs:
           echo "TEST_OUTPUT_DIR=$RUNNER_TEMP/dangi-alba-live-tests" >> "$GITHUB_ENV"
       - name: Verify the published website in Chromium
         run: |
+          npm run check:backend
           node tests/security-browser.mjs
           node tests/account-browser.mjs
           node tests/update-recovery.mjs

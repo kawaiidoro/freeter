@@ -11,15 +11,15 @@ class MemoryStorage{
  setItem(key,value){if(this.blocked)throw Error('Quota');this.data.set(key,value);}
  removeItem(key){this.data.delete(key);}
 }
-function harness(t,{server=new Map(),id='alice',storage=new MemoryStorage(),onWorkspace=()=>{}}={}){
+function harness(t,{server=new Map(),id='alice',storage=new MemoryStorage(),onWorkspace=()=>{},request,requestTimeout=15000}={}){
  const control={server,id,offline:false,readGate:null,writeGate:null,reads:0,writes:0,subscription:null,verifiedId:null},client={};
- client.auth={getUser:async()=>({data:{user:{id:control.verifiedId||control.id,email:control.id+'@example.test'}}}),getSession:async()=>({data:{session:control.id?{user:{id:control.id}}:null}}),onAuthStateChange:callback=>{control.subscription=callback;return{data:{subscription:{unsubscribe(){}}}};},exchangeCodeForSession:async code=>{control.code=code;return{error:control.exchangeError||null};},signInWithOAuth:async options=>{control.oauth=options;return{data:{url:config.url+'/auth/v1/authorize?provider=google'}};},signOut:async()=>({error:null})};
- client.from=()=>({select:()=>({eq:(_key,user)=>({maybeSingle:async()=>{control.reads++;if(control.readGate)await control.readGate;if(control.offline)throw Error('Offline');return{data:clone(server.get(user)||null),error:null};}})})});
- client.rpc=async(_name,args)=>{control.writes++;if(control.writeGate)await control.writeGate;if(control.offline)return{error:{code:'NETWORK'}};const prior=server.get(control.id);
+ client.auth={getUser:async()=>control.verifyOffline?{data:{user:null},error:{code:'NETWORK'}}:({data:{user:{id:control.verifiedId||control.id,email:control.id+'@example.test'}}}),getSession:async()=>({data:{session:control.id?{user:{id:control.id}}:null}}),onAuthStateChange:callback=>{control.subscription=callback;return{data:{subscription:{unsubscribe(){}}}};},exchangeCodeForSession:async code=>{control.code=code;return{error:control.exchangeError||null};},signInWithOAuth:async options=>{control.oauth=options;return{data:{url:config.url+'/auth/v1/authorize?provider=google'}};},signOut:async()=>{if(control.signOutGate)await control.signOutGate;return{error:null};}};
+ client.from=()=>({select:()=>({eq:(_key,user)=>({maybeSingle:async()=>{control.reads++;await control.beforeRead?.(user);if(control.readGate)await control.readGate;if(control.offline)throw Error('Offline');return{data:clone(server.get(user)||null),error:null};}})})});
+ client.rpc=async(_name,args)=>{const owner=control.id;control.writes++;if(control.writeGate)await control.writeGate;if(control.offline)return{error:{code:'NETWORK'}};const prior=server.get(owner);
   if((prior?.revision||0)!==args.p_expected_revision||(prior?.generation||1)!==args.p_expected_generation)return{error:{code:'40001'}};
-  const next={data:clone(args.p_data),revision:(prior?.revision||0)+1,generation:(prior?.generation||1)+(prior&&args.p_reset?1:0),updated_at:new Date().toISOString()};server.set(control.id,next);return{data:[{revision:next.revision,generation:next.generation,updated_at:next.updated_at}],error:null};
+  const next={data:clone(control.dropWriteData?(prior?.data||emptyState()):args.p_data),revision:(prior?.revision||0)+1,generation:(prior?.generation||1)+(prior&&args.p_reset?1:0),updated_at:new Date().toISOString()};server.set(owner,next);return{data:[{revision:next.revision,generation:next.generation,updated_at:next.updated_at}],error:null};
  };
- const cloud=new FreeterCloud({config,createClient:(_url,_key,options)=>{control.options=options;return client;},storage,onWorkspace,delay:1000000,request:async()=>({ok:true,json:async()=>({external:{google:!control.googleDisabled}})})});t.after(()=>cloud.stop());
+ const cloud=new FreeterCloud({config,createClient:(_url,_key,options)=>{control.options=options;return client;},storage,onWorkspace,delay:1000000,requestTimeout,request:request|| (async()=>({ok:true,json:async()=>({external:{google:!control.googleDisabled}})}))});t.after(()=>cloud.stop());
  return{cloud,control,storage,signIn:async()=>cloud.sessionChanged({user:{id:control.id}})};
 }
 const gate=()=>{let release;const promise=new Promise(resolve=>{release=resolve;});return{promise,release};};
@@ -96,4 +96,48 @@ test('Google 공급자 설정이 끝나지 않았을 때 현재 화면에 머물
 });
 test('백업 후 명시적 로그아웃은 오프라인 미전송 캐시를 기기에 남기지 않음',async t=>{
  const{cloud,storage,control,signIn}=harness(t);await signIn();control.offline=true;cloud.save({...emptyState(),workMemo:'backed up locally'});const key=cloud.cacheKey;await cloud.signOut({discardPending:true});assert.equal(storage.getItem(key),null);assert.equal(cloud.user,null);assert.equal(control.server.size,0);
+});
+const reordered=value=>Array.isArray(value)?value.map(reordered):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).reverse().map(([key,item])=>[key,reordered(item)])):value;
+test('JSONB 객체 키 순서 변경은 서식 메모와 독립 기록의 병합 충돌을 만들지 않음',()=>{
+ const base={...emptyState(),workMemo:'원문',workMemoDelta:{ops:[{insert:'원문',attributes:{bold:true,underline:true,size:'24px',color:'#cc2211',background:'#fff59d'}},{insert:'\n'}]}};
+ const local=clone(base);local.workMemo='수정';local.workMemoDelta.ops[0].insert='수정';const remote=reordered(base);remote.records.push(record('다른 기기'));
+ assert.notEqual(JSON.stringify(base.workMemoDelta),JSON.stringify(remote.workMemoDelta));const result=mergeWorkspaces(base,local,remote);assert.deepEqual(result.conflicts,[]);assert.equal(result.data.workMemo,'수정');assert.equal(result.data.records.length,1);
+});
+test('서버 저장 응답이 성공이어도 다시 읽은 본문이 다르면 완료로 표시하지 않음',async t=>{
+ const{cloud,control,signIn}=harness(t);await signIn();control.dropWriteData=true;cloud.save({...emptyState(),workMemo:'반드시 보존'});assert.equal(await cloud.sync(),false);assert.notEqual(cloud.phase,'synced');assert.equal(cloud.dirty,true);assert.equal(cloud.current.workMemo,'반드시 보존');
+});
+test('서버 기록이 사라져도 기존 동기화 사본을 빈 기록으로 덮어쓰지 않음',async t=>{
+ const{cloud,control,signIn}=harness(t);await signIn();cloud.save({...emptyState(),workMemo:'보존할 기록'});await cloud.sync();control.server.delete('alice');assert.equal(await cloud.sync(),false);assert.equal(cloud.phase,'conflict');assert.equal(cloud.current.workMemo,'보존할 기록');
+});
+test('로그아웃 응답이 늦게 도착해도 새로 로그인한 다른 계정은 유지',async t=>{
+ const{cloud,control,storage,signIn}=harness(t);await signIn();const oldKey=cloud.cacheKey,hold=gate();control.signOutGate=hold.promise;const pending=cloud.signOut();control.id='bob';await cloud.sessionChanged({user:{id:'bob'}});hold.release();await pending;assert.equal(cloud.user?.id,'bob');assert.equal(storage.getItem(oldKey),null);assert.equal(JSON.parse(storage.getItem(cloud.cacheKey)).owner,'bob');
+});
+test('저장 직후 읽기가 끊겨도 기기 초안을 유지하고 재접속 시 중복 없이 확인',async t=>{
+ const{cloud,control,storage,signIn}=harness(t);await signIn();const priorVerified=cloud.snapshot.verifiedAt;cloud.save({...emptyState(),workMemo:'전송한 초안'});control.beforeRead=()=>{control.offline=true;};assert.equal(await cloud.sync(),false);assert.equal(cloud.dirty,true);assert.equal(cloud.revision,0);assert.equal(JSON.parse(storage.getItem(cloud.cacheKey)).data.workMemo,'전송한 초안');assert.equal(cloud.snapshot.verifiedAt,priorVerified);
+ control.beforeRead=null;control.offline=false;assert.equal(await cloud.sync(),true);assert.equal(control.server.get('alice').revision,1);assert.equal(cloud.dirty,false);assert.ok(cloud.snapshot.verifiedAt);
+});
+test('저장 확인 중 입력한 다음 메모도 잃지 않고 후속 저장',async t=>{
+ const{cloud,control,signIn}=harness(t);await signIn();cloud.save({...emptyState(),workMemo:'첫 편집'});let edited=false;control.beforeRead=()=>{if(!edited){edited=true;cloud.save({...cloud.current,workMemo:'계속 입력한 편집'});}};
+ assert.equal(await cloud.sync(),true);assert.equal(control.server.get('alice').data.workMemo,'계속 입력한 편집');assert.equal(cloud.current.workMemo,'계속 입력한 편집');assert.equal(control.server.get('alice').revision,2);
+});
+test('저장과 확인 사이 다른 기기의 더 최신 저장은 오래된 응답으로 덮어쓰지 않음',async t=>{
+ const{cloud,control,signIn}=harness(t);await signIn();cloud.save({...emptyState(),workMemo:'내 메모'});let added=false;control.beforeRead=()=>{if(!added){added=true;const row=control.server.get('alice');row.data.records.push(record('다른 기기'));row.revision++;}};
+ assert.equal(await cloud.sync(),true);assert.equal(cloud.current.workMemo,'내 메모');assert.equal(cloud.current.records[0].id,'다른 기기');assert.equal(cloud.revision,2);
+});
+test('첫 사용자 검증이 오프라인이면 연결 복구 후 새 로그인 없이 재확인',async t=>{
+ const{cloud,control,signIn}=harness(t);control.verifyOffline=true;control.server.set('alice',{data:{...emptyState(),workMemo:'서버 기록'},revision:1,generation:1,updated_at:null});await signIn();assert.equal(cloud.user,null);assert.equal(control.reads,0);control.verifyOffline=false;assert.equal(await cloud.resume(),true);assert.equal(cloud.user.id,'alice');assert.equal(cloud.current.workMemo,'서버 기록');
+});
+test('오래된 로그아웃은 같은 계정으로 다시 로그인한 새 캐시도 지우지 않음',async t=>{
+ const{cloud,control,storage,signIn}=harness(t);await signIn();const hold=gate();control.signOutGate=hold.promise;const pending=cloud.signOut();await cloud.sessionChanged(null);await signIn();hold.release();const result=await pending;assert.equal(result.changedAccount,true);assert.equal(cloud.user.id,'alice');assert.equal(JSON.parse(storage.getItem(cloud.cacheKey)).owner,'alice');
+});
+test('멈춘 API 요청은 제한 시간에 취소하고 호출자의 취소 신호도 전달',async t=>{
+ const request=(_url,{signal})=>new Promise((_resolve,reject)=>{if(signal.aborted)reject(signal.reason);else signal.addEventListener('abort',()=>reject(signal.reason),{once:true});});
+ const{control}=harness(t,{request,requestTimeout:20}),fetch=control.options.global.fetch;
+ await assert.rejects(fetch(config.url+'/rest/v1/freeter_workspaces',{}),{name:'TimeoutError'});
+ const controller=new AbortController();const pending=fetch(config.url+'/auth/v1/user',{signal:controller.signal});controller.abort();await assert.rejects(pending,{name:'AbortError'});
+});
+
+test('응답 헤더만 온 채 본문이 멈춰도 API 제한 시간 적용',async t=>{
+ const request=async(_url,{signal})=>new Response(new ReadableStream({start(controller){signal.addEventListener('abort',()=>controller.error(signal.reason),{once:true});}}),{headers:{'content-type':'application/json'}});
+ const{control}=harness(t,{request,requestTimeout:20});await assert.rejects(control.options.global.fetch(config.url+'/rest/v1/freeter_workspaces',{}),{name:'TimeoutError'});
 });

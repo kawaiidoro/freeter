@@ -14,7 +14,14 @@ export function cloudConfig(input) {
   if (!allowed) throw new Error('프런트엔드에는 Publishable 또는 anon public key만 사용할 수 있습니다.');
   return { url: url.origin, publishableKey: key, project: url.hostname.split('.')[0] };
 }
-const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+// PostgreSQL JSONB changes object key order. Array order remains meaningful.
+export function equalWorkspaceData(a, b) {
+  if (a === b) return true;
+  if (!a || !b || typeof a !== 'object' || typeof b !== 'object' || Array.isArray(a) !== Array.isArray(b)) return false;
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every(key => Object.hasOwn(b, key) && equalWorkspaceData(a[key], b[key]));
+}
+const same = equalWorkspaceData;
 const copy = value => structuredClone(value);
 export function mergeWorkspaces(base, local, remote) {
   const result = copy(remote), conflicts = [];
@@ -37,21 +44,34 @@ const labels = {
   offline: '연결 대기 · 이 기기의 기록은 보존돼요', conflict: '동시 수정 확인 필요', error: '동기화 확인 필요',
 };
 export function cloudError(error) {
+  if (error?.code === 'FREETER_VERIFY') return '서버에 저장된 내용을 확인하지 못했어요. 이 기기의 기록을 유지하며 다시 확인합니다.';
   if (['42P01', 'PGRST202', 'PGRST205'].includes(error?.code)) return '계정 저장소 설정이 완료되지 않았어요. 잠시 후 다시 시도해 주세요.';
   if (error?.code === '42501') return '계정 기록에 접근할 수 없어요. 다시 로그인해 주세요.';
   return '계정에 연결하지 못했어요. 이 기기의 기록은 보존됩니다. 인터넷 연결을 확인하고 다시 시도해 주세요.';
 }
 export class FreeterCloud {
-  constructor({ config, createClient, storage, onStatus = () => {}, onWorkspace = () => {}, onGuest = () => {}, delay = 800, request = (...args)=>globalThis.fetch(...args) }) {
+  constructor({ config, createClient, storage, onStatus = () => {}, onWorkspace = () => {}, onGuest = () => {}, delay = 800, requestTimeout = 15000, request = (...args)=>globalThis.fetch(...args) }) {
     this.config = cloudConfig(config); this.storage = storage; this.onStatus = onStatus; this.onWorkspace = onWorkspace; this.onGuest = onGuest; this.delay = delay;this.request=request;
     this.user = null; this.target = undefined; this.epoch = 0; this.phase = this.config ? 'guest' : 'disabled'; this.message = ''; this.revision = 0; this.generation = 1; this.dirty = false; this.reset = false; this.current = emptyState(); this.base = emptyState(); this.lastSynced = null;
     if (this.config) try{this.client = createClient(this.config.url, this.config.publishableKey, {
       auth: { flowType: 'pkce', autoRefreshToken: true, persistSession: true, detectSessionInUrl: false, storageKey: `freeter:auth:${this.config.project}`, storage },
-      global: { fetch: (url, options) => this.request(url, { ...options, cache: 'no-store', referrerPolicy: 'no-referrer' }) },
+      global: { fetch: async (url, options) => {
+        const controller = new AbortController(), signal = options?.signal || url?.signal;
+        const abort = () => controller.abort(signal.reason);
+        if (signal?.aborted) abort(); else signal?.addEventListener('abort', abort, { once: true });
+        const timer = setTimeout(() => controller.abort(new DOMException('Request timed out', 'TimeoutError')), requestTimeout);
+        try {
+          const response = await this.request(url, { ...options, signal: controller.signal, cache: 'no-store', referrerPolicy: 'no-referrer' });
+          // Keep the deadline active through the JSON body, not only the headers.
+          if (!response.body) return response;
+          return new Response(await response.arrayBuffer(), { status: response.status, statusText: response.statusText, headers: response.headers });
+        }
+        finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
+      } },
     });}catch{this.config=null;this.phase='disabled';this.message='이 브라우저에서 계정 서비스를 시작하지 못했어요. 기존 도구는 계속 사용할 수 있습니다.';}
   }
   get cacheKey() { return this.user ? `freeter:account:${this.config.project}:${this.user.id}` : null; }
-  get snapshot() { return { phase: this.phase, label: this.message || labels[this.phase], user: this.user, configured: !!this.config, pending: this.dirty, signingOut:!!this.signingOut,lastSynced: this.lastSynced }; }
+  get snapshot() { return { phase: this.phase, label: this.message || labels[this.phase], user: this.user, configured: !!this.config, pending: this.dirty, signingOut:!!this.signingOut,lastSynced: this.lastSynced, verifiedAt: this.verifiedAt || null }; }
   status(phase, message = '') { this.phase = phase; this.message = message; this.onStatus(this.snapshot); }
   persist() {
     this.storage.setItem(this.cacheKey, JSON.stringify({ owner: this.user.id, data: this.current, base: this.base, revision: this.revision, generation: this.generation, dirty: this.dirty, reset: this.reset }));
@@ -81,7 +101,7 @@ export class FreeterCloud {
     const target = session?.user?.id || null;
     if (target === this.target) return;
     this.target = target; const epoch = ++this.epoch; clearTimeout(this.timer); this.stopPolling(); this.user = null; this.dirty = false; this.reset = false;
-    this.current = emptyState(); this.base = emptyState(); this.revision = 0; this.generation = 1;
+    this.current = emptyState(); this.base = emptyState(); this.revision = 0; this.generation = 1; this.signingOut = false; this.lastSynced = null; this.verifiedAt = null; this.cacheBlocked = false;
     if (!target) { this.onGuest(); this.status('guest'); return; }
     this.status('loading');
     const { data, error } = await this.client.auth.getUser();
@@ -101,6 +121,18 @@ export class FreeterCloud {
     this.cacheBlocked = false; this.onWorkspace(copy(this.current));
     await this.sync(); if (epoch !== this.epoch) return;
     this.interval = setInterval(() => { if (typeof document === 'undefined' || !document.hidden) this.sync(); }, 10000);
+  }
+  async resume() {
+    if (!this.client) return false;
+    if (this.user) return this.sync();
+    const epoch = this.epoch;
+    try {
+      const { data, error } = await this.client.auth.getSession();
+      if (epoch !== this.epoch) return false;
+      if (error) throw error;
+      await this.sessionChanged(data.session);
+      return this.phase === 'synced';
+    } catch (error) { if (epoch === this.epoch) this.status('error', cloudError(error)); return false; }
   }
   async googleLogin(redirectTo) {
     if (!this.client) throw new Error('계정 서비스가 준비 중이에요. 기존 도구는 계속 사용할 수 있어요.');
@@ -131,20 +163,21 @@ export class FreeterCloud {
   }
   applyRemote(remote) {
     const changed = !same(this.current, remote.data);
-    const previous={current:this.current,base:this.base,revision:this.revision,generation:this.generation,dirty:this.dirty,reset:this.reset,lastSynced:this.lastSynced};
-    this.current = copy(remote.data); this.base = copy(remote.data); this.revision = remote.revision; this.generation = remote.generation; this.dirty = false; this.reset = false; this.lastSynced = remote.updated_at;
+    const previous={current:this.current,base:this.base,revision:this.revision,generation:this.generation,dirty:this.dirty,reset:this.reset,lastSynced:this.lastSynced,verifiedAt:this.verifiedAt};
+    this.current = copy(remote.data); this.base = copy(remote.data); this.revision = remote.revision; this.generation = remote.generation; this.dirty = false; this.reset = false; this.lastSynced = remote.updated_at; this.verifiedAt = new Date().toISOString();
     try{this.persist();}catch(error){Object.assign(this,previous);throw error;}
     if (changed) this.onWorkspace(copy(this.current)); this.status('synced');
   }
   reconcile(remote) {
+    if (remote.revision < this.revision || remote.generation < this.generation) { this.status('conflict', '서버 기록이 이전 상태로 바뀌었어요. 이 기기의 기록을 유지했으니 사용할 내용을 선택해 주세요.'); return false; }
     if (!this.dirty) { this.applyRemote(remote); return true; }
     if (remote.generation !== this.generation || remote.revision < this.revision || (this.reset&&remote.revision!==this.revision)) { this.status('conflict'); return false; }
     if(this.reset)return true;
     const merged = mergeWorkspaces(this.base, this.current, remote.data);
     if (merged.conflicts.length) { this.status('conflict'); return false; }
     const changed = !same(this.current, merged.data);
-    const previous={current:this.current,base:this.base,revision:this.revision,generation:this.generation,dirty:this.dirty};
-    this.current = merged.data; this.base = copy(remote.data); this.revision = remote.revision; this.generation = remote.generation; this.dirty = !same(this.current, this.base);
+    const previous={current:this.current,base:this.base,revision:this.revision,generation:this.generation,dirty:this.dirty,lastSynced:this.lastSynced,verifiedAt:this.verifiedAt};
+    this.current = merged.data; this.base = copy(remote.data); this.revision = remote.revision; this.generation = remote.generation; this.dirty = !same(this.current, this.base); this.lastSynced = remote.updated_at; this.verifiedAt = new Date().toISOString();
     try{this.persist();}catch(error){Object.assign(this,previous);throw error;}
     if (changed) this.onWorkspace(copy(this.current)); return true;
   }
@@ -152,7 +185,7 @@ export class FreeterCloud {
     if (!this.user || this.cacheBlocked || this.phase === 'conflict') return false;
     if (this.inFlight?.epoch === this.epoch) return this.inFlight.promise;
     const epoch = this.epoch, user = this.user.id;
-    const promise = this.runSync(epoch, user).catch(error => { if (epoch === this.epoch) this.status('offline', cloudError(error)); return false; }).finally(() => { if (this.inFlight?.epoch === epoch) this.inFlight = null; });
+    const promise = this.runSync(epoch, user).catch(error => { if (epoch === this.epoch) this.status(error?.code === 'FREETER_VERIFY' ? 'error' : 'offline', cloudError(error)); return false; }).finally(() => { if (this.inFlight?.epoch === epoch) this.inFlight = null; });
     this.inFlight = { epoch, promise }; return promise;
   }
   async runSync(epoch, user) {
@@ -174,7 +207,16 @@ export class FreeterCloud {
       }
       const row = Array.isArray(data) ? data[0] : data;
       if (!row || !Number.isSafeInteger(row.revision) || row.revision <= this.revision || !Number.isSafeInteger(row.generation) || row.generation < this.generation) throw new Error('Invalid save response');
-      this.base = sent; this.revision = row.revision; this.generation = row.generation; this.lastSynced = row.updated_at; this.dirty = !same(this.current, sent); if (this.resetSerial === resetSerial) this.reset = false; this.persist();
+      // An RPC acknowledgement alone does not prove that the submitted body was stored.
+      const verified = await this.read(user); if (epoch !== this.epoch) return false;
+      if (verified.revision < row.revision || verified.generation < row.generation || (verified.revision === row.revision && (verified.generation !== row.generation || !same(verified.data, sent)))) {
+        const failure = new Error('Server write verification failed'); failure.code = 'FREETER_VERIFY'; throw failure;
+      }
+      const previous = { base:this.base, revision:this.revision, generation:this.generation, lastSynced:this.lastSynced, verifiedAt:this.verifiedAt, dirty:this.dirty, reset:this.reset };
+      this.base = sent; this.revision = row.revision; this.generation = row.generation; this.lastSynced = row.updated_at; this.verifiedAt = new Date().toISOString(); this.dirty = !same(this.current, sent) || (this.reset && this.resetSerial !== resetSerial); if (this.resetSerial === resetSerial) this.reset = false;
+      try { this.persist(); } catch (error) { Object.assign(this, previous); throw error; }
+      // Another device can commit between our write and the verification read.
+      if (verified.revision > row.revision && !this.reconcile(verified)) return false;
     }
     this.status(this.dirty ? 'pending' : 'synced'); return !this.dirty;
   }
@@ -192,8 +234,12 @@ export class FreeterCloud {
     if(epoch!==this.epoch)throw new Error('계정이 변경되어 로그아웃을 중지했어요.');
     const key = this.cacheKey;
     this.signingOut=true;this.status('syncing','로그아웃 중');
-    let result;try{result=await this.client.auth.signOut({ scope: 'local' });}catch{this.signingOut=false;this.status('error');throw new Error('로그아웃을 완료하지 못했어요. 다시 시도해 주세요.');}
+    let result;try{result=await this.client.auth.signOut({ scope: 'local' });}catch{if(epoch!==this.epoch)return {revoked:false,changedAccount:!!this.user};this.signingOut=false;this.status('error');throw new Error('로그아웃을 완료하지 못했어요. 다시 시도해 주세요.');}
     const {error}=result;
+    if (epoch !== this.epoch) {
+      if (key && key !== this.cacheKey) { this.storage.removeItem(key); this.storage.removeItem(key + ':recovery'); }
+      return { revoked:!error, changedAccount:!!this.user };
+    }
     if (error && this.storage.getItem(`freeter:auth:${this.config.project}`)) {this.signingOut=false;this.status('error');throw new Error('로그아웃을 완료하지 못했어요. 인터넷 연결 후 다시 시도해 주세요.');}
     if (key) { this.storage.removeItem(key); this.storage.removeItem(key + ':recovery'); }
     this.cacheBlocked = false;this.signingOut=false;await this.sessionChanged(null);return {revoked:!error};

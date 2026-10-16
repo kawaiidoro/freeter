@@ -354,11 +354,14 @@ function statsView() {
   }).join('')}</div>` : smallEmpty('수입이 쌓일 공간이에요', '알바를 기록하면 근무지별 수입을 보여드려요.')}</section></div><aside class="info-strip">${icon('help')}<p><strong>같은 달의 예상액과 입금액은 다를 수 있어요.</strong> 예를 들어 9월 근무 급여가 10월에 입금되면, 예상은 9월에 실제 입금은 10월에 집계해요. 미수령은 선택한 근무 월 기록의 모든 입금을 반영하며, 초과 입금이 다른 기록의 미수령액을 줄이지 않아요.</p></aside>`;
 }
 
+function serverVerifiedLabel(view) {
+  return view.verifiedAt ? '최근 서버 확인 · '+new Date(view.verifiedAt).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '아직 서버 저장을 확인하지 못했어요.';
+}
 function accountContent() {
   const view=cloud.snapshot;
   const status=`<p class="account-status" data-cloud-status data-status="${esc(view.phase)}" role="status">${esc(view.label)}</p>`;
   if(!view.user)return `<div class="account-intro"><span class="feature-icon orange">${icon('user')}</span><div><h3>어디서든, 나의 기록</h3><p>Google 계정으로 로그인하면 근무 기록과 메모를 PC·모바일에서 함께 볼 수 있어요.</p></div></div>${status}<button class="button google-login" data-action="google-login" ${!view.configured||view.phase==='loading'?'disabled':''}><span class="google-mark" aria-hidden="true">G</span>Google로 계속하기</button><p class="field-hint">로그인 전 기록은 이 브라우저에 별도로 남아요. 로그인 후 직접 가져올 수 있습니다. <a href="./privacy.html" class="text-link">개인정보 안내</a></p>`;
-  return `<p class="account-email">${esc(view.user.email||'Google 계정')}</p>${status}<div class="account-actions"><button class="button primary small" data-action="account-sync">${icon('check')}지금 동기화</button><button class="button secondary small" data-action="account-import">브라우저 기록 가져오기</button><button class="button ghost small" data-action="account-logout">로그아웃</button></div><div class="account-conflict" data-cloud-conflict ${view.phase==='conflict'?'':'hidden'}><h3>같은 내용을 다른 기기에서 수정했어요.</h3><p>자동 덮어쓰기를 멈췄어요. 현재 기록을 JSON으로 백업한 뒤 사용할 내용을 선택하세요. 선택 전 두 기록을 모두 백업합니다.</p><div class="account-actions"><button class="button secondary small" data-action="account-use-remote">서버 기록 사용</button><button class="button secondary small" data-action="account-use-local">이 기기 기록 사용</button></div></div><p class="field-hint">변경 사항은 자동으로 저장되며, 다른 기기의 내용은 약 10초 간격으로 확인해요. 로그아웃하면 이 브라우저의 계정 기록 사본을 지웁니다.</p>`;
+  return `<p class="account-email">${esc(view.user.email||'Google 계정')}</p>${status}<p class="field-hint" data-cloud-verified>${esc(serverVerifiedLabel(view))}</p><div class="account-actions"><button class="button primary small" data-action="account-sync">${icon('check')}지금 동기화</button><button class="button secondary small" data-action="account-import">브라우저 기록 가져오기</button><button class="button ghost small" data-action="account-logout">로그아웃</button></div><div class="account-conflict" data-cloud-conflict ${view.phase==='conflict'?'':'hidden'}><h3>같은 내용을 다른 기기에서 수정했어요.</h3><p>자동 덮어쓰기를 멈췄어요. 현재 기록을 JSON으로 백업한 뒤 사용할 내용을 선택하세요. 선택 전 두 기록을 모두 백업합니다.</p><div class="account-actions"><button class="button secondary small" data-action="account-use-remote">서버 기록 사용</button><button class="button secondary small" data-action="account-use-local">이 기기 기록 사용</button></div></div><p class="field-hint">변경 사항은 자동으로 저장되며, 다른 기기의 내용은 약 10초 간격으로 확인해요. 로그아웃하면 이 브라우저의 계정 기록 사본을 지웁니다.</p>`;
 }
 function accountCard() { return `<section class="panel settings-card wide account-card"><h2>내 계정 · 동기화</h2>${accountContent()}</section>`; }
 function openAccount() {
@@ -370,6 +373,7 @@ let accountRenderIdentity='';
 function updateCloudUI(view=cloud.snapshot) {
   $('#main').inert=view.signingOut===true;
   for(const node of $$('[data-cloud-status]')){node.textContent=view.label;node.dataset.status=view.phase;}
+  for(const node of $$('[data-cloud-verified]'))node.textContent=serverVerifiedLabel(view);
   for(const node of $$('[data-cloud-conflict]'))node.hidden=view.phase!=='conflict';
   for(const node of $$('.account-top-link')){node.setAttribute('aria-label',view.user?'내 계정 및 동기화':'Google 로그인 및 계정');node.dataset.signedIn=String(!!view.user);}
   const identity=(view.user?.id||'guest')+':'+(view.phase==='loading');
@@ -397,7 +401,7 @@ function applyAccountWorkspace(next) {
   else render();
   updateCloudUI();
 }
-const sameMemoDelta=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+const sameMemoDelta=equalWorkspaceData;
 function returnToGuest() {
   resetScopeDialogs();visibleAccountId=null;storageBlocked=false;rawStored=null;
   try{rawStored=localStorage.getItem(STORAGE_KEY);state=rawStored?validateState(JSON.parse(rawStored)):emptyState();}
@@ -639,7 +643,7 @@ document.addEventListener('click', async event => {
         if(!await confirmAction('서버에 저장하지 못한 내용을 JSON으로 백업한 뒤 이 기기에서 로그아웃합니다. 인터넷 연결 후 백업 파일로 복원할 수 있어요.','백업하고 로그아웃할까요?','백업하고 로그아웃'))return;
         download(JSON.stringify(state,null,2),`Freeter-unsent-${today()}.json`,'application/json;charset=utf-8');result=await cloud.signOut({discardPending:true});
       }
-      toast(result.revoked?'로그아웃했어요. 이 브라우저의 계정 사본을 지웠습니다.':'이 기기에서 로그아웃했어요. 서버의 세션 해제는 연결 오류로 확인하지 못했습니다.');return;
+      toast(result.changedAccount?'이전 계정에서 로그아웃했어요. 새로 로그인한 계정은 유지합니다.':result.revoked?'로그아웃했어요. 이 브라우저의 계정 사본을 지웠습니다.':'이 기기에서 로그아웃했어요. 서버의 세션 해제는 연결 오류로 확인하지 못했습니다.');return;
     }
     if(action==='account-use-local'||action==='account-use-remote'){
       if(!await confirmAction('현재 기기와 서버의 기록을 각각 JSON으로 백업한 뒤 선택한 기록으로 동기화를 이어갑니다.','사용할 기록을 선택할까요?','백업하고 선택'))return;
@@ -741,5 +745,5 @@ if (globalThis.origin !== 'null' && 'serviceWorker' in navigator && (location.pr
 checkAppVersion();
 
 cloud.start(location.href,url=>{try{history.replaceState({},'',url);}catch{/* Restricted previews do not start account authentication. */}}).then(()=>{if(storageBlocked&&rawStored===null&&!cloud.user)cloud.status('disabled','이 브라우저에서는 계정 정보를 저장할 수 없어요. 일반 탭에서 다시 열어 주세요.');}).catch(()=>toast('계정 서비스에 연결하지 못했어요. 기존 도구는 계속 사용할 수 있어요.'));
-window.addEventListener('online',()=>cloud.sync());
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)cloud.sync();});
+window.addEventListener('online',()=>cloud.resume());
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)cloud.resume();});
