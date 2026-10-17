@@ -38,7 +38,7 @@ jobs:
           cp -- *.html style.css brand.css site.js sw.js icon.svg manifest.webmanifest robots.txt sitemap.xml version.json .nojekyll _site/
           cp -R -- assets _site/assets
           cp -R -- vendor _site/vendor
-      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: _site
 
