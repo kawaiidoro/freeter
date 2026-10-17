@@ -113,7 +113,11 @@ try{
  });
  await check('소유자 전용 설정에서는 다른 Google 계정을 거절하고 지정 계정만 허용',async()=>{
   config.allowedEmailHash=createHash('sha256').update('alice@example.test').digest('hex');chosenUser=bob;
-  const c=await newPage(await context());await c.goto(site.base);await c.locator('.account-top-link').click();await c.locator('#account-dialog [data-action="google-login"]').click();
+  const c=await newPage(await context());await c.goto(site.base);await c.locator('.account-top-link').click();
+  // The initial page already has the final pathname. Observe the OAuth callback
+  // navigation before waiting for cleanup, or the dialog can open on the old page.
+  const callback=c.waitForEvent('framenavigated',frame=>frame===c.mainFrame()&&new URL(frame.url()).searchParams.has('code'));
+  await c.locator('#account-dialog [data-action="google-login"]').click();await callback;
   await c.waitForURL(url=>url.pathname==='/freeter/'&&!url.searchParams.has('code'));await c.locator('.account-top-link').click();
   await c.waitForFunction(()=>document.querySelector('#account-dialog [data-cloud-status]')?.textContent.includes('등록된 Google 계정만'));
   assert.equal(await c.locator('.account-top-link').getAttribute('data-signed-in'),'false');assert.equal(await c.evaluate(()=>Object.keys(localStorage).some(key=>key.startsWith('freeter:account:'))),false);
