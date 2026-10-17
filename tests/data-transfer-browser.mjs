@@ -20,7 +20,7 @@ try{
  await go('settings.html');await page.evaluate(data=>localStorage.setItem('dangi-alba:data',JSON.stringify(data)),data);await page.reload();
  let backup;
  await check('전체 JSON은 서식·지원 자료·교대 배정·입금까지 저장하며 로그인 세션을 포함하지 않는다',async()=>{
-  const event=page.waitForEvent('download');await page.locator('[data-action="backup"]').tap();const file=await event;assert.ok(file.suggestedFilename().endsWith('.json'));const path=join(output,'full-backup.json');await file.saveAs(path);backup=JSON.parse(await readFile(path,'utf8'));assert.deepEqual(backup,validateState(structuredClone(data)));assert.ok(!Object.keys(backup).some(key=>/token|session|auth/i.test(key)));assert.deepEqual(await saved(),data);
+  const event=page.waitForEvent('download');await page.locator('[data-action="backup"]').tap();const file=await event;assert.ok(file.suggestedFilename().endsWith('.json'));const path=join(output,'full-backup.json');await file.saveAs(path);backup=JSON.parse(await readFile(path,'utf8'));assert.deepEqual(backup,validateState(structuredClone(data)));assert.ok(!Object.keys(backup).some(key=>/token|session|auth/i.test(key)));assert.deepEqual(await saved(),data);assert.equal(await page.locator('#data-transfer-status').isVisible(),false);assert.equal(await page.locator('#data-transfer-status').textContent(),'');
  });
  await check('복원 취소·손상 파일·잘못된 서식은 현재 기록을 교체하지 않는다',async()=>{
   const incoming=structuredClone(backup);incoming.workMemo='교체할 메모';incoming.workMemoDelta=null;

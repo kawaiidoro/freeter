@@ -1734,11 +1734,19 @@ html[data-theme] .panel.settings-card.data-transfer { padding: 0; overflow: hidd
 .data-transfer-row > .icon { width: 17px; height: 17px; margin-left: auto; color: var(--muted); }
 .data-transfer-status { font-size: 13px; line-height: 1.8; color: var(--blue); margin: 0 24px 20px; }
 .data-transfer-status[data-error='true'] { color: var(--danger,#c43d50); }
-/* Illustrated app marks: bold dark outlines with paper, mint and sky-blue fills. */
-html[data-theme] .dashboard-layout { --tool-ink: #16372c; --tool-paper: #ffffff; --tool-mint: #a3e8cd; --tool-accent: #29c990; --tool-blue: #7dc9ec; --tool-background: #e7f6f1; }
-html[data-theme] .dashboard-layout .app-tile-icon { background: linear-gradient(145deg,#f0fbf6,#e1f3ec); border: 1px solid #c8e8dc70; }
-html[data-theme] .dashboard-layout :is(.app-tile[data-route='settings'],.app-tile[data-route='guide']) .app-tile-icon { background: linear-gradient(145deg,#f3f7fb,#e8f0f7); border-color: #dce7ef70; }
-.tool-illustration { stroke-width: 2.15px; filter: drop-shadow(0 1px 0 #09291c12); }
+/* Filled app marks use the same charcoal, white and vivid green palette. */
+html[data-theme] .dashboard-layout { --tool-ink: #263238; --tool-paper: #ffffff; --tool-mint: #c4efdb; --tool-accent: #00c853; --tool-gray: #9aa3aa; --tool-background: #f4f6f6; }
+html[data-theme] .dashboard-layout .app-tile-icon { background: linear-gradient(145deg,#f9faf9,#f0f3f4); border: 1px solid #edf0f070; }
+.tool-illustration { width: 46px; height: 46px; stroke-width: 2.5px; filter: drop-shadow(0 1px 1px #14202412); }
+.tool-dark { fill: var(--tool-ink); stroke: var(--tool-ink); }
+.tool-gray { fill: var(--tool-gray); stroke: none; }
+.tool-accent { stroke: var(--tool-accent); }
+.tool-pencil { fill: var(--tool-accent); stroke: #ffffff; stroke-width: 2px; }
+.tool-white-line { fill: none; stroke: #ffffff; }
+.tool-green-line { fill: none; stroke: var(--tool-accent); }
+.tool-white-fill { fill: #ffffff; stroke: none; }
+@media(max-width:480px){ .tool-illustration { width: 40px; height: 40px; } }
+@media(max-width:360px){ .tool-illustration { width: 36px; height: 36px; } }
 @media(max-width:650px) {
   .guide-shortcuts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin-bottom: 21px; }
   .guide-shortcuts a { font-size: 11px; padding: 10px; }
@@ -1761,3 +1769,18 @@ body[data-page='guide'] details.tax-guide { padding: 0; margin-bottom: 22px; }
 .tax-guide[open] > summary .icon { transform: rotate(90deg); }
 .tax-guide-content { padding: 0 25px 24px; }
 body[data-page='guide'] .tax-guide-content p { font-size: 14px; line-height: 1.9; }
+
+/* Paint the coffee gradient to its edge, without a glass rim or art panel. */
+html[data-theme] .panel.settings-card.coffee-banner { border: 0; box-shadow: none; background-clip: border-box; background-repeat: no-repeat; background-size: cover; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.coffee-art { background: transparent; box-shadow: none; border: 0; }
+/* Match the root canvas to the chosen theme, including mobile overscroll. */
+html { min-height: 100%; background-color: #f4f5f6; }
+html[data-theme='dark'] { background-color: #101215; }
+body { min-height: 100vh; min-height: 100dvh; }
+@media(max-width:800px) {
+  body { background-attachment: scroll; }
+  .app-shell { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+  .app-shell > .topbar { flex-shrink: 0; }
+  .app-shell > main { flex: 1 0 auto; width: 100%; min-height: 0; }
+  html[data-theme] .site-footer { flex-shrink: 0; margin-top: 0; padding-bottom: calc(77px + env(safe-area-inset-bottom)); }
+}
