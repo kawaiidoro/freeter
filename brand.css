@@ -1508,3 +1508,6 @@ html[data-theme] .profile-widget .profile-link { color: #c1ffd7; border-color: #
 @media print {
   html[data-theme] :is(.workspace-widget:not(.profile-widget),.panel,.notes-sidebar,dialog,.weather-panel,.updates-trigger,.sidebar,.topbar,.mobile-nav) { -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
 }
+
+/* Bold rounded outlines keep header actions clear at small sizes. */
+.top-actions .header-illustration, .header-weather-toggle .header-illustration { stroke-width: 2.5px; stroke-linecap: round; stroke-linejoin: round; }

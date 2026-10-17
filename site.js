@@ -911,7 +911,7 @@ function mountWeatherWidget() {
     <p class="weather-status" role="status" aria-live="polite"></p><div class="weather-content" aria-busy="false"></div>
     <p class="weather-location-note">지역을 선택하거나 내 위치를 허용해 주세요.</p>
     <a class="weather-source" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo · CAMS 대기질 예측 ↗</a>
-    </section><button type="button" class="header-weather-toggle" aria-label="오늘 날씨와 기온 보기" aria-controls="header-weather-panel" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M9 2v2M3 8H1m3-5 1 1m8-1-1 1M5 11a5 5 0 1 1 9-3"/><path d="M7 20h11a4 4 0 1 0-1-7.9A5 5 0 0 0 7 12a4 4 0 0 0 0 8Z"/></svg><span>날씨</span></button>`;
+    </section><button type="button" class="header-weather-toggle" aria-label="오늘 날씨와 기온 보기" aria-controls="header-weather-panel" aria-haspopup="dialog" aria-expanded="false"><svg class="header-illustration" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v2M2 8h2m0-5 1.5 1.5m9-1.5L13 4.5M4.7 11.2A4.5 4.5 0 1 1 12 6.5"/><path d="M7 20h10a4 4 0 0 0 .3-8 5.4 5.4 0 0 0-10.2 0A4 4 0 0 0 7 20Z"/></svg><span>날씨</span></button>`;
   const host=document.querySelector('.header-clock')||document.querySelector('.topbar');host.prepend(root);
   const find=selector=>root.querySelector(selector),panel=find('.weather-panel'),toggle=find('.header-weather-toggle'),content=find('.weather-content'),status=find('.weather-status'),citySelect=find('#weather-city');
   let open=false,serial=0,active=null,location={...WEATHER_CITIES[0]},cache=null;
@@ -987,7 +987,7 @@ function mountWeatherWidget() {
 
 const SUPPORT_CONFIG = {"coffeeUrl":"https://open.kakao.com/o/sg56FSSi"};
 
-const APP_RELEASE = '60b447cd0d1b';
+const APP_RELEASE = '3e7605e4ec4f';
 let latestRelease = APP_RELEASE;
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -1028,10 +1028,18 @@ const icons = {
   coffee: '<path d="M4 8h12v9a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4Zm12 0h2a3 3 0 0 1 0 6h-2M7 3v2m5-2v2"/>',
 };
 const icon = (name, className = '') => `<svg class="icon ${className}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.notebook}</svg>`;
+// Rounded illustration icons for the header controls only.
+const headerIcons={
+  edit:'<path d="M12 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/><path d="m15 3 6 6-8 8-5 1 1-5Z M13 5l6 6"/>',
+  user:'<rect x="3" y="3" width="18" height="18" rx="6"/><circle cx="12" cy="9" r="3"/><path d="M7 19v-1a5 5 0 0 1 10 0v1"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/>',
+  moon:'<path d="M20.5 14.4A8.8 8.8 0 0 1 9.6 3.5 8.8 8.8 0 1 0 20.5 14.4Z"/>'
+};
+const headerIcon=name=>`<svg class="icon header-illustration" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${headerIcons[name]}</svg>`;
 // Older cached HTML may still contain the retired header shortcut.
 $$('.updates-top-link').forEach(node=>node.remove());
 $$('.mobile-nav [data-page]').filter(node=>!['home','notes','schedule','calculator'].includes(node.dataset.page)).forEach(node=>node.remove());
-$$('[data-icon]').forEach(node => { node.innerHTML = icon(node.dataset.icon); });
+$$('[data-icon]').forEach(node => { node.innerHTML = node.closest('.top-actions')?headerIcon(node.dataset.icon):icon(node.dataset.icon); });
 $('.topbar').before($('#storage-alert'));
 
 let state = emptyState(), storageBlocked = false, rawStored = null;
@@ -1104,7 +1112,7 @@ function chooseTheme(theme){
 function applyTheme() {
   const theme=effectiveTheme();
   document.documentElement.dataset.theme = theme;
-  $('#theme-toggle').innerHTML = icon(theme === 'dark' ? 'sun' : 'moon');
+  $('#theme-toggle').innerHTML = headerIcon(theme === 'dark' ? 'sun' : 'moon');
   $('#theme-toggle').setAttribute('aria-label', theme === 'dark' ? '라이트모드로 전환' : '다크모드로 전환');
   $('meta[name="theme-color"]').content = theme === 'dark' ? '#121212' : '#f7f7f7';
 }
@@ -1515,7 +1523,7 @@ function accountStatusText(view) {
 function accountContent() {
   const view=cloud.snapshot,statusText=accountStatusText(view);
   const status=`<p class="account-status" data-cloud-status data-status="${esc(view.phase)}" role="status" ${statusText?'':'hidden'}>${esc(statusText)}</p>`;
-  if(!view.user)return `<div class="account-intro"><span class="account-avatar" aria-hidden="true"><svg viewBox="0 0 96 96" width="64" height="64" focusable="false"><circle cx="48" cy="35" r="20"/><path d="M12 96a36 36 0 0 1 72 0Z"/></svg></span><h3>프로필 이름</h3></div>${status}<button class="button google-login" data-action="google-login" ${!view.configured||view.phase==='loading'?'disabled':''}><span class="google-mark" aria-hidden="true"><svg viewBox="0 0 48 48" width="18" height="18" focusable="false"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65Z"/><path fill="#FBBC05" d="M10.53 28.59A14.41 14.41 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.19A23.87 23.87 0 0 0 0 24c0 3.87.93 7.53 2.56 10.78l7.97-6.19Z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6c-2.15 1.45-4.92 2.3-8.18 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z"/></svg></span>Google로 계속하기</button><p class="field-hint account-contact-note">로그인 전 기록은 이 브라우저에 별도로 남아요. 로그인 후 직접 가져올 수 있습니다.<br>Google 계정으로 PC·모바일 동기화와 백업을 이용하려면 개발자에게 문의해 주세요.</p>`;
+  if(!view.user)return `<div class="account-intro"><span class="account-avatar" aria-hidden="true"><svg viewBox="0 0 96 96" width="64" height="64" focusable="false"><circle cx="48" cy="35" r="20"/><path d="M12 96a36 36 0 0 1 72 0Z"/></svg></span><h3>프로필</h3></div>${status}<button class="button google-login" data-action="google-login" ${!view.configured||view.phase==='loading'?'disabled':''}><span class="google-mark" aria-hidden="true"><svg viewBox="0 0 48 48" width="18" height="18" focusable="false"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65Z"/><path fill="#FBBC05" d="M10.53 28.59A14.41 14.41 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.19A23.87 23.87 0 0 0 0 24c0 3.87.93 7.53 2.56 10.78l7.97-6.19Z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6c-2.15 1.45-4.92 2.3-8.18 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z"/></svg></span>Google로 계속하기</button><p class="field-hint account-contact-note">로그인 전 기록은 이 브라우저에 별도로 남아요. 로그인 후 직접 가져올 수 있습니다.<br>Google 계정으로 PC·모바일 동기화와 백업을 이용하려면 개발자에게 문의해 주세요.</p>`;
   return `<p class="account-email">${esc(view.user.email||'Google 계정')}</p>${status}<p class="field-hint" data-cloud-verified>${esc(serverVerifiedLabel(view))}</p><div class="account-actions"><button class="button primary small" data-action="account-sync">${icon('check')}지금 동기화</button><button class="button secondary small" data-action="account-import">브라우저 기록 가져오기</button>${!cloud.config?.allowedEmailHash?'<button class="button secondary small" data-action="account-switch">다른 Google 계정으로 로그인</button>':''}<button class="button ghost small" data-action="account-logout">로그아웃</button></div><div class="account-conflict" data-cloud-conflict ${view.phase==='conflict'?'':'hidden'}><h3>같은 내용을 다른 기기에서 수정했어요.</h3><p>자동 덮어쓰기를 멈췄어요. 사용할 내용을 직접 선택해 주세요. 선택할 때까지 현재 기록을 덮어쓰지 않아요.</p><div class="account-actions"><button class="button secondary small" data-action="account-use-remote">서버 기록 사용</button><button class="button secondary small" data-action="account-use-local">이 기기 기록 사용</button></div></div><p class="field-hint">변경 사항은 자동으로 저장되며, 다른 기기의 내용은 약 10초 간격으로 확인해요. 서버 전송 전 로그아웃한 기록은 이 기기에 계정별로 보관하고, 같은 Google 계정으로 다시 로그인하면 전송합니다.</p>`;
 }
 function accountCard() { return `<section class="panel settings-card wide account-card"><h2>내 계정 · 동기화</h2>${accountContent()}</section>`; }
