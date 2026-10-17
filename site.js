@@ -997,7 +997,7 @@ function mountWeatherWidget() {
 
 const SUPPORT_CONFIG = {"coffeeUrl":"https://open.kakao.com/o/sg56FSSi"};
 
-const APP_RELEASE = '51626b0cee49';
+const APP_RELEASE = 'f501eaa5afc3';
 let latestRelease = APP_RELEASE;
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -1186,17 +1186,24 @@ const toolIllustrations = {
  guide:'<path class="tool-paper tool-outline" d="M24 16c-6-4-12-5-18-3v27c6-2 12-1 18 3 6-4 12-5 18-3V13c-6-2-12-1-18 3Z"/><path class="tool-outline" d="M24 16v26"/><circle class="tool-accent tool-badge" cx="35" cy="14" r="9"/><path class="tool-white-line" d="M32 11a3 3 0 0 1 6 0c0 2-3 2.5-3 4"/><circle class="tool-paper" cx="35" cy="19" r="1.25"/>'
 };
 // Painted bounds include round stroke caps and the rotated pencil, unlike getBBox().
-// Fit every complete drawing into the same centered 40-unit square, without stretching.
+// Fit every complete drawing into the same 40-unit square, without stretching.
 const toolInkBounds = {
  applications: [4.75,4,44,44.5], notes: [5,3.25,43.2,42],
  schedule: [5.5,4.25,42.5,43.5], calculator: [5,5,43,43],
  records: [5.5,4.25,42.5,43.5], stats: [6,4.5,41,43],
  settings: [4,4,44,44], guide: [4.75,4,45,44.25]
 };
+// Optical adjustments account for the dark document body, light calendar page,
+// and attached badges. Equal outer bounds alone make these marks look off-center.
+const toolOpticalOffsets = {
+ applications: [2.5,-1.5], notes: [3.25,-2], schedule: [0,-2],
+ records: [0,-2], guide: [0.75,-2]
+};
 const toolIllustration = route => {
  const [left,top,right,bottom]=toolInkBounds[route];
  const scale=40/Math.max(right-left,bottom-top);
- const x=24-(left+right)*scale/2,y=24-(top+bottom)*scale/2;
+ const [opticalX,opticalY]=toolOpticalOffsets[route]||[0,0];
+ const x=24-(left+right)*scale/2+opticalX,y=24-(top+bottom)*scale/2+opticalY;
  return `<svg class="tool-illustration" viewBox="0 0 48 48" fill="none" stroke="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><g transform="translate(${x.toFixed(4)} ${y.toFixed(4)}) scale(${scale.toFixed(4)})">${toolIllustrations[route]}</g></svg>`;
 };
 
