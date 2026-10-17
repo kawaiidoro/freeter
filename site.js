@@ -913,6 +913,25 @@ async function fetchWeather(lat, lon, { signal, request=(...args)=>globalThis.fe
   let airQuality=null;try{if(quality.status==='fulfilled')airQuality=parseAirQuality(quality.value);}catch{/* Keep weather usable when air quality is unavailable. */}
   return {...parseWeather(forecast.value),airQuality};
 }
+/*
+ * Header cloud-sun glyph adapted from https://lucide.dev/icons/cloud-sun
+ * ISC License — Copyright (c) 2026 Lucide Icons and Contributors
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+// Separate paths keep the rays clear of the sun and cloud at the 20px header size.
+// Mirror the standard glyph to keep the sun on the left, as in the existing header.
+const HEADER_WEATHER_ICON = '<svg class="header-illustration" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><g transform="translate(24 0) scale(-1 1)"><path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/></g></svg>';
 function mountWeatherWidget() {
   const root=document.createElement('div');root.className='header-weather';root.setAttribute('aria-label','상단 날씨');
   root.innerHTML=`<section id="header-weather-panel" class="weather-panel" role="dialog" aria-labelledby="weather-title" hidden>
@@ -921,7 +940,7 @@ function mountWeatherWidget() {
     <p class="weather-status" role="status" aria-live="polite"></p><div class="weather-content" aria-busy="false"></div>
     <p class="weather-location-note">지역을 선택하거나 내 위치를 허용해 주세요.</p>
     <a class="weather-source" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo · CAMS 대기질 예측 ↗</a>
-    </section><button type="button" class="header-weather-toggle" aria-label="오늘 날씨와 기온 보기" aria-controls="header-weather-panel" aria-haspopup="dialog" aria-expanded="false"><svg class="header-illustration" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v2M2 8h2m0-5 1.5 1.5m9-1.5L13 4.5M4.7 11.2A4.5 4.5 0 1 1 12 6.5"/><path d="M7 20h10a4 4 0 0 0 .3-8 5.4 5.4 0 0 0-10.2 0A4 4 0 0 0 7 20Z"/></svg><span>날씨</span></button>`;
+    </section><button type="button" class="header-weather-toggle" aria-label="오늘 날씨와 기온 보기" aria-controls="header-weather-panel" aria-haspopup="dialog" aria-expanded="false">${HEADER_WEATHER_ICON}<span>날씨</span></button>`;
   const host=document.querySelector('.header-clock')||document.querySelector('.topbar');host.prepend(root);
   const find=selector=>root.querySelector(selector),panel=find('.weather-panel'),toggle=find('.header-weather-toggle'),content=find('.weather-content'),status=find('.weather-status'),citySelect=find('#weather-city');
   let open=false,serial=0,active=null,location={...WEATHER_CITIES[0]},cache=null;
@@ -997,7 +1016,7 @@ function mountWeatherWidget() {
 
 const SUPPORT_CONFIG = {"coffeeUrl":"https://open.kakao.com/o/sg56FSSi"};
 
-const APP_RELEASE = '9d7cec176c6a';
+const APP_RELEASE = '613d15dc1b16';
 let latestRelease = APP_RELEASE;
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];

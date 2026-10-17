@@ -67,7 +67,9 @@ try{
    await page.setViewportSize({width,height:844});await go('');{
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${width}px overflow`);
     const clock=await page.locator('.header-clock').boundingBox(),actions=await page.locator('.top-actions').boundingBox(),brand=await page.locator(width<=800?'.mobile-brand':'.breadcrumb').boundingBox();
-    assert.ok(clock.x>=0&&clock.x+clock.width<=width);assert.ok(clock.y>=actions.y+actions.height||clock.x+clock.width<=actions.x,`${width}px clock overlaps actions`);assert.ok(brand.x+brand.width<=actions.x,`${width}px brand overlaps actions`);assert.equal(await page.locator('#live-clock').count(),0);const weather=await page.locator('.header-weather-toggle').boundingBox(),date=await page.locator('#today-label').boundingBox();assert.ok(weather.x+weather.width<=date.x,`${width}px weather/date order`);
+    assert.ok(clock.x>=0&&clock.x+clock.width<=width);assert.ok(clock.y>=actions.y+actions.height||clock.x+clock.width<=actions.x,`${width}px clock overlaps actions`);assert.ok(brand.x+brand.width<=actions.x,`${width}px brand overlaps actions`);assert.equal(await page.locator('#live-clock').count(),0);const weather=await page.locator('.header-weather-toggle').boundingBox(),date=await page.locator('#today-label').boundingBox();
+    if(width<=800)assert.ok(date.x+date.width<=weather.x,`${width}px date/weather order`);
+    else assert.ok(weather.x+weather.width<=date.x,`${width}px weather/date order`);
    }
   }
   await page.setViewportSize({width:390,height:844});await page.screenshot({path:join(output,'clock-and-header-weather-mobile.png'),fullPage:true});
