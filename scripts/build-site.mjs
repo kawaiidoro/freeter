@@ -8,6 +8,8 @@ const names = ['core.js','weather.js','cloud.js','cloud-config.json','app.js','v
 const values = await Promise.all(names.map(read));
 const source = Object.fromEntries(names.map((name,index)=>[name,values[index]]));
 const launcherAssets=['applications','notes','schedule','calculator','records','stats','settings','guide'].map(name=>'assets/'+name+'-icon.png');
+const shareImage=await readFile(new URL('assets/freeter-share.png',root));
+const shareWidth=shareImage.readUInt32BE(16),shareHeight=shareImage.readUInt32BE(20);
 const releaseHash = createHash('sha256').update(values.join('\0'));
 for(const asset of ['assets/freeter-wordmark.png','assets/weather-flat-icons.png','assets/freeter-192.png','assets/freeter-512.png','assets/freeter-share.png',...launcherAssets,'icon.svg'])releaseHash.update(await readFile(new URL(asset,root)));
 const release=releaseHash.digest('hex').slice(0,12);
@@ -28,6 +30,10 @@ for(const name of pages){
   html=html.replace('  <meta charset="utf-8">',`  <meta charset="utf-8">\n  <meta http-equiv="Content-Security-Policy" content="${policy}">\n  <meta name="referrer" content="no-referrer">`);
   html=html.replace(/^\s*<script defer src="\.\/vendor\/quill\.js(?:\?[^\"]*)?"><\/script>\r?\n/gm,'');
   html=html.replace(/((?:src|href)="\.\/(?:site\.js|style\.css|brand\.css|vendor\/quill\.core\.css|icon\.svg|manifest\.webmanifest|assets\/freeter-(?:192|512|wordmark)\.png))(?:\?[^\"]*)?"/g,`$1?v=${release}"`);
+  // Version link previews as well as runtime assets so crawlers see the new image.
+  html=html.replace(/(https:\/\/kawaiidoro\.github\.io\/freeter\/assets\/freeter-share\.png)(?:\?[^\"]*)?"/g,`$1?v=${release}"`);
+  html=html.replace(/(<meta property="og:image:width" content=")\d+/,`$1${shareWidth}`);
+  html=html.replace(/(<meta property="og:image:height" content=")\d+/,`$1${shareHeight}`);
   if(html.includes('name="freeter-release"'))html=html.replace(/(<meta name="freeter-release" content=")[^\"]*/,`$1${release}`);
   else html=html.replace('  <meta name="application-name"',`  <meta name="freeter-release" content="${release}">\n  <meta name="application-name"`);
   outputs.set(name,html);

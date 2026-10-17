@@ -1,4 +1,4 @@
-import { STORAGE_KEY, VERSION, DEFAULT_SCHEDULE, today, money, duration, timeText, calculatePay, generateSchedule, scheduleTotals, recordStatus, STATUS, monthStats, emptyState, validateRecord, validateState, validDate, csvText, TAX_TYPES, shiftState, evaluateExpression, MEMO_SIZES, validateMemoDelta, validateApplication } from './core.js';
+import { STORAGE_KEY, VERSION, DEFAULT_SCHEDULE, today, money, duration, timeText, calculatePay, generateSchedule, scheduleTotals, recordStatus, STATUS, monthStats, emptyState, validateRecord, validateState, validDate, csvText, TAX_TYPES, shiftState, evaluateExpression, MEMO_SIZES, validateMemoDelta, validateApplication, APPLICATION_TEMPLATE_EXAMPLE } from './core.js';
 
 const APP_RELEASE = '__FREETER_RELEASE__';
 let latestRelease = APP_RELEASE;
@@ -37,6 +37,7 @@ const icons = {
   close: '<path d="m6 6 12 12M6 18 18 6"/>',
   search: '<circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/>',
   lock: '<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/>',
+  pin: '<path d="m16 3 5 5-3 1-3 6-2 1-5-5 1-2 6-3 1-3ZM10 14l-7 7"/>',
   sparkle: '<path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5ZM20 2v4m-2-2h4"/>',
   coffee: '<path d="M4 8h12v9a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4Zm12 0h2a3 3 0 0 1 0 6h-2M7 3v2m5-2v2"/>',
 };
@@ -417,14 +418,34 @@ function calculateMini() {
 }
 
 function applicationsView() {
-  return head('MY APPLICATIONS','알바 지원','지원한 공고, 나의 경력, 문자 지원 양식을 한곳에 모아 두세요.')+`<div class="applications-layout"><section class="panel application-board" aria-labelledby="application-board-title"><div class="panel-title"><div><h2 id="application-board-title"><img src="./assets/applications-icon.png?v=${APP_RELEASE}" width="39" height="39" alt="">지원한 알바 공고</h2><p>제목을 누르면 공고 내용과 링크를 볼 수 있어요.</p></div><button type="button" class="button primary" data-action="new-application">${icon('plus')}공고 작성</button></div><label class="field application-search"><span>제목 검색</span><input id="application-search" type="search" maxlength="160" placeholder="찾는 공고 제목" value="${esc(applicationSearch)}"></label><div id="application-list" aria-live="polite"></div></section><div class="application-writing"><section class="panel application-note"><div class="panel-title"><h2>${icon('notebook')}단기 알바 경력</h2><button type="button" class="button secondary small" data-action="copy-career">${icon('copy')}복사</button></div><label class="field"><span>참여한 행사와 업무 경험</span><textarea id="application-career" maxlength="30000" rows="9" placeholder="예: 2026.10 전시회 안내 · 3일\n입장 안내, 관람객 응대, 물품 정리">${esc(state.applicationCareer)}</textarea></label><p id="career-save-state" class="application-save-state" role="status">${state.applicationCareer.length.toLocaleString('ko-KR')} / 30,000자 · 자동 저장</p></section><section class="panel application-note"><div class="panel-title"><h2>${icon('edit')}문자 지원 양식</h2><button type="button" class="button secondary small" data-action="copy-application-template">${icon('copy')}복사</button></div><p class="field-hint">행사명/이름/나이/거주지/경력사항 순서로 작성해 보세요.</p><label class="field"><span>나의 문자 지원 내용</span><textarea id="application-template" maxlength="30000" rows="6" placeholder="행사명/이름/나이/거주지/경력사항">${esc(state.applicationTemplate)}</textarea></label><p id="template-save-state" class="application-save-state" role="status">${state.applicationTemplate.length.toLocaleString('ko-KR')} / 30,000자 · 자동 저장</p></section></div></div>`;
+  return head('MY APPLICATIONS','알바 지원','지원한 공고, 나의 경력, 문자 지원 양식을 한곳에 모아 두세요.')+`
+    <div class="applications-layout">
+      <section class="panel application-board" aria-labelledby="application-board-title">
+        <div class="panel-title"><div><h2 id="application-board-title"><img src="./assets/applications-icon.png?v=${APP_RELEASE}" width="39" height="39" alt="">지원한 알바 공고</h2><p>제목을 눌러 내용을 보고, 필요한 공고는 위에 고정하세요.</p></div><button type="button" class="button primary" data-action="new-application">${icon('plus')}공고 작성</button></div>
+        <label class="field application-search"><span>제목 검색</span><input id="application-search" type="search" maxlength="160" placeholder="찾는 공고 제목" value="${esc(applicationSearch)}"></label>
+        <div id="application-list" aria-live="polite"></div>
+      </section>
+      <div class="application-writing">
+        <section class="panel application-note">
+          <div class="panel-title"><h2>${icon('edit')}문자 지원 양식</h2><button type="button" class="button secondary small" data-action="copy-application-template">${icon('copy')}복사</button></div>
+          <p class="field-hint">${APPLICATION_TEMPLATE_EXAMPLE} 순서로 작성해 보세요.</p>
+          <label class="field"><span>나의 문자 지원 내용</span><textarea id="application-template" maxlength="30000" rows="6" placeholder="${APPLICATION_TEMPLATE_EXAMPLE}">${esc(state.applicationTemplate)}</textarea></label>
+          <p id="template-save-state" class="application-save-state" role="status">${state.applicationTemplate.length.toLocaleString('ko-KR')} / 30,000자 · 자동 저장</p>
+        </section>
+        <section class="panel application-note">
+          <div class="panel-title"><h2>${icon('notebook')}단기 알바 경력</h2><button type="button" class="button secondary small" data-action="copy-career">${icon('copy')}복사</button></div>
+          <label class="field"><span>참여한 행사와 업무 경험</span><textarea id="application-career" maxlength="30000" rows="9" placeholder="예: 2026.10 전시회 안내 · 3일\n입장 안내, 관람객 응대, 물품 정리">${esc(state.applicationCareer)}</textarea></label>
+          <p id="career-save-state" class="application-save-state" role="status">${state.applicationCareer.length.toLocaleString('ko-KR')} / 30,000자 · 자동 저장</p>
+        </section>
+      </div>
+    </div>`;
 }
 function renderApplicationList() {
   const host=$('#application-list');if(!host)return;
-  const posts=state.applications.filter(post=>post.title.toLocaleLowerCase('ko-KR').includes(applicationSearch.trim().toLocaleLowerCase('ko-KR'))).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)||a.id.localeCompare(b.id));
+  const posts=state.applications.filter(post=>post.title.toLocaleLowerCase('ko-KR').includes(applicationSearch.trim().toLocaleLowerCase('ko-KR'))).sort((a,b)=>Number(!!b.pinned)-Number(!!a.pinned)||b.updatedAt.localeCompare(a.updatedAt)||a.id.localeCompare(b.id));
   const pages=Math.max(1,Math.ceil(posts.length/10));applicationPage=Math.max(0,Math.min(applicationPage,pages-1));
   const shown=posts.slice(applicationPage*10,applicationPage*10+10);
-  host.innerHTML=`<div class="application-list-caption"><span>${posts.length.toLocaleString('ko-KR')}개의 공고</span><span>제목</span></div>${shown.length?`<ul class="application-titles">${shown.map(post=>`<li><button type="button" data-action="view-application" data-id="${esc(post.id)}" title="${esc(post.title)}"><span>${esc(post.title)}</span>${icon('chevron')}</button></li>`).join('')}</ul>`:smallEmpty(applicationSearch?'검색한 제목이 없어요':'지원한 공고를 모아 보세요',applicationSearch?'다른 제목으로 검색해 보세요.':'지원 내용이나 모집 조건을 남기면 다시 찾기 쉬워요.')}<div class="application-pagination"><button type="button" class="button secondary small" data-action="application-prev" ${applicationPage===0?'disabled':''}>이전</button><span>${applicationPage+1} / ${pages}</span><button type="button" class="button secondary small" data-action="application-next" ${applicationPage>=pages-1?'disabled':''}>다음</button></div>`;
+  host.innerHTML=`<div class="application-list-caption"><span>${posts.length.toLocaleString('ko-KR')}개의 공고</span></div>${shown.length?`<ul class="application-titles">${shown.map(post=>`<li${post.pinned?' class="is-pinned"':''}><button type="button" data-action="view-application" data-id="${esc(post.id)}" title="${esc(post.title)}"><span>${esc(post.title)}</span>${icon('chevron')}</button><button type="button" class="application-pin" data-action="pin-application" data-id="${esc(post.id)}" aria-label="${esc(post.title)} 공고 ${post.pinned?'고정 해제':'고정'}" aria-pressed="${!!post.pinned}">${icon('pin')}<span>${post.pinned?'고정됨':'고정'}</span></button></li>`).join('')}</ul>`:smallEmpty(applicationSearch?'검색한 제목이 없어요':'지원한 공고를 모아 보세요',applicationSearch?'다른 제목으로 검색해 보세요.':'지원 내용이나 모집 조건을 남기면 다시 찾기 쉬워요.')}<div class="application-pagination"><button type="button" class="button secondary small" data-action="application-prev" ${applicationPage===0?'disabled':''}>이전</button><span>${applicationPage+1} / ${pages}</span><button type="button" class="button secondary small" data-action="application-next" ${applicationPage>=pages-1?'disabled':''}>다음</button></div>`;
 }
 function openApplication(id, edit=false) {
   const post=id?state.applications.find(post=>post.id===id):null;
@@ -446,7 +467,7 @@ function saveApplication(form) {
     const id=dialog.dataset.id,existing=id?state.applications.find(post=>post.id===id):null;
     if(JSON.stringify(existing??null)!==dialog.dataset.base)throw new Error('다른 화면에서 공고가 변경됐어요. 입력한 내용을 복사한 뒤 다시 열어 주세요.');
     if(!id&&state.applications.length>=2000)throw new Error('공고는 2,000개까지 저장할 수 있어요. JSON으로 백업한 뒤 정리해 주세요.');
-    const now=new Date().toISOString(),post=validateApplication({id:id||crypto.randomUUID(),title:values.title,body:values.body,url:values.url.trim(),createdAt:existing?.createdAt||now,updatedAt:now});
+    const now=new Date().toISOString(),post=validateApplication({id:id||crypto.randomUUID(),title:values.title,body:values.body,url:values.url.trim(),createdAt:existing?.createdAt||now,updatedAt:now,pinned:existing?.pinned});
     if(id)state.applications[state.applications.findIndex(item=>item.id===id)]=post;else state.applications.push(post);
     applicationSearch='';applicationPage=0;persisted('지원 공고를 저장했어요.');dialog.close();render();
   }catch(failure){error.hidden=false;error.textContent=failure.message;}
@@ -772,6 +793,17 @@ document.addEventListener('click', async event => {
   try {
     if(action==='new-application'){openApplication(null,true);return;}
     if(action==='view-application'){openApplication(button.dataset.id);return;}
+    if(action==='pin-application'){
+      const index=state.applications.findIndex(post=>post.id===button.dataset.id);if(index<0)return;
+      const post=state.applications[index];
+      state.applications[index]=validateApplication({...post,pinned:!post.pinned,updatedAt:new Date().toISOString()});
+      applicationPage=0;
+      if(!save())toast('공고 고정 설정이 이 기기에 저장되지 않았어요. JSON으로 백업해 주세요.');
+      renderApplicationList();
+      // Keep keyboard focus on the same post after moving it to the top.
+      $$('[data-action="pin-application"]').find(node=>node.dataset.id===post.id)?.focus({preventScroll:true});
+      return;
+    }
     if(action==='edit-application'){openApplication(button.dataset.id,true);return;}
     if(action==='close-application'){$('#application-dialog').close();return;}
     if(action==='application-prev'||action==='application-next'){applicationPage+=action==='application-prev'?-1:1;renderApplicationList();return;}

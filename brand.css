@@ -809,12 +809,32 @@ html[data-theme] .profile-wordmark.freeter-wordmark { display: block; width: 220
   .brand .brand-lockup { flex: 0 0 auto; width: 154px; max-width: 100%; min-width: 0; }
   html[data-theme] .brand .freeter-wordmark { width: 100%; height: auto; }
 }
+/* Every dialog must fit the viewport, including nested confirmation windows. */
+dialog { min-width: 0; max-width: calc(100vw - 32px); overflow-wrap: anywhere; }
+html[data-theme] dialog { max-height: calc(100dvh - 32px); }
+dialog > form { min-width: 0; margin: 0; }
+.dialog-head > div { min-width: 0; }
+.dialog-head h2 { overflow-wrap: anywhere; }
+.dialog-actions { flex-wrap: wrap; }
+.dialog-actions > .button { min-width: 0; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+#confirm-dialog { width: 440px; max-width: min(440px,calc(100vw - 32px)); padding: clamp(20px,4vw,28px); }
 #confirm-dialog.memo-confirm { width: 360px; max-width: calc(100vw - 40px); padding: 21px; border-radius: 20px; }
 #confirm-dialog.memo-confirm h2 { font-size: 18px; line-height: 1.45; margin-bottom: 10px; letter-spacing: -.5px; }
 #confirm-dialog.memo-confirm #confirm-message { font-size: 13px; line-height: 1.75; color: var(--body); margin: 0; }
 #confirm-dialog.memo-confirm .dialog-actions { margin-top: 20px; gap: 8px; }
 #confirm-dialog.memo-confirm .dialog-actions button { flex: 1; min-height: 42px; padding: 9px 12px; font-size: 13px; border-radius: 11px; }
 .schedule-export-stage .result-panel { box-sizing: border-box; }
+html[data-theme] .toast { max-width: min(560px,calc(100vw - 32px)); min-width: 0; overflow-wrap: anywhere; }
+.storage-alert, .app-update-banner { overflow-wrap: anywhere; }
+.app-update-banner > span, .info-strip > p { min-width: 0; }
+@media (max-width: 800px) {
+  dialog .dialog-actions { position: static; padding-block: 16px 0; margin-bottom: 0; background: transparent; }
+  dialog .dialog-actions > .button { flex: 1 1 110px; padding-inline: 12px; font-size: 13px; min-height: 44px; }
+  #confirm-dialog .dialog-head h2 { font-size: 20px; line-height: 1.5; }
+  #confirm-dialog.memo-confirm .dialog-head h2 { font-size: 18px; }
+  .storage-alert { left: 0; right: 0; max-height: min(35dvh,240px); overflow-y: auto; padding-inline: 16px; }
+  .app-update-banner .button { min-width: 0; max-width: 100%; white-space: normal; }
+}
 
 /* Hand-drawn weather, with readable environmental details. */
 .weather-panel { width: 360px; max-height: min(680px, calc(100vh - 195px)); max-height: min(680px, calc(100dvh - 195px)); }
@@ -1217,11 +1237,15 @@ html[data-theme] .profile-wordmark.freeter-wordmark { width: 220px; }
 .application-search { margin: 21px 0 17px; }
 .application-list-caption { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 11px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
 .application-titles { list-style: none; margin: 0; padding: 0; }
-.application-titles li { border-bottom: 1px solid var(--border); }
-.application-titles button { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; min-height: 58px; padding: 14px 5px; text-align: left; color: var(--text); font-size: 15px; }
+.application-titles li { display: flex; align-items: center; gap: 8px; min-width: 0; border-bottom: 1px solid var(--border); }
+.application-titles button { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-width: 0; min-height: 58px; padding: 14px 5px; text-align: left; color: var(--text); font-size: 15px; }
+.application-titles [data-action='view-application'] { flex: 1; }
 .application-titles button:hover { color: var(--blue); background: var(--blue-soft); }
 .application-titles button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .application-titles .icon { color: var(--muted); width: 17px; height: 17px; }
+.application-titles .application-pin { flex: 0 0 auto; justify-content: center; gap: 5px; min-height: 40px; padding: 8px; border: 1px solid var(--border); border-radius: 11px; font-size: 11px; color: var(--muted); }
+.application-pin[aria-pressed='true'] { background: var(--blue-soft); border-color: var(--blue); color: var(--blue); }
+.application-pin[aria-pressed='true'] .icon { color: inherit; fill: var(--blue-soft); }
 .application-pagination { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 25px; }
 .application-pagination > span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 #application-dialog { width: 620px; max-width: calc(100vw - 32px); max-height: calc(100dvh - 40px); padding: 27px; border-radius: 23px; overflow-y: auto; }
@@ -1245,6 +1269,14 @@ html[data-theme] .profile-wordmark.freeter-wordmark { width: 220px; }
   .application-board, .application-note { padding: 22px; }
 }
 @media(max-width:600px){
+  /* Keep all format controls on one line without shrinking the editor itself. */
+  .memo-format-toolbar { flex-wrap: nowrap; gap: 4px; padding: 10px; }
+  .memo-format-group { flex: 0 0 auto; gap: 4px; }
+  .memo-format-button { width: 40px; height: 40px; }
+  .memo-size-label select { width: 46px; height: 40px; }
+  .memo-size-label > span:last-child { display: none; }
+  .memo-color-control { flex-direction: column; justify-content: center; gap: 3px; width: 38px; height: 40px; min-height: 40px; font-size: 9px; line-height: 1; }
+  .memo-color-control input { width: 28px; height: 24px; min-height: 24px; padding: 3px; }
   html[data-theme] .workspace-grid .profile-widget { min-height: 0; }
   .profile-slogan { font-size: 18px; margin-top: 9px; }
   html[data-theme] .profile-copy p { font-size: 12px; margin-top: 8px; }
