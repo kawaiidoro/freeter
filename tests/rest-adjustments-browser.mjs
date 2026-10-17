@@ -11,9 +11,9 @@ const apply=()=>page.locator('#rest-adjust-form button[type="submit"]').click();
 const balanced=schedule=>{const totals=scheduleTotals(schedule.rows,schedule.generatedConfig.count);const rest=totals.map(t=>t.rest);assert.ok(Math.max(...rest)-Math.min(...rest)<=1);};
 async function check(name,fn){try{await fn();count++;console.log('PASS '+name);}catch(error){console.log('::error title=Freeter rest adjustments::'+(name+': '+error.stack).replace(/%/g,'%25').replace(/\n/g,'%0A'));throw error;}}
 try{
- await check('모든 화면에 날씨·날짜·분 단위 시각, 그린 곰씨 정면 로고',async()=>{
+ await check('모든 화면에 날씨·날짜만 표시, 그린 곰씨 정면 로고',async()=>{
   for(const route of ['','schedule.html','calculator.html','records.html','stats.html','notes.html','guide.html','privacy.html','settings.html']){
-   await go(route);assert.equal(await page.locator('#seconds-toggle,.clock-illustration,.clock-second-hand').count(),0);assert.match(await page.locator('#live-clock').textContent(),/^\d\d:\d\d$/);assert.deepEqual(await page.locator('.header-clock').evaluate(node=>[...node.children].map(child=>child.className)),['header-weather','today','clock-face']);
+   await go(route);assert.equal(await page.locator('#seconds-toggle,.clock-illustration,.clock-second-hand').count(),0);assert.equal(await page.locator('#live-clock').count(),0);assert.deepEqual(await page.locator('.header-clock').evaluate(node=>[...node.children].map(child=>child.className)),['header-weather','today']);
   }
   await go();const text=await page.locator('body').innerText();assert.ok(!text.includes('나의 도구')&&!text.includes('필요할 때, 바로'));assert.equal(await page.locator('.app-launcher .app-tile').count(),8);
   assert.match(await page.locator('.profile-logo').getAttribute('alt'),/곰씨/);assert.match(await page.locator('.profile-wordmark').getAttribute('alt'),/프리터/);
@@ -31,7 +31,7 @@ try{
  await check('지정 시간 휴식 없음은 전원 근무·합계·새로고침·CSV·설정 이동 후에도 보존',async()=>{
   await seed({start:'09:00',end:'16:00',lunchEnabled:false});await page.locator('[data-action="adjust-rest"]').click();await page.locator('[data-action="add-work-window"]').click();await page.locator('[name="workStart"]').fill('09:00');await page.locator('[name="workEnd"]').fill('10:00');await apply();let data=await saved();assert.equal(data.rows[0].allWork,true);assert.equal(await page.locator('.all-work-row .shift-badge.work').count(),3);assert.ok((await page.locator('.all-work-row').innerText()).includes('휴식 없음'));assert.deepEqual(scheduleTotals(data.rows).map(t=>t.rest),[120,120,120]);await page.reload();assert.equal((await saved()).rows[0].allWork,true);
   const pending=page.waitForEvent('download');await page.locator('[data-action="schedule-csv"]').click();const csv=join(output,'no-rest-schedule.csv');await(await pending).saveAs(csv);assert.ok((await readFile(csv,'utf8')).includes('"09:00–10:00","근무","근무","근무"'));
-  await go('settings.html');assert.equal(await page.locator('[data-action="backup"],#restore-file').count(),0);await page.reload();assert.equal((await saved()).rows[0].allWork,true);
+  await go('settings.html');assert.equal(await page.locator('[data-action="backup"],#restore-file').count(),2);await page.reload();assert.equal((await saved()).rows[0].allWork,true);
  });
  await check('취소·범위 오류·다른 탭에서 변경된 표는 기존 저장 자료를 덮어쓰지 않음',async()=>{
   await seed();const before=await saved();await page.locator('[data-action="adjust-rest"]').click();await page.locator('[name="changeCycle"]').check();await page.locator('[name="cycleMinutes"]').fill('90');await page.getByRole('button',{name:'취소',exact:true}).click();assert.deepEqual(await saved(),before);

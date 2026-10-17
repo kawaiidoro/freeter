@@ -18,10 +18,10 @@ async function check(name,fn){await fn();count++;console.log('PASS '+name);}
 try{
  await go('settings.html');const data={...emptyState(),workMemo:'설정 변경 후에도 보존할 메모',applicationCareer:'전시회 안내 경력'};
  await page.evaluate(data=>localStorage.setItem('dangi-alba:data',JSON.stringify(data)),data);await page.reload();const before=await state();
- await check('백업·복원·저장 경고와 테마 카드의 저장 건수·버전 안내 제거',async()=>{
-  assert.equal(await page.locator('[data-action="backup"],[data-action="raw-backup"],[data-action="restore"],#restore-file').count(),0);
+ await check('백업·복원 배너와 저장 경고 없는 설정 화면',async()=>{
+  assert.equal(await page.locator('[data-action="backup"],[data-action="raw-backup"],[data-action="restore"],#restore-file').count(),3);
   const text=await page.locator('main').innerText();assert.ok(!text.includes('브라우저 저장, 꼭 알아두세요'));assert.ok(!text.includes('이 브라우저의 알바 기록'));assert.ok(!text.includes('저장 형식 버전'));assert.equal(await page.locator('.account-card .field-hint a').count(),0);assert.equal(await page.locator('.homescreen-banner').count(),1);
-  assert.ok(text.includes('브라우저 저장 말고 백업을 따로 원하시면'));assert.ok(text.includes('별도 백업 지원은 카카오톡에서 문의해 주세요.'));
+  assert.ok(text.includes('곰씨에게 커피 한 잔 보내 주세요.'));assert.ok(text.includes('자동 저장과 파일 백업·복원은 무료예요.'));assert.equal(await page.locator('.settings-grid > :last-child').getAttribute('data-coffee-state'),'please');
  });
  await check('곰씨 버튼은 카카오톡 문의 링크만 열고 그림 전환·기록 보존·다운로드 없음',async()=>{
   assert.equal(await page.locator('.coffee-banner').getAttribute('data-coffee-state'),'please');
@@ -52,7 +52,7 @@ try{
  });
  await check('개인정보 안내에 저장·계정·날씨·카카오톡 링크와 클릭 연출의 범위 반영',async()=>{
   await go('privacy.html');const text=await page.locator('main').innerText();
-  for(const copy of ['2026년 10월 17일','Supabase','카카오톡 오픈채팅','버튼 클릭만으로 송금하지 않습니다','별도 백업 기능이 자동 제공되지 않습니다'])assert.ok(text.includes(copy),copy);
+  for(const copy of ['2026년 10월 18일','Supabase','카카오톡 오픈채팅','버튼 클릭만으로 송금하지 않습니다','파일 백업·복원은 후원 여부와 관계없이 무료'])assert.ok(text.includes(copy),copy);
   assert.deepEqual(await state(),before);
  });
  await check('오프라인에서도 두 곰씨 그림을 캐시에서 표시',async()=>{

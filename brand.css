@@ -1691,3 +1691,73 @@ body[data-page='guide'] .guide-grid { gap: 22px; margin-bottom: 26px; }
   .dashboard-layout .recent-details strong, .dashboard-layout .recent-amount strong { font-size: 11px; }
   .dashboard-layout .recent-details > span { font-size: 9px; }
 }
+
+/* Date-only header; desktop navigation and footer stay in the content column. */
+.header-clock { justify-content: flex-start; gap: 16px; }
+@media (max-width:800px) { .header-clock { justify-content: space-between; } }
+@media (min-width:801px) {
+  html[data-theme] .mobile-nav { display: none; }
+  html[data-theme] .app-shell .site-footer { width: calc(100% - 64px); max-width: 1442px; margin: 12px auto 0; padding: 23px 0 27px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; text-align: center; }
+  html[data-theme] .site-footer nav { justify-content: center; flex-wrap: wrap; }
+  html[data-theme] .site-footer p { margin: 0; width: auto; text-align: center; }
+}
+/* A quieter guide: short steps, readable paragraphs and clear destinations. */
+.guide-shortcuts { display: flex; flex-wrap: wrap; gap: 9px; margin: 0 0 25px; }
+.guide-shortcuts a { display: inline-flex; align-items: center; gap: 7px; min-height: 42px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 12px; color: var(--body); background: var(--surface); font-size: 12px; font-weight: 650; }
+.guide-shortcuts a:hover { color: var(--blue); border-color: var(--blue); }
+.guide-shortcuts .icon { width: 17px; height: 17px; }
+.guide-howto-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 22px; margin-bottom: 24px; }
+.guide-howto { display: flex; flex-direction: column; padding: 27px; min-width: 0; scroll-margin-top: 115px; }
+.guide-howto-heading { display: flex; align-items: flex-start; gap: 13px; }
+.guide-number { display: grid; place-items: center; flex: 0 0 35px; height: 35px; border-radius: 11px; background: var(--blue-soft); color: var(--blue); font-size: 12px; font-weight: 750; }
+.guide-howto h2 { font-size: 19px; line-height: 1.5; }
+.guide-howto-heading p { color: var(--muted); font-size: 13px; line-height: 1.8; margin-top: 4px; }
+.guide-howto-steps { display: grid; gap: 17px; padding-left: 22px; margin: 24px 0; }
+.guide-howto-steps li { padding-left: 4px; }
+.guide-howto-steps li::marker { color: var(--blue); font-size: 13px; font-weight: 750; }
+.guide-howto-steps strong { display: block; font-size: 14px; font-weight: 700; }
+.guide-howto-steps p { margin-top: 5px; font-size: 14px; line-height: 1.9; color: var(--body); word-break: keep-all; overflow-wrap: anywhere; }
+.guide-tip { display: flex; align-items: flex-start; gap: 9px; border-radius: 12px; background: var(--blue-soft); color: var(--body); font-size: 12px; line-height: 1.85; padding: 14px; margin-top: auto; }
+.guide-tip .icon { width: 17px; height: 17px; margin-top: 3px; color: var(--blue); }
+.guide-howto > .text-link { min-height: 44px; margin-top: 16px; align-self: flex-start; font-size: 13px; }
+.guide-pay-note { padding: 25px 27px; margin-bottom: 24px; }
+.guide-pay-note h2 { font-size: 17px; }
+.guide-pay-note p { font-size: 13px; line-height: 1.9; color: var(--body); margin-top: 10px; }
+html[data-theme] .panel.settings-card.data-transfer { padding: 0; overflow: hidden; }
+.data-transfer-row { display: flex; align-items: center; gap: 17px; width: 100%; padding: 24px 27px; text-align: left; color: var(--text); }
+.data-transfer-row + .data-transfer-row { border-top: 1px solid var(--border); }
+.data-transfer-row:hover { background: var(--blue-soft); }
+.data-transfer-icon { display: grid; place-items: center; flex: 0 0 25px; color: var(--body); }
+.data-transfer-row > span:nth-child(2) { min-width: 0; }
+.data-transfer-row strong { display: block; font-size: 18px; line-height: 1.5; font-weight: 700; }
+.data-transfer-row small { display: block; font-size: 13px; line-height: 1.8; margin-top: 4px; color: var(--muted); }
+.data-transfer-row > .icon { width: 17px; height: 17px; margin-left: auto; color: var(--muted); }
+.data-transfer-status { font-size: 13px; line-height: 1.8; color: var(--blue); margin: 0 24px 20px; }
+.data-transfer-status[data-error='true'] { color: var(--danger,#c43d50); }
+/* Illustrated app marks: bold dark outlines with paper, mint and sky-blue fills. */
+html[data-theme] .dashboard-layout { --tool-ink: #16372c; --tool-paper: #ffffff; --tool-mint: #a3e8cd; --tool-accent: #29c990; --tool-blue: #7dc9ec; --tool-background: #e7f6f1; }
+html[data-theme] .dashboard-layout .app-tile-icon { background: linear-gradient(145deg,#f0fbf6,#e1f3ec); border: 1px solid #c8e8dc70; }
+html[data-theme] .dashboard-layout :is(.app-tile[data-route='settings'],.app-tile[data-route='guide']) .app-tile-icon { background: linear-gradient(145deg,#f3f7fb,#e8f0f7); border-color: #dce7ef70; }
+.tool-illustration { stroke-width: 2.15px; filter: drop-shadow(0 1px 0 #09291c12); }
+@media(max-width:650px) {
+  .guide-shortcuts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin-bottom: 21px; }
+  .guide-shortcuts a { font-size: 11px; padding: 10px; }
+  .guide-howto-grid { grid-template-columns: minmax(0,1fr); gap: 17px; }
+  .guide-howto { padding: 22px 20px; }
+  .guide-howto h2 { font-size: 18px; }
+  .guide-howto-heading p { font-size: 12px; }
+  .guide-howto-steps { margin-block: 21px; }
+  .guide-howto-steps p { font-size: 14px; }
+  .guide-pay-note { padding: 22px 20px; }
+  .data-transfer-row { gap: 12px; padding: 20px 18px; }
+  .data-transfer-row strong { font-size: 16px; }
+  .data-transfer-row small { font-size: 12px; }
+  .data-transfer-status { margin-inline: 18px; font-size: 12px; }
+}
+body[data-page='guide'] details.tax-guide { padding: 0; margin-bottom: 22px; }
+.tax-guide > summary { display: flex; align-items: center; justify-content: space-between; gap: 15px; min-height: 62px; padding: 20px 25px; cursor: pointer; font-size: 15px; font-weight: 700; list-style: none; }
+.tax-guide > summary::-webkit-details-marker { display: none; }
+.tax-guide > summary .icon { width: 18px; height: 18px; }
+.tax-guide[open] > summary .icon { transform: rotate(90deg); }
+.tax-guide-content { padding: 0 25px 24px; }
+body[data-page='guide'] .tax-guide-content p { font-size: 14px; line-height: 1.9; }

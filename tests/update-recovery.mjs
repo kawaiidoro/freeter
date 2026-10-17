@@ -62,7 +62,7 @@ try{
   await p.goto(base+'/freeter/notes.html');await p.locator('#work-memo strong').waitFor();assert.equal(await p.locator('#work-memo').evaluate(node=>Quill.find(node).getText().slice(0,-1)),initial.workMemo);
   assert.deepEqual(await p.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data'))),initial);
   assert.deepEqual(await p.evaluate(()=>JSON.parse(localStorage.getItem('freeter:before-peer-sync'))),initial);
-  await p.goto(base+'/freeter/settings.html');assert.equal(await p.locator('[data-action="backup"],#restore-file').count(),0);assert.deepEqual(await p.evaluate(()=>JSON.parse(localStorage.getItem('freeter:before-peer-sync'))),initial);await c.close();
+  await p.goto(base+'/freeter/settings.html');assert.equal(await p.locator('[data-action="backup"],#restore-file').count(),2);assert.deepEqual(await p.evaluate(()=>JSON.parse(localStorage.getItem('freeter:before-peer-sync'))),initial);await c.close();
  });
  await check('저장소가 제한돼도 화면과 업데이트 버튼은 동작',async()=>{
   const[c,p]=await context(()=>{Storage.prototype.getItem=()=>{throw new DOMException('Blocked','SecurityError');};});await p.goto(base+'/');await p.locator('.workspace-grid').waitFor();assert.ok(await p.locator('#storage-alert').isVisible());await openUpdates(p);assert.ok(await p.locator('#updates-dialog').isVisible());await c.close();

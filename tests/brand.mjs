@@ -29,7 +29,7 @@ try{
   await go('');assert.equal(await page.locator('.app-tile-icon .tool-illustration').count(),8);
   assert.equal(await page.locator('.app-tile-icon').evaluateAll(nodes=>nodes.every(node=>node.querySelector('svg').getBBox().width>0&&!node.innerHTML.includes('undefined'))),true);
   assert.ok(await page.locator('#today-label').evaluate(node=>parseFloat(getComputedStyle(node).fontSize)<=12));
-  assert.ok(await page.locator('#live-clock').evaluate(node=>parseFloat(getComputedStyle(node).fontSize)<=14));
+  assert.equal(await page.locator('#live-clock,.clock-face').count(),0);
   assert.equal(await page.locator('.app-tile-icon').evaluateAll(nodes=>nodes.every(node=>{const tile=node.closest('.app-tile').getBoundingClientRect(),box=node.getBoundingClientRect();return box.width<=68&&Math.abs(box.x+box.width/2-tile.x-tile.width/2)<1;})),true);
  });
  await check('공유 PNG·앱 아이콘·브랜드 폰트가 실제 파일로 응답',async()=>{

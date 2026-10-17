@@ -54,28 +54,28 @@ try{
   await page.locator('.header-weather-toggle').click();assert.equal(await page.locator('.weather-panel').isVisible(),true);await page.locator('.weather-close').click();assert.equal(await page.locator('.weather-panel').isVisible(),false);assert.equal(await page.locator('.header-weather-toggle').getAttribute('aria-expanded'),'false');assert.equal(await page.evaluate(()=>localStorage.getItem('dangi-alba:data')),before);
   await page.locator('.header-weather-toggle').click();await page.locator('.main-nav [data-page="schedule"]').click();assert.equal(await page.locator('.weather-panel').isVisible(),false);await page.unroute('https://*.open-meteo.com/**');
  });
- await check('분 단위 시계의 자정 날짜 변경, 이전 초 설정 무시와 메모·커서 보존',async()=>{
+ await check('시간 표시 없이 자정 날짜 변경, 이전 초 설정 무시와 메모·커서 보존',async()=>{
   await go('notes.html');await page.clock.setSystemTime(new Date('2026-10-17T23:59:50'));await page.clock.pauseAt(new Date('2026-10-17T23:59:58'));await page.clock.runFor(1000);
-  assert.equal(await page.locator('#live-clock').textContent(),'23:59');assert.equal(await page.locator('#seconds-toggle').count(),0);
+  assert.equal(await page.locator('#live-clock').count(),0);assert.equal(await page.locator('#seconds-toggle').count(),0);
   await page.locator('#work-memo .ql-editor').fill('시계가 움직여도 보존되는 메모');
   await page.locator('#work-memo .ql-editor').click();const cursor=await page.locator('#work-memo').evaluate(node=>Quill.find(node).getSelection());await page.clock.runFor(2000);
-  assert.equal(await page.locator('#live-clock').textContent(),'00:00');assert.ok((await page.locator('#today-label').innerText()).includes('18일'));assert.equal(await page.locator('#work-memo .ql-editor').innerText(),'시계가 움직여도 보존되는 메모');assert.deepEqual(await page.locator('#work-memo').evaluate(node=>Quill.find(node).getSelection()),cursor);
-  await page.evaluate(()=>localStorage.setItem('freeter:clock-seconds','true'));await page.reload();assert.match(await page.locator('#live-clock').textContent(),/^\d\d:\d\d$/);assert.equal(await page.locator('#seconds-toggle').count(),0);
+  assert.equal(await page.locator('#live-clock').count(),0);assert.ok((await page.locator('#today-label').innerText()).includes('18일'));assert.equal(await page.locator('#work-memo .ql-editor').innerText(),'시계가 움직여도 보존되는 메모');assert.deepEqual(await page.locator('#work-memo').evaluate(node=>Quill.find(node).getSelection()),cursor);
+  await page.evaluate(()=>localStorage.setItem('freeter:clock-seconds','true'));await page.reload();assert.equal(await page.locator('#live-clock').count(),0);assert.equal(await page.locator('#seconds-toggle').count(),0);
  });
- await check('모바일 320px부터 PC까지 시계·상단 버튼·로고가 겹치지 않음',async()=>{
+ await check('모바일 320px부터 PC까지 날짜·상단 버튼·로고가 겹치지 않음',async()=>{
   for(const width of [320,360,390,430,768,801,1024,1440]){
    await page.setViewportSize({width,height:844});await go('');{
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${width}px overflow`);
     const clock=await page.locator('.header-clock').boundingBox(),actions=await page.locator('.top-actions').boundingBox(),brand=await page.locator(width<=800?'.mobile-brand':'.breadcrumb').boundingBox();
-    assert.ok(clock.x>=0&&clock.x+clock.width<=width);assert.ok(clock.y>=actions.y+actions.height||clock.x+clock.width<=actions.x,`${width}px clock overlaps actions`);assert.ok(brand.x+brand.width<=actions.x,`${width}px brand overlaps actions`);assert.equal(await page.locator('#live-clock').isVisible(),true);const weather=await page.locator('.header-weather-toggle').boundingBox(),date=await page.locator('#today-label').boundingBox(),time=await page.locator('#live-clock').boundingBox();assert.ok(weather.x+weather.width<=date.x&&date.x+date.width<=time.x,`${width}px weather/date/time order`);
+    assert.ok(clock.x>=0&&clock.x+clock.width<=width);assert.ok(clock.y>=actions.y+actions.height||clock.x+clock.width<=actions.x,`${width}px clock overlaps actions`);assert.ok(brand.x+brand.width<=actions.x,`${width}px brand overlaps actions`);assert.equal(await page.locator('#live-clock').count(),0);const weather=await page.locator('.header-weather-toggle').boundingBox(),date=await page.locator('#today-label').boundingBox();assert.ok(weather.x+weather.width<=date.x,`${width}px weather/date order`);
    }
   }
   await page.setViewportSize({width:390,height:844});await page.screenshot({path:join(output,'clock-and-header-weather-mobile.png'),fullPage:true});
  });
- await check('저장소를 차단해도 상단 날씨와 분 단위 시각은 정상 동작',async()=>{
+ await check('저장소를 차단해도 상단 날씨와 날짜은 정상 동작',async()=>{
   const restricted=await browser.newContext(),tab=await restricted.newPage();try{
    await tab.addInitScript(()=>{Storage.prototype.getItem=()=>{throw new DOMException('Blocked','SecurityError');};Storage.prototype.setItem=()=>{throw new DOMException('Blocked','SecurityError');};});
-   await tab.goto(site.base);await tab.locator('main[data-ready]').waitFor();assert.equal(await tab.locator('#seconds-toggle').count(),0);assert.match(await tab.locator('#live-clock').textContent(),/^\d\d:\d\d$/);await tab.route('https://*.open-meteo.com/**',route=>route.abort());await tab.locator('.header-weather-toggle').click();assert.equal(await tab.locator('.weather-panel').isVisible(),true);await tab.keyboard.press('Escape');assert.equal(await tab.locator('.weather-panel').isVisible(),false);assert.equal(await tab.locator('.gomssi-weather').count(),0);
+   await tab.goto(site.base);await tab.locator('main[data-ready]').waitFor();assert.equal(await tab.locator('#seconds-toggle').count(),0);assert.equal(await tab.locator('#live-clock').count(),0);assert.ok(await tab.locator('#today-label').isVisible());await tab.route('https://*.open-meteo.com/**',route=>route.abort());await tab.locator('.header-weather-toggle').click();assert.equal(await tab.locator('.weather-panel').isVisible(),true);await tab.keyboard.press('Escape');assert.equal(await tab.locator('.weather-panel').isVisible(),false);assert.equal(await tab.locator('.gomssi-weather').count(),0);
   }finally{await restricted.close();}
  });
  await check('실제 생성 버튼에서도 1시간 순환 뒤 30분·60분을 10분·20분씩 배정',async()=>{

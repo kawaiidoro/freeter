@@ -102,9 +102,9 @@ try {
     await page.locator('#stats-month').fill('2026-10');
     values = await page.locator('.stats-summary .summary-card>strong').allTextContents(); assert.deepEqual(values, ['0일', '0원', '20,000원', '0원']);
   });
-  await check('설정에서 전체 파일 백업·복원 제거와 기록·입금의 브라우저 저장 보존', async () => {
+  await check('설정에서 전체 파일 백업·복원 제공과 기록·입금의 브라우저 저장 보존', async () => {
     await go('settings.html');
-    assert.equal(await page.locator('[data-action="backup"],[data-action="restore"],[data-action="raw-backup"],#restore-file').count(), 0);
+    assert.equal(await page.locator('[data-action="backup"],[data-action="restore"],[data-action="raw-backup"],#restore-file').count(),3);
     const before = await page.evaluate(() => localStorage.getItem('dangi-alba:data'));
     const parsed = JSON.parse(before); assert.equal(parsed.records.length, 1); assert.equal(parsed.records[0].payments.length, 2);
     await page.reload(); assert.equal(await page.evaluate(() => localStorage.getItem('dangi-alba:data')), before);

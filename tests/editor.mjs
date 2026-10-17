@@ -48,7 +48,7 @@ try{
  await check('서식 메모의 새로고침·설정 이동 및 v3 저장',async()=>{
   await a.reload();assert.equal(await memo(a),text);assert.ok((await state(a)).workMemoDelta.ops.some(op=>op.attributes?.bold));
   const data=await state(a);await a.evaluate(()=>history.pushState({},'','settings.html'));await a.reload();
-  assert.equal(await a.locator('[data-action="backup"],#restore-file').count(),0);assert.equal((await state(a)).version,3);assert.deepEqual((await state(a)).workMemoDelta,data.workMemoDelta);
+  assert.equal(await a.locator('[data-action="backup"],#restore-file').count(),2);assert.equal((await state(a)).version,3);assert.deepEqual((await state(a)).workMemoDelta,data.workMemoDelta);
 
   await a.setViewportSize({width:1440,height:1000});await a.locator('.main-nav [data-page="notes"]').click();
  });

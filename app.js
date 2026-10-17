@@ -28,6 +28,7 @@ const icons = {
   save: '<path d="M5 3h12l4 4v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a2 2 0 0 1 2-2Z"/><path d="M7 3v6h10V3M7 21v-8h10v8"/>',
   saved: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
   warning: '<circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 4h.01"/>',
+  table: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 10h18M10 3v18"/>',
   download: '<path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/>',
   upload: '<path d="M12 16V4m-5 5 5-5 5 5M4 16v5h16v-5"/>',
   copy: '<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V3H3v13h5"/>',
@@ -44,7 +45,7 @@ const icon = (name, className = '') => `<svg class="icon ${className}" viewBox="
 // Match header controls to the navigation's simple, lightweight outlines.
 const headerIcon=name=>icon(name,'header-illustration');
 // Older cached HTML may still contain the retired header shortcut.
-$$('.updates-top-link').forEach(node=>node.remove());
+$$('.updates-top-link,.clock-face').forEach(node=>node.remove());
 $$('.mobile-nav [data-page]').filter(node=>!['home','notes','schedule','calculator'].includes(node.dataset.page)).forEach(node=>node.remove());
 $$('[data-icon]').forEach(node => { node.innerHTML = node.closest('.top-actions')?headerIcon(node.dataset.icon):icon(node.dataset.icon); });
 $('.topbar').before($('#storage-alert'));
@@ -177,16 +178,17 @@ const smallEmpty = (title, text, button = '') => `<div class="empty-state"><div 
 const workplaceOptions = () => [...new Set([...state.workplaces, ...state.records.map(r => r.workplace)])].sort((a, b) => a.localeCompare(b, 'ko'));
 // Each tool uses the same paper, mint accents, rounded corners and line weight.
 const toolIllustrations = {
-  applications: '<rect class="tool-paper" x="6" y="6" width="19" height="23" rx="3"/><rect class="tool-mint" x="11" y="3" width="9" height="6" rx="2"/><path d="M10 14h10m-10 5h6m-6 5h4"/><path class="tool-accent" d="m18 23 11-10-3 14-3-5-5 1Z"/>',
-  notes: '<rect class="tool-paper" x="5" y="6" width="21" height="23" rx="3"/><path d="M10 3v6m11-6v6M9 14h12m-12 5h7m-7 5h5"/><path class="tool-mint" d="m18 23 9-10 4 4-9 10-5 1 1-5Z"/><path d="m25 15 4 4"/>',
-  schedule: '<rect class="tool-paper" x="4" y="6" width="24" height="23" rx="4"/><path class="tool-mint" d="M8 6h16a4 4 0 0 1 4 4v3H4v-3a4 4 0 0 1 4-4Z"/><path d="M10 3v6m12-6v6"/><rect class="tool-accent" x="9" y="17" width="4" height="3" rx="1"/><rect class="tool-mint" x="19" y="17" width="4" height="3" rx="1"/><rect class="tool-mint" x="9" y="23" width="4" height="3" rx="1"/><rect class="tool-accent" x="19" y="23" width="4" height="3" rx="1"/>',
-  calculator: '<rect class="tool-paper" x="6" y="3" width="20" height="26" rx="4"/><rect class="tool-mint" x="10" y="7" width="12" height="6" rx="1.5"/><path d="M11 18h2m6 0h2m-10 5h2m6 0h2"/><path class="tool-accent" d="M17 16h6v10h-6Z"/><path d="M20 19v4m-2-2h4"/>',
-  records: '<rect class="tool-paper" x="7" y="4" width="19" height="25" rx="3"/><path d="M4 9h6m-6 7h6m-6 7h6M14 10h7m-7 5h7m-7 5h4"/><path class="tool-mint" d="m20 25 2 2 7-7-3-3-6 6v2Z"/>',
-  stats: '<path d="M4 5v23h25"/><rect class="tool-mint" x="8" y="17" width="5" height="8" rx="1.5"/><rect class="tool-accent" x="16" y="11" width="5" height="14" rx="1.5"/><rect class="tool-paper" x="24" y="4" width="5" height="21" rx="1.5"/>',
-  settings: '<path class="tool-paper" d="m13 3-1 4-4-1-3 5 3 3-3 3 3 6 4-1 1 4h6l1-4 4 1 3-6-3-3 3-3-3-5-4 1-1-4Z"/><circle class="tool-blue" cx="16" cy="15" r="5"/>',
-  guide: '<path class="tool-paper" d="M16 8C12 4 7 4 3 6v21c5-2 9-1 13 2 4-3 8-4 13-2V6c-4-2-9-2-13 2Z"/><path d="M16 8v21"/><path class="tool-mint" d="M21 9c2-1 4-1 5 0v13c-2 0-4 0-5 1Z"/><path d="M7 11h4m-4 5h4"/>'
+  applications:'<rect class="tool-paper" x="6" y="7" width="20" height="22" rx="3"/><path class="tool-mint" d="M11 8V6a5 5 0 0 1 10 0v2Z"/><path d="M11 14h10m-10 6h7m-7 5h5"/><path class="tool-accent" d="m21 19 5-5 4 4-8 8-5 1 1-5Z"/>',
+  notes:'<rect class="tool-paper" x="5" y="7" width="21" height="22" rx="3"/><path class="tool-mint" d="M11 8V6a5 5 0 0 1 10 0v2Z"/><path d="M10 14h10m-10 5h6m-6 6h4"/><path class="tool-accent" d="m18 21 9-9 4 4-9 9-5 1Z"/><path d="m25 14 4 4"/>',
+  schedule:'<rect class="tool-paper" x="4" y="6" width="24" height="23" rx="4"/><path class="tool-accent" d="M8 6h16a4 4 0 0 1 4 4v3H4v-3a4 4 0 0 1 4-4Z"/><path d="M10 3v6m12-6v6"/><circle class="tool-mint" cx="10" cy="19" r="1.3"/><circle class="tool-mint" cx="17" cy="19" r="1.3"/><circle class="tool-mint" cx="23" cy="19" r="1.3"/><circle class="tool-mint" cx="10" cy="25" r="1.3"/><circle class="tool-mint" cx="17" cy="25" r="1.3"/>',
+  calculator:'<rect class="tool-accent" x="5" y="3" width="23" height="27" rx="4"/><rect class="tool-paper" x="7" y="5" width="19" height="8" rx="1"/><path d="M5 16h23M16 16v14M5 23h11"/><path stroke="#ffffff" d="M9 19h3m-1.5-1.5v3M9 26h3m8-5h4"/>',
+  records:'<rect class="tool-blue" x="4" y="11" width="22" height="18" rx="3"/><rect class="tool-paper" x="8" y="5" width="20" height="21" rx="3"/><path d="M13 2v6m10-6v6M13 12h9m-9 5h7"/><path class="tool-mint" d="m23 26-3-2 3-4 5 1 2 3-3 5-4-1Z"/><path d="m23 22 4 1-1-3"/>',
+  stats:'<rect class="tool-accent" x="4" y="19" width="6" height="11" rx="2"/><rect class="tool-mint" x="13" y="12" width="6" height="18" rx="2"/><rect class="tool-blue" x="22" y="4" width="6" height="26" rx="2"/>',
+  settings:'<g transform="translate(0 1)"><path class="tool-blue" d="m13 3-1 4-4-1-3 5 3 3-3 3 3 6 4-1 1 4h6l1-4 4 1 3-6-3-3 3-3-3-5-4 1-1-4Z"/><circle class="tool-paper" cx="16" cy="15" r="5"/></g>',
+  guide:'<path class="tool-blue" d="M2 8c5-2 10-1 14 2 4-3 9-4 14-2v21c-5-2-10-1-14 2-4-3-9-4-14-2Z"/><path class="tool-paper" d="M16 7C12 3 7 3 4 5v20c5-2 8-1 12 2 4-3 7-4 12-2V5c-3-2-8-2-12 2Z"/><path d="M16 7v20"/><path d="M24 10v5h-4"/>'
 };
-const toolIllustration = route => `<svg class="tool-illustration" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${toolIllustrations[route]}</svg>`;
+const toolIllustration = route => `<svg class="tool-illustration" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${toolIllustrations[route]}</svg>`;
+
 const appTile = (route, image, name, color) => `<a class="app-tile" href="#${route}"><span class="app-tile-icon ${color}">${toolIllustration(route)}</span><span>${name}</span></a>`;
 const shortWorkDate = date => new Intl.DateTimeFormat('ko-KR', {month:'long',day:'numeric',weekday:'short'}).format(new Date(`${date}T12:00:00`));
 function dashboardOverview(stats) {
@@ -434,7 +436,7 @@ function formatMemo(key,value) {
   memoSelection={index,length};updateMemoTools();
 }
 function newFeaturesGuide() {
-  return `<section class="panel tax-guide"><h2>세금 유형별 예상 수령액</h2><p><strong>일용근로소득:</strong> 1일 과세급여에서 150,000원을 공제한 금액에 6% 세율과 55% 세액공제를 적용합니다. 일일 산식은 max(과세급여 − 150,000, 0) × 0.06 × 0.45입니다. 소득세가 1,000원 미만이면 소액부징수로 0원, 지방소득세는 계산된 소득세의 10%입니다. 소득세와 지방소득세는 각각 10원 미만을 절사합니다. 1일 200,000원이면 소득세 1,350원, 지방소득세 130원, 예상 수령액은 198,520원입니다.</p><p>이 계산은 기록 1건이 1일분이고 따로 지급받는 기준입니다. 여러 날의 급여를 한 번에 받는 경우 소액부징수 기준이 달라질 수 있으므로 지급처의 원천징수 명세서를 확인하세요. 근무 기간 등 법상 일용근로 요건에 해당할 때 선택해야 합니다.</p><p><strong>프리랜서:</strong> 사업소득 원천징수 대상인 경우 과세 지급액의 3%를 소득세로, 소득세의 10%를 지방소득세로 계산합니다. 통상 총 3.3%이며 끝수 처리로 차이가 날 수 있습니다. 200,000원이면 합계 6,600원 공제, 예상 수령액은 193,400원입니다. 4대보험과 최종 종합소득세 정산은 포함하지 않습니다.</p><p>추가 지급액도 기본적으로 과세금액에 포함합니다. 지급처에서 확인한 비과세 금액만 별도로 입력하세요. 자동 계산되는 세금을 기타 공제액에 다시 넣으면 중복 차감됩니다. 기존 기록은 세금 유형을 바꾸기 전까지 공제 안 함으로 보존됩니다.</p><p>법령 참고: <a href="https://www.law.go.kr/법령/소득세법/제47조" target="_blank" rel="noopener noreferrer">근로소득공제</a> · <a href="https://www.law.go.kr/법령/소득세법/제59조" target="_blank" rel="noopener noreferrer">근로소득세액공제</a> · <a href="https://www.law.go.kr/법령/소득세법/제129조" target="_blank" rel="noopener noreferrer">원천징수 세율</a> · <a href="https://www.nts.go.kr/nts/main.do" target="_blank" rel="noopener noreferrer">국세청 안내</a></p></section><button type="button" class="updates-trigger" data-action="open-updates"><span class="updates-trigger-icon">${icon('sparkle')}</span><span><strong>업데이트 내역</strong><small>새로운 근무 관리 도구를 확인해 보세요.</small></span>${icon('chevron')}</button>`;
+  return `<details class="panel tax-guide"><summary>세금 계산 자세히 보기 ${icon('chevron')}</summary><div class="tax-guide-content"><h2>세금 유형별 예상 수령액</h2><p><strong>일용근로소득:</strong> 1일 과세급여에서 150,000원을 공제한 금액에 6% 세율과 55% 세액공제를 적용합니다. 일일 산식은 max(과세급여 − 150,000, 0) × 0.06 × 0.45입니다. 소득세가 1,000원 미만이면 소액부징수로 0원, 지방소득세는 계산된 소득세의 10%입니다. 소득세와 지방소득세는 각각 10원 미만을 절사합니다. 1일 200,000원이면 소득세 1,350원, 지방소득세 130원, 예상 수령액은 198,520원입니다.</p><p>이 계산은 기록 1건이 1일분이고 따로 지급받는 기준입니다. 여러 날의 급여를 한 번에 받는 경우 소액부징수 기준이 달라질 수 있으므로 지급처의 원천징수 명세서를 확인하세요. 근무 기간 등 법상 일용근로 요건에 해당할 때 선택해야 합니다.</p><p><strong>프리랜서:</strong> 사업소득 원천징수 대상인 경우 과세 지급액의 3%를 소득세로, 소득세의 10%를 지방소득세로 계산합니다. 통상 총 3.3%이며 끝수 처리로 차이가 날 수 있습니다. 200,000원이면 합계 6,600원 공제, 예상 수령액은 193,400원입니다. 4대보험과 최종 종합소득세 정산은 포함하지 않습니다.</p><p>추가 지급액도 기본적으로 과세금액에 포함합니다. 지급처에서 확인한 비과세 금액만 별도로 입력하세요. 자동 계산되는 세금을 기타 공제액에 다시 넣으면 중복 차감됩니다. 기존 기록은 세금 유형을 바꾸기 전까지 공제 안 함으로 보존됩니다.</p><p>법령 참고: <a href="https://www.law.go.kr/법령/소득세법/제47조" target="_blank" rel="noopener noreferrer">근로소득공제</a> · <a href="https://www.law.go.kr/법령/소득세법/제59조" target="_blank" rel="noopener noreferrer">근로소득세액공제</a> · <a href="https://www.law.go.kr/법령/소득세법/제129조" target="_blank" rel="noopener noreferrer">원천징수 세율</a> · <a href="https://www.nts.go.kr/nts/main.do" target="_blank" rel="noopener noreferrer">국세청 안내</a></p></div></details><button type="button" class="updates-trigger" data-action="open-updates"><span class="updates-trigger-icon">${icon('sparkle')}</span><span><strong>업데이트 내역</strong><small>새로운 근무 관리 도구를 확인해 보세요.</small></span>${icon('chevron')}</button>`;
 }
 function openUpdates() {
   const dialog=ensureAppDialog('updates-dialog','updates-title');
@@ -625,26 +627,64 @@ function coffeeUrl(){
 }
 function coffeeBanner(){
   const linked=!!coffeeUrl();
-  return `<section class="panel settings-card wide coffee-banner" data-coffee-state="${coffeeClicked?'drive':'please'}" aria-labelledby="coffee-title"><div class="coffee-copy"><span class="coffee-eyebrow">A LITTLE COFFEE FOR GOMSSI</span><h2 id="coffee-title">곰씨에게 커피 한 잔</h2><p class="coffee-message">브라우저 저장 말고 백업을 따로 원하시면<br>개발자한테 커피값 하나만 주세요.</p><p class="coffee-detail">브라우저 자동 저장은 무료예요.<br>별도 백업 지원은 카카오톡에서 문의해 주세요.</p><button type="button" class="button coffee-button" data-action="coffee-gomssi">${icon('coffee')}곰씨한테 커피 값 보내기 ${icon('arrow')}</button><p class="coffee-link-note" role="status">${linked?(coffeeClicked?'카카오톡 문의 창을 열었어요. 곰씨는 드라이브 중!':'카카오톡 오픈채팅으로 연결돼요.'):(coffeeClicked?'곰씨의 드라이브 미리보기예요. 후원 링크는 준비 중이에요.':'후원 링크 연결 전 · 버튼으로 곰씨의 반응을 미리 볼 수 있어요.')}</p></div><div class="coffee-art"><img class="coffee-illustration" src="./assets/gomssi-coffee-${coffeeClicked?'drive':'please'}.png?v=${APP_RELEASE}" alt="${coffeeClicked?'초록색 스포츠카를 타고 떠나는 곰씨':'큰 눈망울로 안전모를 들고 커피 한 잔을 부탁하는 곰씨'}" width="360" height="360"></div></section>`;
+  return `<section class="panel settings-card wide coffee-banner" data-coffee-state="${coffeeClicked?'drive':'please'}" aria-labelledby="coffee-title"><div class="coffee-copy"><span class="coffee-eyebrow">A LITTLE COFFEE FOR GOMSSI</span><h2 id="coffee-title">곰씨에게 커피 한 잔</h2><p class="coffee-message">프리터가 도움이 되었다면<br>곰씨에게 커피 한 잔 보내 주세요.</p><p class="coffee-detail">자동 저장과 파일 백업·복원은 무료예요.<br>도움이 필요하면 카카오톡에서 문의해 주세요.</p><button type="button" class="button coffee-button" data-action="coffee-gomssi">${icon('coffee')}곰씨한테 커피 값 보내기 ${icon('arrow')}</button><p class="coffee-link-note" role="status">${linked?(coffeeClicked?'카카오톡 문의 창을 열었어요. 곰씨는 드라이브 중!':'카카오톡 오픈채팅으로 연결돼요.'):(coffeeClicked?'곰씨의 드라이브 미리보기예요. 후원 링크는 준비 중이에요.':'후원 링크 연결 전 · 버튼으로 곰씨의 반응을 미리 볼 수 있어요.')}</p></div><div class="coffee-art"><img class="coffee-illustration" src="./assets/gomssi-coffee-${coffeeClicked?'drive':'please'}.png?v=${APP_RELEASE}" alt="${coffeeClicked?'초록색 스포츠카를 타고 떠나는 곰씨':'큰 눈망울로 안전모를 들고 커피 한 잔을 부탁하는 곰씨'}" width="360" height="360"></div></section>`;
 }
 function homeScreenBanner(extraClass='') {
   const arrow=icon('arrow','homescreen-arrow');
   return `<section class="panel homescreen-banner ${extraClass}" aria-labelledby="homescreen-title"><div class="homescreen-heading"><img class="homescreen-preview" src="./assets/freeter-homescreen-192.png?v=${APP_RELEASE}" width="80" height="80" alt="여백을 두고 중앙에 배치한 곰씨 홈 화면 아이콘"><div><span class="homescreen-eyebrow">FREETER, ONE TAP AWAY</span><h2 id="homescreen-title">스마트폰 홈 화면에 추가해 보세요</h2><p>곰씨 아이콘을 누르면 프리터가 바로 열려요.</p></div></div><div class="homescreen-steps"><div><strong>삼성 인터넷</strong><p><span class="homescreen-step">메뉴 ☰</span><span class="homescreen-step">${arrow}현재 페이지 추가</span><span class="homescreen-step">${arrow}홈 화면</span></p></div><div><strong>Android Chrome</strong><p><span class="homescreen-step">메뉴 ⋮</span><span class="homescreen-step">${arrow}홈 화면에 추가</span><span class="homescreen-step">${arrow}추가 또는 설치</span></p></div><div><strong>iPhone Safari</strong><p><span class="homescreen-step">공유 ${icon('upload','homescreen-menu-icon')}</span><span class="homescreen-step">${arrow}홈 화면에 추가</span><span class="homescreen-step">${arrow}추가</span></p></div></div><p class="homescreen-note">한 번 접속하면 주요 도구를 오프라인에서도 사용할 수 있어요. 설치 후 계정 저장 상태도 확인해 주세요.</p></section>`;
 }
+function dataTransferBanner() {
+  return `<section class="panel settings-card wide data-transfer" aria-labelledby="data-transfer-title"><h2 id="data-transfer-title" class="sr-only">데이터 백업과 복원</h2>${[['backup','download','전체 데이터 백업','기록·메모·근무표를 JSON 파일로 저장'],['restore','upload','백업 파일 복원','이전에 저장한 JSON 파일 가져오기'],['records-excel','table','엑셀로 내보내기','근무 내역과 급여 정리 · CSV 파일']].map(([action,image,title,description])=>`<button type="button" class="data-transfer-row" data-action="${action}"><span class="data-transfer-icon">${icon(image)}</span><span><strong>${title}</strong><small>${description}</small></span>${icon('chevron')}</button>`).join('')}<input type="file" id="restore-file" accept=".json,application/json" hidden><p id="data-transfer-status" class="data-transfer-status" role="status" hidden></p></section>`;
+}
+function setTransferStatus(message,error=false){const node=$('#data-transfer-status');if(node){node.hidden=false;node.textContent=message;node.dataset.error=String(error);}}
+document.addEventListener('change',async event=>{
+  if(event.target.id!=='restore-file')return;
+  const file=event.target.files?.[0];if(!file)return;
+  const owner=cloud.user?.id||null,before=JSON.stringify(state);
+  try{
+    if(file.size>10*1024*1024)throw new Error('10MB 이하의 JSON 백업 파일을 선택해 주세요.');
+    const incoming=validateState(JSON.parse((await file.text()).replace(/^\uFEFF/,'')));
+    const unchanged=()=>owner===(cloud.user?.id||null)&&before===JSON.stringify(state);
+    if(!unchanged())throw new Error('파일을 읽는 동안 계정이나 기록이 바뀌었어요. 파일을 다시 선택해 주세요.');
+    if(cloud.user&&cloud.snapshot.phase==='conflict')throw new Error('계정 창에서 동기화 충돌을 먼저 해결한 뒤 복원해 주세요.');
+    if(!await confirmAction(`현재 공간의 기록과 메모·근무표를 파일의 알바 기록 ${incoming.records.length}건과 저장 내용으로 교체해요. 필요한 현재 기록은 먼저 JSON으로 백업해 주세요.${owner?' 복원한 내용은 현재 로그인 계정에도 저장됩니다.':''}`,'백업 파일을 복원할까요?','복원하기'))return;
+    if(!unchanged())throw new Error('확인 중 기록이 변경되어 복원을 멈췄어요. 최신 기록을 확인해 주세요.');
+    if(owner){if(!cloud.save(incoming,{reset:true}))throw new Error(cloud.snapshot.label);}
+    else localStorage.setItem(STORAGE_KEY,JSON.stringify(incoming));
+    state=incoming;rawStored=JSON.stringify(state);storageBlocked=false;$('#storage-alert').hidden=true;calcSavedHash='';render();
+    setTransferStatus(owner?'이 기기에 복원했어요. 계정 창에서 서버 저장 상태를 확인해 주세요.':'백업 파일의 기록을 복원했어요.');
+  }catch(failure){setTransferStatus(failure.name==='QuotaExceededError'?'브라우저 저장 공간이 부족해 복원하지 못했어요. 현재 기록은 유지됩니다.':failure instanceof SyntaxError?'JSON 백업 파일을 읽을 수 없어요. 파일을 다시 확인해 주세요.':failure.message||'복원하지 못했어요. 현재 기록은 유지됩니다.',true);}
+  finally{event.target.value='';}
+});
 function settingsView() {
-  return head('YOUR DATA, YOUR CONTROL','데이터 · 설정','계정 연결과 화면 설정을 한곳에서 관리하세요.')+`<div class="settings-grid">${accountCard()}${homeScreenBanner('settings-card wide')}${coffeeBanner()}<section class="panel settings-card"><span class="feature-icon purple">${icon('moon')}</span><h2>내게 편한 화면</h2><p>늦은 시간에도 편안하게. 원하는 테마를 선택하세요.</p><div class="theme-options"><button class="theme-option ${effectiveTheme()==='light'?'selected':''}" data-action="set-theme" data-theme="light">${icon('sun')}라이트 모드</button><button class="theme-option ${effectiveTheme()==='dark'?'selected':''}" data-action="set-theme" data-theme="dark">${icon('moon')}다크 모드</button></div></section><section class="panel settings-card settings-privacy"><span class="feature-icon blue">${icon('shield')}</span><h2>개인정보 안내</h2><p>기록 저장과 계정 동기화, 날씨 위치 정보, 후원 링크의 처리 방식을 확인하세요.</p><a class="text-link" href="#privacy">개인정보 안내 자세히 보기 ${icon('arrow')}</a></section><section class="panel settings-card wide danger-zone"><div><h2>전체 데이터 삭제</h2><p>지원 자료·근무표·알바와 입금 기록·메모를 모두 삭제해요. 삭제한 기록은 되돌릴 수 없어요.</p></div><button class="button danger-outline" data-action="delete-all">${icon('trash')}전체 삭제</button></section></div>`;
+  return head('YOUR DATA, YOUR CONTROL','데이터 · 설정','계정 연결과 화면 설정을 한곳에서 관리하세요.')+`<div class="settings-grid">${accountCard()}${dataTransferBanner()}${homeScreenBanner('settings-card wide')}<section class="panel settings-card"><span class="feature-icon purple">${icon('moon')}</span><h2>내게 편한 화면</h2><p>늦은 시간에도 편안하게. 원하는 테마를 선택하세요.</p><div class="theme-options"><button class="theme-option ${effectiveTheme()==='light'?'selected':''}" data-action="set-theme" data-theme="light">${icon('sun')}라이트 모드</button><button class="theme-option ${effectiveTheme()==='dark'?'selected':''}" data-action="set-theme" data-theme="dark">${icon('moon')}다크 모드</button></div></section><section class="panel settings-card settings-privacy"><span class="feature-icon blue">${icon('shield')}</span><h2>개인정보 안내</h2><p>기록 저장과 계정 동기화, 날씨 위치 정보, 후원 링크의 처리 방식을 확인하세요.</p><a class="text-link" href="#privacy">개인정보 안내 자세히 보기 ${icon('arrow')}</a></section><section class="panel settings-card wide danger-zone"><div><h2>전체 데이터 삭제</h2><p>지원 자료·근무표·알바와 입금 기록·메모를 모두 삭제해요. 삭제한 기록은 되돌릴 수 없어요.</p></div><button class="button danger-outline" data-action="delete-all">${icon('trash')}전체 삭제</button></section>${coffeeBanner()}</div>`;
 }
 function guideView() {
-  return homeScreenBanner('guide-homescreen') + head('A LITTLE HELP', '처음이어도 괜찮아요.', '복잡한 건 줄이고, 나의 하루에 집중하세요. 서비스 사용법을 알려드릴게요.') + `<div class="guide-grid"><article class="panel guide-card"><span class="guide-step">01</span><h2>세 사람이 함께하는 밀어내기 근무표</h2><p>이름, 일정, 점심시간, 교대 간격과 첫 휴식자를 입력하고 근무표를 생성하세요. 각 근무 구간에는 두 명 근무, 한 명 휴식이 배정됩니다.</p><p>함께 식사할 때는 모두 쉬고, 교대 식사에서는 식사하지 않는 사람이 근무합니다. 휴식은 A→B→C 순서를 유지하고 점심 교대 후에도 남은 순서를 이어갑니다.</p><p><strong>10:00–19:00, 점심 10:00–11:00, 1시간 교대, 첫 휴식자 A</strong>에 공평 배분을 켜면 A·B·C 모두 5시간 20분 근무하고, 식사 외 휴식은 2시간 40분씩 배정됩니다.</p><p>공평하게 배분은 모두 설정한 간격만큼 한 바퀴씩 쉰 뒤 마지막 남은 시간을 나눕니다. 1시간이 남으면 20분씩, 30분이 남으면 10분씩 쉬어요. 분 단위로 나누어떨어지지 않으면 최대 1분 차이가 납니다. 수동 변경 후에는 실제 차이를 다시 보여드립니다.</p><p>표의 휴식자 선택으로 배정을 조정하고 PNG·CSV·텍스트로 공유하세요. 이름을 바꾸면 표에도 바로 반영돼요. 시간이나 규칙을 바꾸면 생성 버튼을 다시 눌러 주세요.</p><a class="text-link" href="#schedule">근무표 만들기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">02</span><h2>내 예상 급여 계산하기</h2><p><strong>시급제:</strong> (전체 근무시간 − 무급 휴게시간) ÷ 60 × 시급. 분 단위로 계산한 뒤 기본급을 원 단위로 반올림합니다.</p><div class="guide-example">10:00–19:00 · 휴게 60분 · 시급 12,000원<br><strong>유급 8시간 × 12,000원 = 96,000원</strong></div><p><strong>일급제:</strong> 근무시간과 관계없이 입력한 계약 일급을 기본급으로 사용합니다. 추가 지급액을 더하고 직접 입력한 공제액을 빼면 최종 예상액이 됩니다.</p><p>자정을 넘는 근무를 지원하며, 같은 출퇴근 시각은 0시간과 24시간을 구분할 수 없어 허용하지 않아요. 선택한 세금 유형의 공제를 계산합니다. 주휴·야간·연장 수당은 자동 적용하지 않습니다. 실제 근로 조건과 법정 수당은 별도로 확인해 주세요.</p><a class="text-link" href="#calculator">급여 계산하기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">03</span><h2>근무 기록과 입금 관리하기</h2><p>급여 계산기에서 근무일과 근무지를 입력하고 저장하거나, 기록장에서 직접 알바를 추가하세요. 업무·지급 예정일·메모도 남길 수 있습니다.</p><p>입금이 생길 때마다 기록을 열어 <strong>입금 내역 추가</strong>로 금액과 날짜를 남기세요. 여러 번 나눠 받은 내역도 그대로 관리할 수 있어요. 총입금이 예상액 이상이면 지급 완료, 일부 입금이면 일부 지급, 미입금이고 예정일이 지났으면 미지급, 나머지는 지급 예정으로 표시됩니다.</p><p>월별 실적은 <strong>근무 날짜</strong>, 실제 현금 수입은 <strong>입금 날짜</strong>로 집계됩니다. 미수령액은 각 기록의 예상액에서 입금액을 뺀 금액(최소 0원)의 합계입니다.</p><a class="text-link" href="#records">나의 기록장 열기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">04</span><h2>내 기록의 저장 상태 확인하기</h2><p>로그인 전 기록은 현재 브라우저에 자동 저장됩니다. 등록된 Google 계정으로 로그인하면 계정 기록을 불러오고, 연결 상태에 따라 기기 간 변경 사항을 주고받습니다.</p><p>기기 저장과 서버 저장은 별도예요. 계정 창에서 최근 서버 확인 상태를 보고 다른 기기로 이동하세요. 기존 브라우저 기록은 계정 창의 브라우저 기록 가져오기로 직접 옮길 수 있습니다.</p><p>전체 기록의 파일 백업·복원 기능은 제공하지 않습니다. 근무표 PNG·CSV, 알바 기록 CSV, 메모 TXT와 복사는 각 도구에서 사용할 수 있어요.</p><a class="text-link" href="#settings">저장 · 계정 설정 ${icon('arrow')}</a></article></div>${newFeaturesGuide()}<div class="ad-space" aria-label="향후 광고 영역"><span>서비스 소식</span><p>오늘도 당신의 알바 생활을 응원합니다.</p></div>`;
+  const cards=[
+    ['calculator','급여 계산하기','하루 일하면 얼마를 받을까요?',[
+      ['근무 조건 입력','날짜, 근무지, 시급 또는 일급을 입력해요.'],['시간과 휴게 입력','출근·퇴근시간과 무급 휴게시간을 넣어요. 여러 날이면 근무일 수도 바꿔요.'],['금액 확인하고 저장','예상 급여를 확인한 뒤 기록 저장을 누르면 하루치 기록이 남아요.']],'09:00–18:00 · 휴게 1시간 · 시급 12,000원 → 1일 96,000원','계산기 열기'],
+    ['records','급여 입금 확인하기','일한 날과 받은 돈을 함께 정리해요.',[
+      ['알바 기록 열기','급여 계산기에서 저장했거나 새로 추가한 기록을 눌러요.'],['입금 내역 추가','실제로 받은 날짜와 금액을 적어요. 나눠 받았다면 여러 번 추가할 수 있어요.'],['지급 상태 확인','예상 급여만큼 받으면 지급 완료, 일부만 받으면 일부 지급으로 바뀌어요.']],'예상 급여는 근무한 달, 실제 받은 돈은 입금된 달의 통계에 표시돼요.','알바 기록 열기'],
+    ['schedule','교대 근무표 만들기','이름과 시간만 넣고 공평하게 쉬어요.',[
+      ['인원과 이름 입력','3인 밀어내기 또는 2인 맞교대를 선택하고 이름을 넣어요.'],['일정과 식사 설정','시작·종료시간, 점심 방식, 휴식 간격을 정해요.'],['생성하고 조정','근무표 생성하기를 눌러요. 휴식 시간 조정에서 길이 변경이나 휴식 없음을 선택할 수 있어요.']],'휴식은 A→B→C 순서예요. 마지막에 1시간이 남으면 20분씩, 30분이면 10분씩 나눠요. 분 단위로 나누어떨어지지 않으면 최대 1분 차이가 나요.','근무표 열기'],
+    ['applications','알바 지원 준비하기','경력과 문자 양식을 한곳에 모아요.',[
+      ['지원 문자 준비','행사명/이름/나이/거주지/경력사항 순서로 양식을 적어요.'],['경력과 공고 저장','단기 알바 경력을 정리하고 지원한 공고를 제목과 함께 저장해요.'],['공고 결과 표시','처음에는 떨어짐으로 표시돼요. 버튼을 누르면 fix로 바뀌고, 다시 눌러 바꿀 수 있어요.']],'저장한 공고는 제목을 누르면 내용을 볼 수 있어요.','알바 지원 열기'],
+    ['notes','업무 메모 쓰기','출근 전 준비물과 업무를 빠르게 확인해요.',[
+      ['바로 입력','전달받은 업무 내용, 담당자 연락 방법, 준비물을 적어요.'],['필요한 부분 강조','굵게·밑줄·글자 크기·글자색·배경색으로 중요한 내용을 표시해요.'],['저장 상태 확인','입력 내용은 자동 저장돼요. 저장 버튼을 누르면 완료 아이콘으로 한 번 더 확인할 수 있어요.']],'복사하거나 TXT로 저장해 다른 곳에서도 메모를 볼 수 있어요.','업무 메모 열기'],
+    ['settings','백업하고 다른 기기에서 이어 쓰기','내 기록을 파일로 안전하게 챙겨요.',[
+      ['전체 데이터 백업','데이터 · 설정에서 전체 데이터 백업을 누르면 JSON 파일이 저장돼요.'],['파일로 복원','백업 파일 복원에서 JSON 파일을 골라요. 복원하면 현재 기록을 파일 내용으로 교체해요.'],['기기 간 연결','Google 로그인·동기화 이용은 개발자에게 문의해 주세요. 로그인 후에는 계정 창에서 서버 저장 상태를 확인해요.']],'엑셀로 내보내기는 근무·급여 기록을 CSV로 저장해요. CSV는 전체 데이터 복원용 파일이 아니에요.','데이터 · 설정 열기']
+  ];
+  return head('FREETER GUIDE','프리터, 이렇게 쓰세요.','처음이라면 급여 계산부터 시작해 보세요. 필요한 기능만 골라 읽을 수 있어요.')+`<nav class="guide-shortcuts" aria-label="사용법 바로가기">${cards.map(([route,title])=>`<a href="#help-${route}" data-guide-jump="${route}">${icon(route==='settings'?'shield':route==='records'?'notebook':route==='applications'?'apply':route==='notes'?'edit':route==='schedule'?'calendar':'calculator')}${title}</a>`).join('')}</nav><div class="guide-howto-grid">${cards.map(([route,title,description,steps,note,cta],index)=>`<article class="panel guide-howto" id="help-${route}"><div class="guide-howto-heading"><span class="guide-number">0${index+1}</span><div><h2>${title}</h2><p>${description}</p></div></div><ol class="guide-howto-steps">${steps.map(([label,text])=>`<li><strong>${label}</strong><p>${text}</p></li>`).join('')}</ol><p class="guide-tip">${icon('help')}<span>${note}</span></p><a class="text-link" href="#${route}">${cta} ${icon('arrow')}</a></article>`).join('')}</div><aside class="panel guide-pay-note"><h2>급여 계산에서 알아두세요</h2><p>시급제는 무급 휴게시간을 뺀 시간으로 계산하고, 일급제는 입력한 계약 일급을 사용해요. 세금은 선택한 유형에 따라 계산해요. 주휴·야간·연장 수당은 자동 적용하지 않으니 실제 계약 조건도 확인해 주세요.</p></aside>${newFeaturesGuide()}`;
 }
+
 function privacyView() {
-  return head('YOUR DATA, YOUR CHOICE','내 기록을 안전하게.','저장 위치와 계정 연결, 위치 정보와 후원 링크의 처리 방식을 안내합니다.')+`<article class="panel prose privacy-current"><p class="privacy-updated">최종 수정 · 2026년 10월 17일</p>
+  return head('YOUR DATA, YOUR CHOICE','내 기록을 안전하게.','저장 위치와 계정 연결, 위치 정보와 후원 링크의 처리 방식을 안내합니다.')+`<article class="panel prose privacy-current"><p class="privacy-updated">최종 수정 · 2026년 10월 18일</p>
     <h2>이 브라우저에 저장하는 기록</h2><p>지원 공고와 결과, 단기 알바 경력·문자 지원 내용, 근무표, 근무·급여·입금 기록, 업무 메모와 서식, 화면 설정을 브라우저 localStorage에 저장합니다. 로그인 전 작성한 기록을 자동으로 서버에 보내지 않습니다. 시크릿 모드를 닫거나 브라우저 데이터를 삭제하면 기기 기록이 사라질 수 있습니다.</p>
     <h2>Google 계정과 Supabase 동기화</h2><p>Google 로그인은 등록된 계정용으로 제공됩니다. Supabase Auth가 계정 식별자·이메일·기본 프로필과 로그인 세션을 처리합니다. Freeter는 Google 비밀번호를 받지 않으며 메일·Google Drive 접근 권한을 요청하지 않습니다.</p><p>로그인 후 작성한 기록은 계정별 기기 사본에 저장하고 Supabase 연결 상태에 따라 서버와 동기화합니다. 기기에 저장됐다는 표시가 서버 저장 완료를 뜻하지는 않습니다. 계정 창의 저장 상태와 최근 서버 확인 시각을 확인해 주세요. 로그인 전 기록은 사용자가 가져오기를 선택한 경우에만 계정 기록으로 옮깁니다.</p>
     <h2>기기 사본과 접근</h2><p>로그인 세션과 전송 대기 중인 계정 기록은 브라우저에 보관합니다. 로그아웃 시 기기 로그인 정보를 지우고 로그인 전 기록으로 돌아갑니다. 미전송 자료는 같은 계정으로 다시 로그인했을 때 전송을 이어가기 위해 계정별로 남을 수 있습니다. 동시 수정 시 자동 덮어쓰기를 멈추고 사용할 기록을 선택합니다.</p><p>계정 데이터는 서버의 사용자별 접근 정책으로 관리하며 종단간 암호화 저장소는 아닙니다. 기기의 브라우저 자료와 내려받은 파일은 그 기기를 사용하는 사람이 열람할 수 있습니다. 공용 기기에서는 사용 후 로그아웃해 주세요.</p>
-    <h2>내려받기와 전체 삭제</h2><p>전체 기록을 파일로 백업하거나 파일에서 복원하는 기능은 제공하지 않습니다. 근무표 PNG·CSV·텍스트 공유, 알바 기록 CSV, 메모 TXT·복사는 사용자가 실행할 때만 동작합니다. 공유하거나 내려받은 자료에는 직접 입력한 개인정보가 포함될 수 있으며 외부에 전달한 파일은 Freeter에서 삭제할 수 없습니다.</p><p>로그인 전 전체 삭제는 이 서비스의 브라우저 기록과 이전 기기 사본을 삭제합니다. 로그인 후 전체 삭제는 현재 계정의 기록을 비우며 서버에 반영되면 같은 계정의 다른 기기에도 적용됩니다. Google 계정과 로그인 전의 별도 기록은 삭제하지 않습니다. 삭제한 기록은 서비스에서 되돌릴 수 없습니다. 서비스 제공자의 로그·서버 보관 자료에는 각 제공자의 보관 정책이 적용됩니다.</p>
+    <h2>내려받기와 전체 삭제</h2><p>현재 열어 둔 브라우저 또는 로그인 계정의 전체 기록을 JSON 파일로 백업하고 복원할 수 있습니다. 백업 파일에는 근무·입금 기록, 메모와 서식, 지원 자료, 근무표, 화면 설정이 포함되며 로그인 세션과 인증 토큰은 포함되지 않습니다. 복원 전 파일 형식을 검사하고 교체 여부를 확인합니다. 복원은 현재 공간의 기록을 교체하며 로그인 중에는 해당 계정에도 반영될 수 있습니다. 근무표 PNG·CSV·텍스트 공유, 알바 기록 CSV, 메모 TXT·복사는 사용자가 실행할 때만 동작합니다. 공유하거나 내려받은 자료에는 직접 입력한 개인정보가 포함될 수 있으며 외부에 전달한 파일은 Freeter에서 삭제할 수 없습니다.</p><p>로그인 전 전체 삭제는 이 서비스의 브라우저 기록과 이전 기기 사본을 삭제합니다. 로그인 후 전체 삭제는 현재 계정의 기록을 비우며 서버에 반영되면 같은 계정의 다른 기기에도 적용됩니다. Google 계정과 로그인 전의 별도 기록은 삭제하지 않습니다. 삭제한 기록은 서비스에서 되돌릴 수 없습니다. 서비스 제공자의 로그·서버 보관 자료에는 각 제공자의 보관 정책이 적용됩니다.</p>
     <h2>날씨와 위치 정보</h2><p>상단 날씨 창을 열면 선택 지역의 좌표를 Open-Meteo에 보내 날씨와 대기질을 조회합니다. 기본 지역은 서울입니다. 내 위치 버튼을 누르고 브라우저에서 허용한 경우에만 기기 위치를 사용하며 전송 좌표는 소수점 둘째 자리로 줄입니다. 위치를 계정 기록·브라우저 저장소·오프라인 캐시에 저장하지 않습니다.</p>
-    <h2>곰씨 커피 후원</h2><p>버튼을 누르면 개발자의 카카오톡 오픈채팅이 새 창으로 열립니다. 대화나 별도 후원은 사용자가 카카오톡에서 직접 진행합니다. Freeter는 채팅 내용, 카드·계좌 정보나 결제 완료 정보를 수집하지 않으며 버튼 클릭만으로 송금하지 않습니다.</p><p>곰씨의 스포츠카 그림은 버튼 클릭에 따른 연출이며 결제 완료 표시가 아닙니다. 후원 버튼을 누르거나 후원하더라도 개인 기록이 개발자에게 자동 전송되지 않고, 별도 백업 기능이 자동 제공되지 않습니다. 별도 지원은 개발자와 협의해 주세요.</p>
+    <h2>곰씨 커피 후원</h2><p>버튼을 누르면 개발자의 카카오톡 오픈채팅이 새 창으로 열립니다. 대화나 별도 후원은 사용자가 카카오톡에서 직접 진행합니다. Freeter는 채팅 내용, 카드·계좌 정보나 결제 완료 정보를 수집하지 않으며 버튼 클릭만으로 송금하지 않습니다.</p><p>곰씨의 스포츠카 그림은 버튼 클릭에 따른 연출이며 결제 완료 표시가 아닙니다. 파일 백업·복원은 후원 여부와 관계없이 무료로 사용할 수 있습니다. 후원 버튼을 누르거나 후원하더라도 개인 기록이 개발자에게 자동 전송되지 않습니다. 별도 지원은 개발자와 협의해 주세요.</p>
     <h2>호스팅과 오프라인 사용</h2><p>GitHub Pages가 사이트 파일을 제공하고 Google·Supabase가 계정 인증과 저장을, Open-Meteo가 날씨 정보를 제공합니다. 서비스 워커는 공개 화면과 이미지 등 사이트 파일을 캐시하며 개인 기록 API·인증 응답·위치 응답을 캐시하지 않습니다. 광고·분석용 추적 스크립트는 사용하지 않습니다.</p><a class="button secondary" href="#settings">계정과 내 데이터 관리 ${icon('arrow')}</a></article>`;
 }
 
@@ -839,6 +879,8 @@ document.addEventListener('change', event => {
   if (event.target.id === 'stats-month' && /^\d{4}-\d{2}$/.test(event.target.value) && event.target.checkValidity()) { statsMonth = event.target.value; render(); }
 });
 document.addEventListener('click', async event => {
+  const guideJump=event.target.closest('[data-guide-jump]');
+  if(guideJump){event.preventDefault();$('#help-'+guideJump.dataset.guideJump)?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});return;}
   const routeLink = event.target.closest('a[data-route]');
   if (routeLink && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
     event.preventDefault();
@@ -960,6 +1002,9 @@ document.addEventListener('click', async event => {
       if (!state.workplaces.includes(record.workplace)) state.workplaces.push(record.workplace);
       calcSavedHash = JSON.stringify({...values,days:'1'}); persisted('선택한 날짜의 1일 근무를 알바 기록장에 저장했어요.'); updateCalculator(false);
     }
+    if(action==='backup'){if(storageBlocked)throw new Error('브라우저 기록을 읽을 수 없어 백업을 중지했어요. 저장 상태를 먼저 확인해 주세요.');download(JSON.stringify(validateState(structuredClone(state)),null,2),`Freeter-backup-${today()}.json`,'application/json');setTransferStatus('전체 데이터를 JSON 파일로 저장했어요.');}
+    if(action==='restore'){const input=$('#restore-file');input.value='';input.click();}
+    if(action==='records-excel'){download(recordsCsv(state.records),`Freeter-records-${today()}.csv`,'text/csv;charset=utf-8');setTransferStatus('엑셀에서 열 수 있는 CSV 파일로 저장했어요.');}
     if (action === 'records-csv') { download(recordsCsv(filteredRecords()), `Freeter-records-${today()}.csv`, 'text/csv;charset=utf-8'); toast('한글 CSV를 다운로드했어요.'); }
     if (action === 'delete-all' && await confirmAction(cloud.user?'로그인한 계정의 근무표, 알바·입금 기록과 메모를 비웁니다. 서버에 반영되면 같은 계정의 다른 기기에도 적용됩니다. 삭제한 기록은 되돌릴 수 없습니다.':'이 브라우저의 지원 자료, 근무표, 알바·입금 기록, 메모와 서식, 설정과 이전 버전의 기기 사본을 삭제합니다. 삭제한 기록은 되돌릴 수 없습니다.', '모든 데이터를 삭제할까요?', '전체 데이터 삭제')) {
       if(cloud.user){const cleared=emptyState();if(!cloud.save(cleared,{reset:true}))throw new Error(cloud.snapshot.label);localStorage.removeItem(cloud.cacheKey+':recovery');state=cleared;rawStored=JSON.stringify(cleared);calcSavedHash='';render();toast('계정 기록을 비웠어요. 서버 동기화 상태를 확인해 주세요.');return;}
@@ -1006,18 +1051,11 @@ async function checkAppVersion() {
 }
 document.documentElement.dataset.appRelease=APP_RELEASE;
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkAppVersion();});
-// The clock updates only its own text, without re-rendering an active memo.
-const clockNode=$('#live-clock');
-const clockDate=new Intl.DateTimeFormat('ko-KR',{month:'long',day:'numeric',weekday:'short'});
-function updateClock(){
-  const now=new Date(),pad=value=>String(value).padStart(2,'0');
-  const text=[now.getHours(),now.getMinutes()].map(pad).join(':');
-  if(clockNode.textContent!==text)clockNode.textContent=text;
-  clockNode.dateTime=now.toISOString();
-  $('#today-label').textContent=clockDate.format(now);$('#year').textContent=now.getFullYear();
-}
-updateClock();setInterval(()=>{if(!document.hidden)updateClock();},1000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateClock();});
+// Only the calendar date remains in the header; no time or seconds control.
+const headerDate=new Intl.DateTimeFormat('ko-KR',{month:'long',day:'numeric',weekday:'short'});
+function updateHeaderDate(){const now=new Date(),text=headerDate.format(now);if($('#today-label').textContent!==text)$('#today-label').textContent=text;$('#year').textContent=now.getFullYear();}
+updateHeaderDate();setInterval(()=>{if(!document.hidden)updateHeaderDate();},1000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateHeaderDate();});
 render();
 mountWeatherWidget();
 if (globalThis.origin !== 'null' && 'serviceWorker' in navigator && (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname))) {

@@ -173,8 +173,9 @@ export class FreeterCloud {
     if (!this.user || this.cacheBlocked || this.signingOut) return false;
     const next = validateState(data);
     if (new TextEncoder().encode(JSON.stringify(next)).length > CLOUD_LIMIT) { this.status('error', '계정 저장은 2MB까지 가능해요. 필요한 내용은 복사해 두고 오래된 기록을 정리해 주세요.'); return false; }
+    const previous={current:this.current,dirty:this.dirty,reset:this.reset,resetSerial:this.resetSerial};
     this.current = next; this.dirty = true; this.reset ||= reset; if(reset)this.resetSerial=(this.resetSerial||0)+1;
-    try { this.persist(); } catch { this.status('error', '이 기기에 기록을 저장하지 못했어요. 창을 닫기 전에 필요한 내용을 복사해 주세요.'); return false; }
+    try { this.persist(); } catch { Object.assign(this,previous); this.status('error', '이 기기에 기록을 저장하지 못했어요. 창을 닫기 전에 필요한 내용을 복사해 주세요.'); return false; }
     if (this.phase !== 'conflict') { this.status('pending'); clearTimeout(this.timer); this.timer = setTimeout(() => this.sync({automatic:true}), this.delay); }
     return true;
   }

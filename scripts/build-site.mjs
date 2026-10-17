@@ -32,6 +32,7 @@ const pages = ['index','applications','schedule','calculator','records','stats',
 for(const name of pages){
   let html=await read(name);
   html=html.replaceAll('백업 · 복원','데이터 · 설정');
+  html=html.replace(/<div class="clock-face">[\s\S]*?<\/div>/g,'').replace('aria-label="현재 기기 시간"','aria-label="날씨와 날짜"');
   html=html.replace(/(<link rel="apple-touch-icon" href=")[^"]*/,`$1./assets/freeter-homescreen-180.png?v=${release}`);
   html=html.replace(/(<nav class="mobile-nav"[^>]*>)([\s\S]*?)(<\/nav>)/g,(_match,start,links,end)=>start+links.replace(/<a\b[^>]*data-page="(?:applications|records|stats)"[^>]*>[\s\S]*?<\/a>/g,'')+end);
   html=html.replace(/<button\b[^>]*class="[^"]*\bupdates-top-link\b[^"]*"[^>]*>[\s\S]*?<\/button>/g,'');

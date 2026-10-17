@@ -107,7 +107,7 @@ try{
   assert.equal(await page.locator('.notes-panel script').count(),0);
  });
  await check('설정 변경 후 세금·맞교대·메모 브라우저 저장 유지',async()=>{
-  await go('settings.html');assert.equal(await action('backup').count(),0);
+  await go('settings.html');assert.equal(await action('backup').count(),1);
   const data=await page.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data')));assert.equal(data.version,3);assert.equal(data.workMemo,memo);assert.equal(data.records[0].taxType,'freelance');assert.equal(data.schedule.generatedConfig.count,2);
   await page.reload();await go('notes.html');assert.equal(await page.locator('#work-memo').evaluate(node=>Quill.find(node).getText().slice(0,-1)),memo);
  });

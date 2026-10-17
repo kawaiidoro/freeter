@@ -103,6 +103,13 @@ test('손상된 계정 캐시는 덮어쓰지 않고 동기화 중지',async t=>
 test('저장 공간 부족 시 서버 읽기 결과로 로컬 기준 상태를 바꾸지 않음',async t=>{
  const{cloud,storage,control,signIn}=harness(t);await signIn();storage.blocked=true;control.server.set('alice',{data:{...emptyState(),workMemo:'remote'},revision:1,generation:1,updated_at:null});await cloud.sync();assert.equal(cloud.current.workMemo,'');assert.equal(cloud.revision,0);assert.equal(cloud.phase,'offline');
 });
+test('계정 백업 복원이 저장 공간 부족으로 실패하면 기존 기록과 업로드 상태를 보존한다',async t=>{
+ const{cloud,storage,control,signIn}=harness(t);await signIn();cloud.save({...emptyState(),workMemo:'기존 계정 기록'});await cloud.sync();
+ const cached=storage.getItem(cloud.cacheKey),writes=control.writes,generation=cloud.generation;
+ storage.blocked=true;assert.equal(cloud.save({...emptyState(),workMemo:'복원 실패한 파일'},{reset:true}),false);
+ assert.equal(cloud.current.workMemo,'기존 계정 기록');assert.equal(cloud.dirty,false);assert.equal(cloud.reset,false);assert.equal(storage.getItem(cloud.cacheKey),cached);
+ storage.blocked=false;await cloud.sync();assert.equal(control.writes,writes);assert.equal(cloud.generation,generation);assert.equal(control.server.get('alice').data.workMemo,'기존 계정 기록');
+});
 test('Google 공급자 설정이 끝나지 않았을 때 현재 화면에 머물며 오류 안내',async t=>{
  const{cloud,control}=harness(t);control.googleDisabled=true;await assert.rejects(cloud.googleLogin('https://kawaiidoro.github.io/freeter/'),/지금은 Google/);assert.equal(control.oauth,undefined);
 });

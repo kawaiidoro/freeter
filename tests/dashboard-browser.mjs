@@ -49,11 +49,10 @@ try{
   }
   const after=await page.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data')));assert.deepEqual(after.records,baseline.records);assert.equal(after.workMemo,baseline.workMemo);
  });
- await check('홈 화면 추가 안내가 가이드의 첫 배너이며 안내 제목·본문과 충분히 떨어져 있다',async()=>{
+ await check('가이드는 홈 화면 배너 없이 짧은 단계와 기능별 바로가기를 제공한다',async()=>{
   for(const width of [320,390,768,1440])for(const theme of ['light','dark']){
    await page.setViewportSize({width,height:1000});await go('guide.html');if(await page.locator('html').getAttribute('data-theme')!==theme)await page.locator('#theme-toggle').click();
-   assert.equal(await page.locator('main > :first-child').getAttribute('class'),'panel homescreen-banner guide-homescreen');assert.equal(await page.locator('.homescreen-banner').count(),1);await fits('.homescreen-banner');
-   const banner=await page.locator('.homescreen-banner').boundingBox(),heading=await page.locator('.page-heading').boundingBox();assert.ok(heading.y-banner.y-banner.height>=24);
+   assert.equal(await page.locator('.homescreen-banner').count(),0);assert.equal(await page.locator('.guide-howto').count(),6);assert.equal(await page.locator('.guide-howto-steps li').count(),18);await fits('.guide-howto-grid');
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
    if(width===390||width===1440)await page.screenshot({path:join(output,`guide-top-${width}-${theme}.png`),fullPage:true});
   }
