@@ -7,22 +7,22 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f5f5f7",
-  "theme_color": "#ff6b00",
+  "background_color": "#121212",
+  "theme_color": "#0b1512",
   "icons": [
     {
-      "src": "./icon.svg?v=gomssi-face-20261017",
+      "src": "./icon.svg?v=emerald-20261017",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "./assets/freeter-192.png?v=gomssi-face-20261017",
+      "src": "./assets/freeter-192.png?v=emerald-20261017",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "./assets/freeter-512.png?v=gomssi-face-20261017",
+      "src": "./assets/freeter-512.png?v=emerald-20261017",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"

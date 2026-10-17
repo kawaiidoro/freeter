@@ -101,7 +101,7 @@ export function mountWeatherWidget() {
     <p class="weather-location-note">지역을 선택하거나 내 위치를 허용해 주세요.</p>
     <a class="weather-source" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo · CAMS 대기질 예측 ↗</a>
     </section><button type="button" class="header-weather-toggle" aria-label="오늘 날씨와 기온 보기" aria-controls="header-weather-panel" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M9 2v2M3 8H1m3-5 1 1m8-1-1 1M5 11a5 5 0 1 1 9-3"/><path d="M7 20h11a4 4 0 1 0-1-7.9A5 5 0 0 0 7 12a4 4 0 0 0 0 8Z"/></svg><span>날씨</span></button>`;
-  const host=document.querySelector('.header-clock')||document.querySelector('.topbar');const face=host.querySelector('.clock-face');if(face?.parentNode===host)host.insertBefore(root,face);else host.append(root);
+  const host=document.querySelector('.header-clock')||document.querySelector('.topbar');host.prepend(root);
   const find=selector=>root.querySelector(selector),panel=find('.weather-panel'),toggle=find('.header-weather-toggle'),content=find('.weather-content'),status=find('.weather-status'),citySelect=find('#weather-city');
   let open=false,serial=0,active=null,location={...WEATHER_CITIES[0]},cache=null;
   const position=()=>{

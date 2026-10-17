@@ -308,7 +308,7 @@ export function monthStats(records, month) {
   return { days: new Set(work.map(r => r.date)).size, minutes: work.reduce((sum, r) => sum + calculatePay(r).paidMinutes, 0), expected, receivedForWork, outstanding, cash, work };
 }
 export function emptyState() {
-  return { version: VERSION, settings: { theme: 'light' }, schedule: { config: structuredClone(DEFAULT_SCHEDULE), generatedConfig: null, rows: [] }, workplaces: [], records: [], calculator: null, workMemo: '', workMemoDelta: null };
+  return { version: VERSION, settings: { theme: 'dark' }, schedule: { config: structuredClone(DEFAULT_SCHEDULE), generatedConfig: null, rows: [] }, workplaces: [], records: [], calculator: null, workMemo: '', workMemoDelta: null };
 }
 const textValue = (value, max = 2000) => typeof value === 'string' && value.length <= max;
 export function validateRecord(record) {

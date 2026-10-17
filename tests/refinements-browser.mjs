@@ -54,29 +54,28 @@ try{
   await page.locator('.header-weather-toggle').click();assert.equal(await page.locator('.weather-panel').isVisible(),true);await page.locator('.weather-close').click();assert.equal(await page.locator('.weather-panel').isVisible(),false);assert.equal(await page.locator('.header-weather-toggle').getAttribute('aria-expanded'),'false');assert.equal(await page.evaluate(()=>localStorage.getItem('dangi-alba:data')),before);
   await page.locator('.header-weather-toggle').click();await page.locator('.main-nav [data-page="schedule"]').click();assert.equal(await page.locator('.weather-panel').isVisible(),false);await page.unroute('https://*.open-meteo.com/**');
  });
- await check('상단 시계 초 표시·분 전환·자정 날짜 변경이 즉시 반영되며 메모와 커서 보존',async()=>{
+ await check('분 단위 시계의 자정 날짜 변경, 이전 초 설정 무시와 메모·커서 보존',async()=>{
   await go('notes.html');await page.clock.setSystemTime(new Date('2026-10-17T23:59:50'));await page.clock.pauseAt(new Date('2026-10-17T23:59:58'));await page.clock.runFor(1000);
-  assert.equal(await page.locator('#live-clock').textContent(),'23:59');assert.equal(await page.locator('#seconds-toggle').getAttribute('aria-pressed'),'false');
-  await page.locator('#work-memo .ql-editor').fill('시계가 움직여도 보존되는 메모');await page.locator('#seconds-toggle').click();assert.equal(await page.locator('#live-clock').textContent(),'23:59:59');
+  assert.equal(await page.locator('#live-clock').textContent(),'23:59');assert.equal(await page.locator('#seconds-toggle').count(),0);
+  await page.locator('#work-memo .ql-editor').fill('시계가 움직여도 보존되는 메모');
   await page.locator('#work-memo .ql-editor').click();const cursor=await page.locator('#work-memo').evaluate(node=>Quill.find(node).getSelection());await page.clock.runFor(2000);
-  assert.equal(await page.locator('#live-clock').textContent(),'00:00:01');assert.ok((await page.locator('#today-label').innerText()).includes('18일'));assert.equal(await page.locator('#work-memo .ql-editor').innerText(),'시계가 움직여도 보존되는 메모');assert.deepEqual(await page.locator('#work-memo').evaluate(node=>Quill.find(node).getSelection()),cursor);
-  await page.reload();assert.match(await page.locator('#live-clock').textContent(),/^\d\d:\d\d:\d\d$/);assert.equal(await page.locator('#seconds-toggle').getAttribute('aria-pressed'),'true');await page.locator('#seconds-toggle').click();assert.match(await page.locator('#live-clock').textContent(),/^\d\d:\d\d$/);
+  assert.equal(await page.locator('#live-clock').textContent(),'00:00');assert.ok((await page.locator('#today-label').innerText()).includes('18일'));assert.equal(await page.locator('#work-memo .ql-editor').innerText(),'시계가 움직여도 보존되는 메모');assert.deepEqual(await page.locator('#work-memo').evaluate(node=>Quill.find(node).getSelection()),cursor);
+  await page.evaluate(()=>localStorage.setItem('freeter:clock-seconds','true'));await page.reload();assert.match(await page.locator('#live-clock').textContent(),/^\d\d:\d\d$/);assert.equal(await page.locator('#seconds-toggle').count(),0);
  });
  await check('모바일 320px부터 PC까지 시계·상단 버튼·로고가 겹치지 않음',async()=>{
   for(const width of [320,360,390,430,768,801,1024,1440]){
-   await page.setViewportSize({width,height:844});await go('');for(const seconds of [false,true]){
-    if((await page.locator('#seconds-toggle').getAttribute('aria-pressed')==='true')!==seconds)await page.locator('#seconds-toggle').click();
+   await page.setViewportSize({width,height:844});await go('');{
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${width}px overflow`);
     const clock=await page.locator('.header-clock').boundingBox(),actions=await page.locator('.top-actions').boundingBox(),brand=await page.locator(width<=800?'.mobile-brand':'.breadcrumb').boundingBox();
-    assert.ok(clock.x>=0&&clock.x+clock.width<=width);assert.ok(clock.y>=actions.y+actions.height||clock.x+clock.width<=actions.x,`${width}px clock overlaps actions`);assert.ok(brand.x+brand.width<=actions.x,`${width}px brand overlaps actions`);assert.equal(await page.locator('#live-clock').isVisible(),true);
+    assert.ok(clock.x>=0&&clock.x+clock.width<=width);assert.ok(clock.y>=actions.y+actions.height||clock.x+clock.width<=actions.x,`${width}px clock overlaps actions`);assert.ok(brand.x+brand.width<=actions.x,`${width}px brand overlaps actions`);assert.equal(await page.locator('#live-clock').isVisible(),true);const weather=await page.locator('.header-weather-toggle').boundingBox(),date=await page.locator('#today-label').boundingBox(),time=await page.locator('#live-clock').boundingBox();assert.ok(weather.x+weather.width<=date.x&&date.x+date.width<=time.x,`${width}px weather/date/time order`);
    }
   }
   await page.setViewportSize({width:390,height:844});await page.screenshot({path:join(output,'clock-and-header-weather-mobile.png'),fullPage:true});
  });
- await check('저장소를 차단해도 상단 날씨와 초 표시 버튼은 현재 화면에서 동작',async()=>{
+ await check('저장소를 차단해도 상단 날씨와 분 단위 시각은 정상 동작',async()=>{
   const restricted=await browser.newContext(),tab=await restricted.newPage();try{
    await tab.addInitScript(()=>{Storage.prototype.getItem=()=>{throw new DOMException('Blocked','SecurityError');};Storage.prototype.setItem=()=>{throw new DOMException('Blocked','SecurityError');};});
-   await tab.goto(site.base);await tab.locator('main[data-ready]').waitFor();await tab.locator('#seconds-toggle').click();assert.match(await tab.locator('#live-clock').textContent(),/^\d\d:\d\d:\d\d$/);await tab.route('https://*.open-meteo.com/**',route=>route.abort());await tab.locator('.header-weather-toggle').click();assert.equal(await tab.locator('.weather-panel').isVisible(),true);await tab.keyboard.press('Escape');assert.equal(await tab.locator('.weather-panel').isVisible(),false);assert.equal(await tab.locator('.gomssi-weather').count(),0);
+   await tab.goto(site.base);await tab.locator('main[data-ready]').waitFor();assert.equal(await tab.locator('#seconds-toggle').count(),0);assert.match(await tab.locator('#live-clock').textContent(),/^\d\d:\d\d$/);await tab.route('https://*.open-meteo.com/**',route=>route.abort());await tab.locator('.header-weather-toggle').click();assert.equal(await tab.locator('.weather-panel').isVisible(),true);await tab.keyboard.press('Escape');assert.equal(await tab.locator('.weather-panel').isVisible(),false);assert.equal(await tab.locator('.gomssi-weather').count(),0);
   }finally{await restricted.close();}
  });
  await check('실제 생성 버튼에서도 1시간 순환 뒤 30분·60분을 10분·20분씩 배정',async()=>{
@@ -89,7 +88,7 @@ try{
   const offline=await browser.newContext(),tab=await offline.newPage();try{
    await tab.goto(site.base);await tab.locator('main[data-ready]').waitFor();await tab.evaluate(()=>navigator.serviceWorker.ready);await tab.waitForFunction(()=>navigator.serviceWorker.controller);await offline.setOffline(true);await tab.reload();await tab.locator('main[data-ready]').waitFor();
    for(const selector of ['.brand > img','.brand .freeter-wordmark','.profile-logo','.profile-wordmark'])assert.equal(await tab.locator(selector).evaluate(image=>image.complete&&image.naturalWidth>0),true,selector);
-   const manifestIcons=await tab.evaluate(async()=>{const url=document.querySelector('link[rel="manifest"]').href,manifest=await(await fetch(url)).json();return Promise.all(manifest.icons.map(async icon=>{const response=await fetch(new URL(icon.src,url));return{url:icon.src,ok:response.ok,bytes:(await response.arrayBuffer()).byteLength};}));});assert.equal(manifestIcons.length,3);assert.ok(manifestIcons.every(icon=>icon.ok&&icon.bytes>1000&&icon.url.includes('gomssi-face-20261017')),'Updated app icons must remain available offline');
+   const manifestIcons=await tab.evaluate(async()=>{const url=document.querySelector('link[rel="manifest"]').href,manifest=await(await fetch(url)).json();return Promise.all(manifest.icons.map(async icon=>{const response=await fetch(new URL(icon.src,url));return{url:icon.src,ok:response.ok,bytes:(await response.arrayBuffer()).byteLength};}));});assert.equal(manifestIcons.length,3);assert.ok(manifestIcons.every(icon=>icon.ok&&icon.bytes>1000&&icon.url.includes('emerald-20261017')),'Updated app icons must remain available offline');
   }finally{await offline.close();}
  });
  assert.deepEqual(errors,[]);console.log(`화면·공평 배분·PNG·시계·곰씨 브라우저 시나리오 ${count}개 통과`);

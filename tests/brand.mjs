@@ -55,13 +55,13 @@ try{
  await check('장문 이름도 화면 안에 유지되고 다크모드에서 배정 변경 가능',async()=>{
   await page.locator('[data-action="edit-schedule"]').click();await page.locator('[name="person0"]').fill('이름이아주긴근무자이름을표시해도화면을벗어나지않음');await page.locator('#schedule-form button[type="submit"]').click();
   const size=await page.locator('.schedule-scroll').evaluate(n=>[n.clientWidth,n.scrollWidth]);assert.ok(size[1]<=size[0]+1);
-  await page.locator('#theme-toggle').click();assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');await page.locator('[data-action="choose-rest"][data-row="0"][data-worker="0"]').click();assert.equal(await page.locator('[data-action="choose-rest"][data-row="0"][data-worker="0"]').innerText(),'휴식');
+  if(await page.locator('html').getAttribute('data-theme')!=='dark')await page.locator('#theme-toggle').click();assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');await page.locator('[data-action="choose-rest"][data-row="0"][data-worker="0"]').click();assert.equal(await page.locator('[data-action="choose-rest"][data-row="0"][data-worker="0"]').innerText(),'휴식');
  });
  await check('페이지 이동 시 공유 제목·주소도 해당 페이지로 갱신',async()=>{
   await page.locator('.mobile-nav [data-page="calculator"]').click();assert.ok((await page.locator('meta[property="og:title"]').getAttribute('content')).includes('급여 계산기'));assert.ok((await page.locator('meta[property="og:url"]').getAttribute('content')).endsWith('/calculator.html'));
  });
- await check('중성 라이트 배경과 위젯·앱 바로가기가 모바일·데스크톱에서 화면 안에 표시',async()=>{
-  await page.locator('#theme-toggle').click();
+ await check('그린 테마의 명암 대비와 위젯·앱 바로가기가 모바일·PC에서 정상 표시',async()=>{
+  if(await page.locator('html').getAttribute('data-theme')!=='light')await page.locator('#theme-toggle').click();
   for(const width of [320,390,768,1440]){
    await page.setViewportSize({width,height:1000});await go('');
    const neutral=await page.evaluate(()=>getComputedStyle(document.body).backgroundColor.match(/\d+/g).slice(0,3).map(Number));assert.ok(Math.max(...neutral)-Math.min(...neutral)<=3);assert.ok(Math.min(...neutral)>=240);
@@ -71,6 +71,13 @@ try{
   }
   await page.screenshot({path:join(output,'freeter-workspace-desktop.png'),fullPage:true});
   await page.setViewportSize({width:390,height:844});await page.screenshot({path:join(output,'freeter-workspace-mobile.png'),fullPage:true});
+  await page.setViewportSize({width:1440,height:1000});await page.locator('#theme-toggle').click();
+  const palette=await page.evaluate(()=>{const css=getComputedStyle(document.documentElement);return Object.fromEntries(['bg','surface','accent','blue','body','muted','text'].map(key=>[key,css.getPropertyValue('--'+key).trim()]));});
+  assert.equal(palette.bg,'#121212');assert.equal(palette.surface,'#065f46');assert.equal(palette.accent,'#10b981');assert.equal(palette.blue,'#a7f3d0');
+  const luminance=hex=>hex.slice(1).match(/../g).map(x=>parseInt(x,16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0),contrast=(a,b)=>{const x=luminance(a),y=luminance(b);return(Math.max(x,y)+.05)/(Math.min(x,y)+.05);};
+  for(const foreground of ['text','body','muted','blue'])assert.ok(contrast(palette[foreground],palette.surface)>=4.5,foreground+' contrast');assert.ok(contrast('#052718',palette.accent)>=4.5,'Action contrast');
+  await page.screenshot({path:join(output,'freeter-emerald-desktop.png'),fullPage:true});await page.setViewportSize({width:390,height:844});await page.screenshot({path:join(output,'freeter-emerald-mobile.png'),fullPage:true});
+  await page.locator('#theme-toggle').click();
   await page.locator('.app-launcher [data-route="notes"]').click();await page.locator('#work-memo').waitFor();
  });
  const readingMemo='09:50 담당자에게 도착 연락\n준비물: 신분증, 편한 운동화\n\n업무 순서\n1. 안전교육을 받은 뒤 작업 시작\n2. 물품 정리와 수량 확인\n<script>throw new Error("unsafe memo")</script>\n'+('긴업무설명을읽을때에도화면밖으로넘어가지않아요'.repeat(12));

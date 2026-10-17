@@ -414,7 +414,7 @@ function monthStats(records, month) {
   return { days: new Set(work.map(r => r.date)).size, minutes: work.reduce((sum, r) => sum + calculatePay(r).paidMinutes, 0), expected, receivedForWork, outstanding, cash, work };
 }
 function emptyState() {
-  return { version: VERSION, settings: { theme: 'light' }, schedule: { config: structuredClone(DEFAULT_SCHEDULE), generatedConfig: null, rows: [] }, workplaces: [], records: [], calculator: null, workMemo: '', workMemoDelta: null };
+  return { version: VERSION, settings: { theme: 'dark' }, schedule: { config: structuredClone(DEFAULT_SCHEDULE), generatedConfig: null, rows: [] }, workplaces: [], records: [], calculator: null, workMemo: '', workMemoDelta: null };
 }
 const textValue = (value, max = 2000) => typeof value === 'string' && value.length <= max;
 function validateRecord(record) {
@@ -844,7 +844,7 @@ function mountWeatherWidget() {
     <p class="weather-location-note">지역을 선택하거나 내 위치를 허용해 주세요.</p>
     <a class="weather-source" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo · CAMS 대기질 예측 ↗</a>
     </section><button type="button" class="header-weather-toggle" aria-label="오늘 날씨와 기온 보기" aria-controls="header-weather-panel" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M9 2v2M3 8H1m3-5 1 1m8-1-1 1M5 11a5 5 0 1 1 9-3"/><path d="M7 20h11a4 4 0 1 0-1-7.9A5 5 0 0 0 7 12a4 4 0 0 0 0 8Z"/></svg><span>날씨</span></button>`;
-  const host=document.querySelector('.header-clock')||document.querySelector('.topbar');const face=host.querySelector('.clock-face');if(face?.parentNode===host)host.insertBefore(root,face);else host.append(root);
+  const host=document.querySelector('.header-clock')||document.querySelector('.topbar');host.prepend(root);
   const find=selector=>root.querySelector(selector),panel=find('.weather-panel'),toggle=find('.header-weather-toggle'),content=find('.weather-content'),status=find('.weather-status'),citySelect=find('#weather-city');
   let open=false,serial=0,active=null,location={...WEATHER_CITIES[0]},cache=null;
   const position=()=>{
@@ -918,7 +918,7 @@ function mountWeatherWidget() {
 }
 
 
-const APP_RELEASE = '4440c632e979';
+const APP_RELEASE = 'd81573c1ed0b';
 let latestRelease = APP_RELEASE;
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -1016,7 +1016,7 @@ function applyTheme() {
   document.documentElement.dataset.theme = state.settings.theme;
   $('#theme-toggle').innerHTML = icon(state.settings.theme === 'dark' ? 'sun' : 'moon');
   $('#theme-toggle').setAttribute('aria-label', state.settings.theme === 'dark' ? '라이트모드로 전환' : '다크모드로 전환');
-  $('meta[name="theme-color"]').content = state.settings.theme === 'dark' ? '#111111' : '#ff6b00';
+  $('meta[name="theme-color"]').content = state.settings.theme === 'dark' ? '#0b1512' : '#f5f7f6';
 }
 function render() {
   const filename = location.pathname.split('/').at(-1);
@@ -1057,7 +1057,7 @@ function homeView() {
   return `<h1 class="sr-only">Freeter</h1>
     <div class="workspace-grid">
       <section class="workspace-widget profile-widget" aria-label="나의 Freeter"><img class="profile-logo" src="./assets/freeter-512.png" width="96" height="96" alt="안전모를 쓴 곰씨 정면 얼굴 Freeter 로고"><div class="profile-copy"><img class="profile-wordmark freeter-wordmark" src="./assets/freeter-wordmark.png" width="220" height="73" alt="FREETER · 프리터"><p>근무부터 급여까지,<br>내 일의 흐름을 한곳에.</p></div><a href="#calculator" class="profile-link">급여 계산하기 ${icon('arrow')}</a></section>
-      <section class="workspace-widget launcher-widget" aria-label="근무 관리 도구"><div class="app-launcher">${[['schedule','calendar','근무표','tile-orange'],['calculator','calculator','급여 계산','tile-black'],['records','notebook','알바 기록','tile-silver'],['notes','edit','업무 메모','tile-notes'],['stats','chart','수입 통계','tile-chart'],['settings','settings','데이터 · 설정','tile-settings']].map(args=>appTile(...args)).join('')}</div></section>
+      <section class="workspace-widget launcher-widget" aria-label="근무 관리 도구"><div class="app-launcher">${[['schedule','calendar','근무표','tile-emerald'],['calculator','calculator','급여 계산','tile-black'],['records','notebook','알바 기록','tile-silver'],['notes','edit','업무 메모','tile-notes'],['stats','chart','수입 통계','tile-chart'],['settings','settings','데이터 · 설정','tile-settings']].map(args=>appTile(...args)).join('')}</div></section>
       <section class="workspace-widget recent-panel records-widget"><div class="widget-bar"><span class="widget-heading-icon tile-silver">${icon('notebook')}</span><div><h2>최근 알바 기록</h2><p>차곡차곡 쌓이는 나의 하루</p></div><a href="#records" class="widget-open" aria-label="알바 기록 전체 보기">${icon('arrow')}</a></div><div class="widget-content">${recent.length ? `<div class="recent-list">${recent.map(r=>`<button class="recent-row" data-action="edit-record" data-id="${esc(r.id)}"><span class="workplace-avatar">${esc(r.workplace.slice(0,1))}</span><span class="recent-details"><strong>${esc(r.workplace)}</strong><span>${esc(r.date)} · ${duration(calculatePay(r).paidMinutes)}</span></span><span class="recent-amount"><strong>${money(calculatePay(r).expected)}</strong><span class="status ${recordStatus(r)}">${STATUS[recordStatus(r)]}</span></span>${icon('chevron')}</button>`).join('')}</div>` : smallEmpty('첫 번째 알바를 기록해 보세요','근무한 하루를 남기면, 급여 관리가 쉬워져요.','<button class="button secondary small" data-action="add-record">'+icon('plus')+'첫 기록 추가하기</button>')}</div></section>
       <section class="workspace-widget memo-widget"><div class="widget-bar"><span class="widget-heading-icon tile-notes">${icon('edit')}</span><div><h2>업무 메모</h2><p>출근 전, 한 번 더 확인</p></div><a href="#notes" class="widget-open" aria-label="업무 메모장 열기">${icon('edit')}</a></div><a class="memo-preview" href="#notes"><span class="memo-preview-title">나의 업무 메모</span><p>${esc(state.workMemo.trim()||'전달받은 업무 설명과 준비물을 적어 두세요.\n필요할 때 바로 꺼내볼 수 있어요.')}</p><span class="memo-preview-cta">${state.workMemo.trim()?'메모 이어 보기':'첫 메모 쓰기'} ${icon('arrow')}</span></a></section>
       <section class="workspace-widget month-widget" aria-labelledby="month-title"><div class="widget-heading"><h2 id="month-title">${new Date().getMonth()+1}월의 기록</h2><a href="#stats" class="text-link">수입 통계 ${icon('chevron')}</a></div><div class="summary-grid home-summary">${summaryCard('calendar','blue','근무한 날',`${stats.days}<small>일</small>`,`${duration(stats.minutes)} 근무`)}${summaryCard('wallet','purple','예상 급여',numberWon(stats.expected),'이번 달 근무 기준')}${summaryCard('check','green','실제 받은 급여',numberWon(stats.cash),'이번 달 입금 기준')}${summaryCard('clock','orange','아직 못 받은 급여',numberWon(stats.outstanding),'이번 달 근무의 미수령액')}</div></section>
@@ -1218,7 +1218,7 @@ function notesView() {
   const lines=state.workMemo.trim()?state.workMemo.split('\n').length:0;
   return head('WORK NOTES','업무 메모장','설명은 적어 두고, 필요한 순간 가볍게 꺼내 보세요.')+`<div class="notes-layout"><aside class="notes-sidebar"><div class="notes-collection"><span class="notes-collection-icon">${icon('notebook')}</span><div><h2>나의 업무 메모</h2><p>이 브라우저에 자동 저장</p></div>${icon('lock')}</div><div class="note-selected"><span>업무 메모</span><p>${esc(state.workMemo.trim().split('\n')[0]||'첫 업무 설명을 남겨 보세요.')}</p></div><div class="notes-sidebar-help"><h3>출근 전 체크</h3><p>담당자 연락처와 도착 장소<br>꼭 챙겨야 할 준비물<br>업무 순서와 주의사항</p><a href="#settings">메모까지 함께 백업 ${icon('chevron')}</a></div></aside>
     <section class="panel notes-panel"><div class="notes-toolbar"><div class="notes-document-title"><span class="notes-document-icon">${icon('edit')}</span><div><h2>오늘의 업무 설명</h2><p>나의 업무 메모</p></div></div><div class="notes-mode" role="group" aria-label="메모 보기 방식"><button type="button" data-action="memo-mode" data-mode="edit" aria-pressed="${!memoReading}">${icon('edit')}편집</button><button type="button" data-action="memo-mode" data-mode="read" aria-pressed="${memoReading}">${icon('notebook')}읽기</button></div></div>
-      <div id="memo-format-toolbar" class="memo-format-toolbar" aria-label="메모 서식" ${memoReading?'hidden':''}><div class="memo-format-group"><button type="button" class="memo-format-button" data-action="memo-format-bold" aria-label="굵게" aria-pressed="false"><b>B</b></button><button type="button" class="memo-format-button" data-action="memo-format-underline" aria-label="밑줄" aria-pressed="false"><u>U</u></button><label class="memo-size-label"><span class="sr-only">글자 크기</span><select id="memo-font-size" data-memo-format="size" aria-label="글자 크기">${MEMO_SIZES.map(size=>`<option value="${size}" ${size==='17px'?'selected':''}>${size.replace('px','')}</option>`).join('')}</select><span>px</span></label></div><div class="memo-format-group"><label class="memo-color-control"><span>글자색</span><input type="color" id="memo-font-color" data-memo-format="color" value="#1d1d1f" aria-label="글자색"></label><button type="button" class="memo-format-button marker-toggle" data-action="memo-format-highlight" aria-label="형광펜 마커" aria-pressed="false">${icon('edit')}</button><label class="memo-color-control"><span>마커색</span><input type="color" id="memo-highlight-color" data-memo-format="background" value="#fff59d" aria-label="마커색"></label></div></div>
+      <div id="memo-format-toolbar" class="memo-format-toolbar" aria-label="메모 서식" ${memoReading?'hidden':''}><div class="memo-format-group"><button type="button" class="memo-format-button" data-action="memo-format-bold" aria-label="굵게" aria-pressed="false"><b>B</b></button><button type="button" class="memo-format-button" data-action="memo-format-underline" aria-label="밑줄" aria-pressed="false"><u>U</u></button><label class="memo-size-label"><span class="sr-only">글자 크기</span><select id="memo-font-size" data-memo-format="size" aria-label="글자 크기">${MEMO_SIZES.map(size=>`<option value="${size}" ${size==='17px'?'selected':''}>${size.replace('px','')}</option>`).join('')}</select><span>px</span></label></div><div class="memo-format-group"><label class="memo-color-control"><span>글자색</span><input type="color" id="memo-font-color" data-memo-format="color" value="#1d1d1f" aria-label="글자색"></label><button type="button" class="memo-format-button marker-toggle" data-action="memo-format-highlight" aria-label="형광펜 마커" aria-pressed="false">${icon('edit')}</button><label class="memo-color-control"><span>마커색</span><input type="color" id="memo-highlight-color" data-memo-format="background" value="#a7f3d0" aria-label="마커색"></label></div></div>
       <div class="notes-paper"><div id="work-memo" class="notes-editor" aria-label="업무 메모 편집" ${memoReading?'hidden':''}></div><article id="memo-reader" class="memo-reader ${state.workMemo.trim()?'':'memo-empty'}" aria-label="업무 메모 읽기" tabindex="0" ${memoReading?'':'hidden'}>${memoMarkup()}</article></div>
       <div class="notes-save-state"><span id="memo-status" role="status">${state.workMemo.length.toLocaleString('ko-KR')} / 30,000자 · 브라우저 자동 저장</span><span id="memo-lines">${lines}줄</span></div><div class="notes-bottom-bar"><div class="export-actions"><button class="button secondary" data-action="copy-memo">${icon('copy')}메모 복사</button><button class="button secondary" data-action="download-memo">${icon('download')}TXT 저장</button></div><button class="button ghost" data-action="clear-memo" aria-label="메모 내용 비우기">${icon('trash')}비우기</button></div>
     </section></div><p class="notes-privacy-note">${icon('lock')}입력 즉시 이 브라우저에 저장돼요. 기기를 바꾸기 전에는 <a href="#settings">JSON 백업</a>을 해 주세요.</p>`;
@@ -1730,20 +1730,15 @@ async function checkAppVersion() {
 document.documentElement.dataset.appRelease=APP_RELEASE;
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkAppVersion();});
 // The clock updates only its own text, without re-rendering an active memo.
-const secondsKey='freeter:clock-seconds', clockNode=$('#live-clock'), secondsButton=$('#seconds-toggle');
-let clockSeconds=false;
-try{clockSeconds=localStorage.getItem(secondsKey)==='true';}catch{/* In-memory preference works with storage disabled. */}
+const clockNode=$('#live-clock');
 const clockDate=new Intl.DateTimeFormat('ko-KR',{month:'long',day:'numeric',weekday:'short'});
 function updateClock(){
   const now=new Date(),pad=value=>String(value).padStart(2,'0');
-  const text=[now.getHours(),now.getMinutes(),...(clockSeconds?[now.getSeconds()]:[])].map(pad).join(':');
+  const text=[now.getHours(),now.getMinutes()].map(pad).join(':');
   if(clockNode.textContent!==text)clockNode.textContent=text;
   clockNode.dateTime=now.toISOString();
   $('#today-label').textContent=clockDate.format(now);$('#year').textContent=now.getFullYear();
-  secondsButton.setAttribute('aria-pressed',String(clockSeconds));
-  secondsButton.title=clockSeconds?'초 단위 숨기기':'초 단위 표시';secondsButton.setAttribute('aria-label',secondsButton.title);
 }
-secondsButton.addEventListener('click',()=>{clockSeconds=!clockSeconds;try{localStorage.setItem(secondsKey,String(clockSeconds));}catch{/* Keep the current display usable. */}updateClock();});
 updateClock();setInterval(()=>{if(!document.hidden)updateClock();},1000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateClock();});
 render();

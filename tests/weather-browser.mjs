@@ -78,7 +78,7 @@ try {
    const button=await page.locator('.header-weather-toggle').boundingBox(),header=await page.locator('.topbar').boundingBox();assert.ok(button.y>=header.y&&button.y+button.height<=header.y+header.height);assert.ok(box.y>=header.y+header.height);
    await page.keyboard.press('Escape');assert.equal(await page.locator('.header-weather-toggle').getAttribute('aria-expanded'),'false');assert.equal(await page.locator('.header-weather-toggle').evaluate(node=>node===document.activeElement),true);
   }
-  await page.emulateMedia({reducedMotion:'reduce'});assert.equal(await page.locator('.gomssi-weather,.gomssi-button,.gomssi-bubble').count(),0);await page.locator('#theme-toggle').click();await show(page);await ready(page);await page.screenshot({path:join(output,'gomssi-weather-desktop-dark.png')});
+  await page.emulateMedia({reducedMotion:'reduce'});assert.equal(await page.locator('.gomssi-weather,.gomssi-button,.gomssi-bubble').count(),0);if(await page.locator('html').getAttribute('data-theme')!=='dark')await page.locator('#theme-toggle').click();await show(page);await ready(page);await page.screenshot({path:join(output,'gomssi-weather-desktop-dark.png')});
  });
  assert.deepEqual(errors,[],'Unexpected browser errors');console.log(`날씨·입력 반응 브라우저 시나리오 ${count}개 통과`);
 } finally {await browser.close();await site.close();}

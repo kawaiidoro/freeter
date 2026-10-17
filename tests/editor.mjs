@@ -29,7 +29,7 @@ try{
   await a.locator('#memo-font-color').evaluate(node=>{node.value='#cc2211';node.dispatchEvent(new Event('change',{bubbles:true}));});
   await a.locator('[data-action="memo-format-highlight"]').click();
   const data=await state(a);assert.equal(data.workMemo,text);const attrs=data.workMemoDelta.ops.find(op=>op.insert.startsWith('오늘')).attributes;
-  assert.deepEqual(attrs,{bold:true,underline:true,size:'24px',color:'#cc2211',background:'#fff59d'});
+  assert.deepEqual(attrs,{bold:true,underline:true,size:'24px',color:'#cc2211',background:'#a7f3d0'});
   await a.locator('[data-action="memo-mode"][data-mode="read"]').click();assert.equal(await a.locator('#memo-reader').textContent(),text);assert.equal(await a.locator('#memo-reader script').count(),0);
   assert.equal(await a.locator('#memo-reader span').first().evaluate(node=>getComputedStyle(node).fontSize),'24px');assert.ok(await a.locator('#memo-format-toolbar').isHidden());
   await a.screenshot({path:join(output,'formatted-memo-mobile.png'),fullPage:true});
