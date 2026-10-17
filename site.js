@@ -911,7 +911,7 @@ function mountWeatherWidget() {
     <p class="weather-status" role="status" aria-live="polite"></p><div class="weather-content" aria-busy="false"></div>
     <p class="weather-location-note">지역을 선택하거나 내 위치를 허용해 주세요.</p>
     <a class="weather-source" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo · CAMS 대기질 예측 ↗</a>
-    </section><button type="button" class="header-weather-toggle" aria-label="오늘 날씨와 기온 보기" aria-controls="header-weather-panel" aria-haspopup="dialog" aria-expanded="false"><svg class="header-illustration" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v2M2 8h2m0-5 1.5 1.5m9-1.5L13 4.5M4.7 11.2A4.5 4.5 0 1 1 12 6.5"/><path d="M7 20h10a4 4 0 0 0 .3-8 5.4 5.4 0 0 0-10.2 0A4 4 0 0 0 7 20Z"/></svg><span>날씨</span></button>`;
+    </section><button type="button" class="header-weather-toggle" aria-label="오늘 날씨와 기온 보기" aria-controls="header-weather-panel" aria-haspopup="dialog" aria-expanded="false"><svg class="header-illustration" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v2M2 8h2m0-5 1.5 1.5m9-1.5L13 4.5M4.7 11.2A4.5 4.5 0 1 1 12 6.5"/><path d="M7 20h10a4 4 0 0 0 .3-8 5.4 5.4 0 0 0-10.2 0A4 4 0 0 0 7 20Z"/></svg><span>날씨</span></button>`;
   const host=document.querySelector('.header-clock')||document.querySelector('.topbar');host.prepend(root);
   const find=selector=>root.querySelector(selector),panel=find('.weather-panel'),toggle=find('.header-weather-toggle'),content=find('.weather-content'),status=find('.weather-status'),citySelect=find('#weather-city');
   let open=false,serial=0,active=null,location={...WEATHER_CITIES[0]},cache=null;
@@ -987,7 +987,7 @@ function mountWeatherWidget() {
 
 const SUPPORT_CONFIG = {"coffeeUrl":"https://open.kakao.com/o/sg56FSSi"};
 
-const APP_RELEASE = '3e7605e4ec4f';
+const APP_RELEASE = '0c5466b24877';
 let latestRelease = APP_RELEASE;
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -1028,14 +1028,8 @@ const icons = {
   coffee: '<path d="M4 8h12v9a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4Zm12 0h2a3 3 0 0 1 0 6h-2M7 3v2m5-2v2"/>',
 };
 const icon = (name, className = '') => `<svg class="icon ${className}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.notebook}</svg>`;
-// Rounded illustration icons for the header controls only.
-const headerIcons={
-  edit:'<path d="M12 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/><path d="m15 3 6 6-8 8-5 1 1-5Z M13 5l6 6"/>',
-  user:'<rect x="3" y="3" width="18" height="18" rx="6"/><circle cx="12" cy="9" r="3"/><path d="M7 19v-1a5 5 0 0 1 10 0v1"/>',
-  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/>',
-  moon:'<path d="M20.5 14.4A8.8 8.8 0 0 1 9.6 3.5 8.8 8.8 0 1 0 20.5 14.4Z"/>'
-};
-const headerIcon=name=>`<svg class="icon header-illustration" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${headerIcons[name]}</svg>`;
+// Match header controls to the navigation's simple, lightweight outlines.
+const headerIcon=name=>icon(name,'header-illustration');
 // Older cached HTML may still contain the retired header shortcut.
 $$('.updates-top-link').forEach(node=>node.remove());
 $$('.mobile-nav [data-page]').filter(node=>!['home','notes','schedule','calculator'].includes(node.dataset.page)).forEach(node=>node.remove());
