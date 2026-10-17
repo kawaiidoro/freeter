@@ -739,7 +739,9 @@ html[data-theme] .notes-editor .ql-editor { padding: 0; min-height: 450px; color
 .account-status[data-status='synced'] { color: var(--blue); }
 .account-status[data-status='error'], .account-status[data-status='conflict'], .account-status[data-status='offline'] { color: var(--accent); }
 .google-login { background: var(--text); color: var(--surface); min-height: 48px; padding: 12px 22px; gap: 12px; }
-.google-mark { font-family: Arial,sans-serif; font-size: 20px; font-weight: 700; }
+.google-mark { display: inline-grid; place-items: center; width: 26px; height: 26px; flex: 0 0 26px; border-radius: 50%; background: #fff; }
+.google-mark svg { display: block; width: 18px; height: 18px; }
+.account-contact-note { max-width: 540px; color: var(--body); line-height: 1.8; }
 .account-actions { display: flex; flex-wrap: wrap; gap: 9px; }
 .account-card .field-hint, #account-dialog .field-hint { margin-top: 18px; font-size: 12px; line-height: 1.9; color: var(--muted); }
 .account-conflict { padding: 18px; background: var(--bg); border: 1px solid var(--border); border-radius: 15px; margin-top: 20px; }
