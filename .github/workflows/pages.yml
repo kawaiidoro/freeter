@@ -85,6 +85,7 @@ jobs:
           node tests/account-browser.mjs
           node tests/weather-browser.mjs
           node tests/refinements-browser.mjs
+          node tests/rest-adjustments-browser.mjs
           node tests/update-recovery.mjs
           node tests/browser.mjs
           node tests/features.mjs

@@ -875,3 +875,33 @@ body:has(dialog[open]) .gomssi-weather { visibility: hidden; }
   #live-clock { font-size: 13px; }
   .gomssi-hide { right: -1px; bottom: -1px; }
 }
+
+/* A small illustrated clock replaces the text-only seconds switch. */
+.seconds-toggle { border-color: transparent; border-radius: 50%; background: transparent; color: var(--accent); }
+.clock-illustration { width: 29px; height: 29px; display: block; }
+.clock-second-hand { opacity: 0; }
+.seconds-toggle[aria-pressed='true'] .clock-second-hand { opacity: 1; }
+.launcher-widget { display: flex; align-items: center; }
+.launcher-widget .app-launcher { width: 100%; }
+.profile-logo { margin-left: 0; }
+.schedule-adjust-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 9px 12px; margin: 15px 0 20px; }
+.schedule-adjust-bar > span { color: var(--muted); font-size: 11px; }
+.all-work-row > th small { display: block; margin-top: 4px; color: var(--muted); font-size: 9px; font-weight: 400; }
+#rest-adjust-dialog { width: 510px; max-width: calc(100vw - 32px); max-height: calc(100dvh - 40px); padding: 25px; border-radius: 23px; overflow-y: auto; }
+#rest-adjust-dialog h2 { margin: 6px 0 0; font-size: 22px; }
+#rest-adjust-dialog .dialog-head { gap: 12px; }
+#rest-adjust-dialog fieldset { margin: 22px 0; border: 0; padding: 0; min-width: 0; }
+#rest-adjust-dialog legend { font-size: 13px; font-weight: 650; margin-bottom: 13px; }
+#rest-adjust-dialog .field-hint { margin: 9px 0 14px; font-size: 11px; line-height: 1.8; }
+#rest-adjust-dialog .work-window { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) 32px; gap: 9px; align-items: end; margin: 10px 0; }
+#rest-adjust-dialog .work-window .icon-button { width: 32px; height: 42px; padding: 7px; }
+#rest-adjust-dialog .field input,#rest-adjust-dialog .field select { width: 100%; min-width: 0; }
+#rest-adjust-dialog .rest-reset { display: block; margin: 17px auto 0; color: var(--muted); font-size: 11px; text-decoration: underline; text-underline-offset: 3px; }
+@media(max-width:600px){
+  #rest-adjust-dialog { padding: 21px 18px; }
+  #rest-adjust-dialog h2 { font-size: 19px; }
+  #rest-adjust-dialog .work-window { gap: 6px; grid-template-columns: minmax(0,1fr) minmax(0,1fr) 28px; }
+  #rest-adjust-dialog .dialog-actions { gap: 7px; }
+  #rest-adjust-dialog .dialog-actions .button { flex: 1; font-size: 12px; padding: 11px 9px; }
+  .schedule-adjust-bar > span { font-size: 10px; }
+}

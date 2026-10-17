@@ -24,7 +24,7 @@ try{
  await check('이전 근무표와 수동 배정을 보존하고 재생성하면 공평한 점심 복귀 규칙 적용',async()=>{
   const state=emptyState();state.schedule.config={...DEFAULT_SCHEDULE,rulesVersion:1,fair:false,lunchMode:'single'};state.schedule.generatedConfig=structuredClone(state.schedule.config);state.schedule.rows=generateSchedule(state.schedule.config);delete state.schedule.config.rulesVersion;delete state.schedule.generatedConfig.rulesVersion;
   await page.evaluate(data=>localStorage.setItem('dangi-alba:data',JSON.stringify(data)),state);await go('schedule.html');assert.ok((await page.locator('.inline-notice').innerText()).includes('기존 배정을 보존'));assert.equal(await page.locator('[name="fair"]').isChecked(),true);const before=await page.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data')).schedule.rows);assert.deepEqual(before,state.schedule.rows);
-  await generate();let saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data')).schedule);assert.equal(saved.generatedConfig.rulesVersion,3);const last=saved.rows.findLastIndex(row=>row.rest===null);assert.ok(!saved.rows[last].lunchers.includes(saved.rows[last+1].rest));const work=scheduleTotals(saved.rows).map(total=>total.work);assert.ok(Math.max(...work)-Math.min(...work)<=1);await page.reload();assert.equal(await page.locator('.inline-notice').count(),0);
+  await generate();let saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data')).schedule);assert.equal(saved.generatedConfig.rulesVersion,4);const slots=saved.rows.filter(row=>row.rest!==null);assert.deepEqual(slots.map(row=>row.rest),slots.map((_,i)=>i%3));const work=scheduleTotals(saved.rows).map(total=>total.work);assert.ok(Math.max(...work)-Math.min(...work)<=1);await page.reload();assert.equal(await page.locator('.inline-notice').count(),0);
  });
  await check('모바일·PC·다크모드 PNG의 크기와 근무·휴식·점심 색이 실제 화면과 일치',async()=>{
   for(const [width,dark]of [[1440,false],[390,true]]){
@@ -37,7 +37,11 @@ try{
    for(const [actual,expected]of comparison)assert.ok(actual.slice(0,3).every((value,index)=>Math.abs(value-expected[index])<=8),JSON.stringify({width,dark,actual,expected}));assert.equal(await page.locator('.schedule-export-stage').count(),0);
   }
   await page.setViewportSize({width:1440,height:1000});await go('schedule.html');if(await page.locator('#schedule-settings').getAttribute('open')===null)await page.locator('[data-action="edit-schedule"]').click();await page.locator('[name="interval"]').fill('5');await generate();
-  const downloads=[];const collect=item=>downloads.push(item);page.on('download',collect);await page.locator('[data-action="schedule-png"]').click();await page.waitForFunction(()=>!document.querySelector('[data-action="schedule-png"]').disabled,{},{timeout:60000});page.off('download',collect);assert.ok(downloads.length>1,'Long schedules should be paginated: '+JSON.stringify({downloads:downloads.length,toast:await page.locator('#toast').textContent(),rows:await page.locator('.schedule-table tbody tr').count()}));
+  const downloads=[];const collect=item=>downloads.push(item);page.on('download',collect);await page.locator('[data-action="schedule-png"]').click();await page.waitForFunction(()=>!document.querySelector('[data-action="schedule-png"]').disabled,{},{timeout:60000});
+  const parts=Number((await page.locator('#toast').textContent()).match(/(\d+)장의/)?.[1]||0);assert.ok(parts>1,'Long schedules should be paginated');
+  // Browser download events can arrive after the button becomes enabled again.
+  if(downloads.length<parts)await new Promise((resolve,reject)=>{const cleanup=()=>{page.off('download',done);clearTimeout(timer);};const done=()=>{if(downloads.length>=parts){cleanup();resolve();}};const timer=setTimeout(()=>{cleanup();reject(new Error(`Expected ${parts} downloads, received ${downloads.length}`));},5000);page.on('download',done);done();});
+  page.off('download',collect);assert.equal(downloads.length,parts);
   for(let i=0;i<downloads.length;i++){const path=join(output,`long-schedule-${i+1}.png`);await downloads[i].saveAs(path);const bytes=await readFile(path);assert.ok(bytes.readUInt32BE(20)<16384);}assert.equal(await page.locator('.schedule-export-stage').count(),0);
  });
  await check('곰씨 말풍선이 주기적으로 바뀌고 메모 입력 중에는 읽던 문구를 유지',async()=>{
@@ -80,7 +84,7 @@ try{
  await check('실제 생성 버튼에서도 1시간 순환 뒤 30분·60분을 10분·20분씩 배정',async()=>{
   for(const [end,minutes]of [['11:30',10],['12:00',20]]){
    const state=emptyState();state.schedule.config={...DEFAULT_SCHEDULE,start:'08:00',end,lunchEnabled:false};await page.evaluate(data=>localStorage.setItem('dangi-alba:data',JSON.stringify(data)),state);await go('schedule.html');await generate();
-   const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data')).schedule);assert.equal(saved.generatedConfig.rulesVersion,3);assert.deepEqual(saved.rows.map(row=>row.end-row.start),[60,60,60,minutes,minutes,minutes]);assert.deepEqual(saved.rows.map(row=>row.rest),[0,1,2,0,1,2]);assert.deepEqual(scheduleTotals(saved.rows).map(t=>t.rest),Array(3).fill(60+minutes));
+   const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data')).schedule);assert.equal(saved.generatedConfig.rulesVersion,4);assert.deepEqual(saved.rows.map(row=>row.end-row.start),[60,60,60,minutes,minutes,minutes]);assert.deepEqual(saved.rows.map(row=>row.rest),[0,1,2,0,1,2]);assert.deepEqual(scheduleTotals(saved.rows).map(t=>t.rest),Array(3).fill(60+minutes));
   }
  });
  await check('새 로고의 버전 주소도 오프라인 재접속에서 정상 표시',async()=>{

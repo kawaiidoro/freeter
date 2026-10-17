@@ -25,8 +25,9 @@ export function validateMemoDelta(delta, text) {
 }
 export const DEFAULT_SCHEDULE = {
   names: ['', '', ''], count: 3, start: '10:00', end: '19:00',
-  lunchEnabled: true, lunchStart: '12:00', lunchEnd: '13:00', interval: 60, first: 0, fair: true, rulesVersion: 3,
+  lunchEnabled: true, lunchStart: '12:00', lunchEnd: '13:00', interval: 60, first: 0, fair: true, rulesVersion: 4,
   lunchMode: 'together', lunchMinutes: 60, lunchFirst: 0,
+  roundMinutes: [], workOnly: [],
 };
 export const today = () => {
   const now = new Date();
@@ -88,8 +89,10 @@ export function normalizeSchedule(config) {
 }
 export function generateSchedule(config) {
   config = normalizeSchedule(config);
-  if(![1,2,3].includes(config.rulesVersion))throw new Error('지원하지 않는 근무표 규칙입니다.');
+  if(![1,2,3,4].includes(config.rulesVersion))throw new Error('지원하지 않는 근무표 규칙입니다.');
+  validateRestOptions(config);
   const original = generateOriginalSchedule(config);
+  if (config.rulesVersion === 4) return config.fair?generateOrderedSchedule(config, original):original;
   if (config.rulesVersion === 3 && config.fair) return generateRoundSchedule(config, original);
   if (config.rulesVersion < 2 || !config.lunchEnabled || config.lunchMode === 'together') return original;
   const meals = original.filter(row => row.rest === null);
@@ -122,6 +125,53 @@ export function generateSchedule(config) {
   build(start,before,true);rows.push(...meals);
   if(!config.fair){postFirst=next;while(lastMeal.includes(postFirst))postFirst=(postFirst+1)%count;}
   next=postFirst;build(meals.at(-1).end,after,false);
+  return rows;
+}
+function validateRestOptions(config) {
+  if(!Array.isArray(config.roundMinutes)||config.roundMinutes.length>720||config.roundMinutes.some(value=>value!==null&&(!Number.isInteger(value)||value<1||value>1440)))throw new Error('순환별 휴식시간은 1~1,440분으로 입력해 주세요.');
+  if(!Array.isArray(config.workOnly)||config.workOnly.length>24||config.workOnly.some(window=>!window||typeof window.start!=='string'||typeof window.end!=='string'||!/^([01]\d|2[0-3]):[0-5]\d$/.test(window.start)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(window.end)))throw new Error('휴식 없는 시간대는 올바른 시각으로 최대 24개까지 입력해 주세요.');
+  if(config.rulesVersion<4&&(config.roundMinutes.length||config.workOnly.length))throw new Error('휴식 조정은 새 근무표에서 사용할 수 있어요.');
+  if((config.roundMinutes.length||config.workOnly.length)&&!config.fair)throw new Error('휴식 조정에는 공평 배분을 켜 주세요.');
+}
+function generateOrderedSchedule(config, original) {
+  validateRestOptions(config);
+  const start=original[0].start,end=original.at(-1).end,count=config.count,first=Number(config.first),interval=Number(config.interval);
+  const meals=original.filter(row=>row.rest===null);
+  const windows=config.workOnly.map(window=>{
+    let from=parseTime(window.start),to=parseTime(window.end);if(from<start)from+=1440;if(to<=from)to+=1440;
+    if(from<start||to>end||from>=to)throw new Error('휴식 없는 시간대는 전체 일정 안에 있어야 합니다.');
+    return {start:from,end:to};
+  });
+  const boundaries=[...new Set([start,end,...meals.flatMap(row=>[row.start,row.end]),...windows.flatMap(row=>[row.start,row.end])])].sort((a,b)=>a-b);
+  const segments=boundaries.slice(0,-1).map((from,i)=>{
+    const to=boundaries[i+1],meal=meals.find(row=>row.start<=from&&row.end>=to);
+    return {start:from,end:to,...(meal?{rest:null,...(meal.lunchers?{lunchers:[...meal.lunchers]}:{})}:windows.some(row=>row.start<=from&&row.end>=to)?{rest:null,allWork:true}:{})};
+  });
+  let available=segments.filter(row=>row.rest!==null).reduce((sum,row)=>sum+row.end-row.start,0);
+  const slots=[];
+  for(let cycle=0;available>0;cycle++){
+    const minutes=config.roundMinutes[cycle]??interval,full=available>=minutes*count;
+    for(let i=0;i<count;i++){
+      const length=full?minutes:Math.floor(available/count)+(i<available%count?1:0);
+      if(length)slots.push({minutes:length,rest:(first+i)%count,cycle});
+    }
+    available-=full?minutes*count:available;
+  }
+  const rows=[];let index=0,consumed=0;
+  const append=row=>{
+    const previous=rows.at(-1);
+    if(previous&&previous.end===row.start&&previous.rest===row.rest&&previous.cycle===row.cycle&&previous.allWork===row.allWork&&JSON.stringify(previous.lunchers)===JSON.stringify(row.lunchers))previous.end=row.end;
+    else rows.push(row);
+  };
+  for(const segment of segments){
+    if(segment.rest===null){append(segment);continue;}
+    let cursor=segment.start;
+    while(cursor<segment.end){
+      const slot=slots[index],minutes=Math.min(segment.end-cursor,slot.minutes-consumed);
+      append({start:cursor,end:cursor+minutes,rest:slot.rest,cycle:slot.cycle});cursor+=minutes;consumed+=minutes;
+      if(consumed===slot.minutes){index++;consumed=0;}
+    }
+  }
   return rows;
 }
 function generateRoundSchedule(config, original) {
@@ -228,6 +278,7 @@ function generateOriginalSchedule(config) {
   return rows;
 }
 export function shiftState(row, person) {
+  if (row.allWork) return 'work';
   if (row.rest === null) return !row.lunchers || row.lunchers.includes(person) ? 'lunch' : 'work';
   return row.rest === person ? 'rest' : 'work';
 }
@@ -272,13 +323,14 @@ export function validateState(data) {
   if (!config || !Array.isArray(config.names) || config.names.length !== 3 || config.names.some(n => !textValue(n, 40)) || typeof config.lunchEnabled !== 'boolean' || typeof config.fair !== 'boolean') throw new Error('근무표 설정이 올바르지 않습니다.');
   // Draft input may be incomplete; validate types here and times when generating.
   for (const key of ['start', 'end', 'lunchStart', 'lunchEnd']) if (typeof config[key] !== 'string' || (config[key] !== '' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(config[key]))) throw new Error('근무표 시간 형식이 올바르지 않습니다.');
-  if (!Number.isInteger(config.interval) || config.interval < 1 || config.interval > 1440 || ![1,2,3].includes(config.rulesVersion) || ![2, 3].includes(config.count) || !Number.isInteger(config.first) || config.first < 0 || config.first >= config.count || !['together', 'single', 'pair'].includes(config.lunchMode) || (config.count === 2 && config.lunchMode === 'pair') || !Number.isInteger(config.lunchMinutes) || config.lunchMinutes < 1 || config.lunchMinutes > 480 || !Number.isInteger(config.lunchFirst) || config.lunchFirst < 0 || config.lunchFirst >= config.count) throw new Error('교대 설정이 올바르지 않습니다.');
+  if (!Number.isInteger(config.interval) || config.interval < 1 || config.interval > 1440 || ![1,2,3,4].includes(config.rulesVersion) || ![2, 3].includes(config.count) || !Number.isInteger(config.first) || config.first < 0 || config.first >= config.count || !['together', 'single', 'pair'].includes(config.lunchMode) || (config.count === 2 && config.lunchMode === 'pair') || !Number.isInteger(config.lunchMinutes) || config.lunchMinutes < 1 || config.lunchMinutes > 480 || !Number.isInteger(config.lunchFirst) || config.lunchFirst < 0 || config.lunchFirst >= config.count) throw new Error('교대 설정이 올바르지 않습니다.');
+  validateRestOptions(config);
   const rows = data.schedule.rows;
   if (!Array.isArray(rows) || rows.length > 3000) throw new Error('저장된 근무표가 올바르지 않습니다.');
   if (rows.length) {
     const expected = generateSchedule(data.schedule.generatedConfig);
     const generatedCount = data.schedule.generatedConfig.count ?? 3;
-    if (rows.length !== expected.length || rows.some((row, i) => !row || row.start !== expected[i].start || row.end !== expected[i].end || (row.rest !== null && (!Number.isInteger(row.rest) || row.rest < 0 || row.rest >= generatedCount)) || (expected[i].rest === null) !== (row.rest === null) || JSON.stringify(row.lunchers ?? null) !== JSON.stringify(expected[i].lunchers ?? null))) throw new Error('저장된 근무표 구간이 올바르지 않습니다.');
+    if (rows.length !== expected.length || rows.some((row, i) => !row || row.start !== expected[i].start || row.end !== expected[i].end || (row.rest !== null && (!Number.isInteger(row.rest) || row.rest < 0 || row.rest >= generatedCount)) || (expected[i].rest === null) !== (row.rest === null) || row.allWork!==expected[i].allWork || row.cycle!==expected[i].cycle || JSON.stringify(row.lunchers ?? null) !== JSON.stringify(expected[i].lunchers ?? null))) throw new Error('저장된 근무표 구간이 올바르지 않습니다.');
   }
   data.records.forEach(validateRecord);
   if (new Set(data.records.map(record => record.id)).size !== data.records.length) throw new Error('중복된 근무 기록 ID가 있습니다.');
@@ -291,11 +343,11 @@ export function validateState(data) {
   // Copy only the supported schema, never merge arbitrary keys into app objects.
   const copyConfig = c => {
     const n = normalizeSchedule(c);
-    return Object.fromEntries(Object.keys(DEFAULT_SCHEDULE).map(key => [key, key === 'names' ? n.names.map((name, i) => data.version === 1 && name === `근무자 ${'ABC'[i]}` ? '' : name) : n[key]]));
+    return Object.fromEntries(Object.keys(DEFAULT_SCHEDULE).map(key => [key, key === 'names' ? n.names.map((name, i) => data.version === 1 && name === `근무자 ${'ABC'[i]}` ? '' : name) : key==='roundMinutes'?[...n.roundMinutes]:key==='workOnly'?n.workOnly.map(window=>({start:window.start,end:window.end})):n[key]]));
   };
   return {
     version: VERSION, settings: { theme: data.settings.theme }, workMemo: data.workMemo ?? '', workMemoDelta: validateMemoDelta(data.workMemoDelta, data.workMemo ?? ''),
-    schedule: { config: copyConfig(config), generatedConfig: rows.length ? copyConfig(data.schedule.generatedConfig) : null, rows: rows.map(row => ({ start: row.start, end: row.end, rest: row.rest, ...(row.lunchers ? { lunchers: [...row.lunchers] } : {}) })) },
+    schedule: { config: copyConfig(config), generatedConfig: rows.length ? copyConfig(data.schedule.generatedConfig) : null, rows: rows.map(row => ({ start: row.start, end: row.end, rest: row.rest, ...(row.lunchers ? { lunchers: [...row.lunchers] } : {}),...(row.allWork?{allWork:true}:{}),...(Number.isInteger(row.cycle)?{cycle:row.cycle}:{}) })) },
     workplaces: [...new Set(data.workplaces)],
     records: data.records.map(r => ({ id: r.id, date: r.date, workplace: r.workplace, task: r.task, start: r.start, end: r.end, breakMinutes: Number(r.breakMinutes), payType: r.payType, rate: Number(r.rate), extra: Number(r.extra), deduction: Number(r.deduction), taxType: r.taxType ?? 'none', taxExempt: Number(r.taxExempt ?? 0), dueDate: r.dueDate, note: r.note, payments: r.payments.map(p => ({ date: p.date, amount: p.amount })) })),
     calculator: data.calculator === null ? null : { ...Object.fromEntries(['date', 'workplace', 'start', 'end', 'payType', 'rate', 'breakMinutes', 'extra', 'deduction'].map(k => [k, data.calculator[k]])), taxType: data.calculator.taxType ?? 'none', taxExempt: data.calculator.taxExempt ?? '0' },
