@@ -1369,8 +1369,6 @@ html[data-theme] .mini-calculator .mini-display input { background: transparent;
 .mini-display input::placeholder { color: #8aa193; }
 html[data-theme] .mini-calculator output { min-height: 72px; margin: 9px 0 0; padding: 0 0 14px; color: #fff; font-size: clamp(32px,5vw,46px); line-height: 1.35; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -.6px; }
 html[data-theme] .mini-calculator output[data-error='true'] { color: #fde68a; font-size: 14px; line-height: 1.7; letter-spacing: 0; }
-.mini-erase { position: absolute; bottom: 7px; right: 16px; min-height: 32px; min-width: 40px; color: #8dbb9e; font-size: 20px; }
-.mini-erase:hover { color: #1db954; }
 .mini-calculator .mini-keys { padding: 19px 16px; gap: 9px; background: #f1f5f2; }
 html[data-theme] .mini-calculator .mini-key { width: 100%; min-height: 44px; aspect-ratio: 1; border: 0; border-radius: 50%; background: #fff; color: #17281c; font-size: 22px; font-weight: 500; box-shadow: 0 3px 5px #0000000a; }
 html[data-theme='dark'] .mini-calculator .mini-keys { background: #19251e; }
@@ -1431,13 +1429,15 @@ html[data-theme='dark'] .weather-speech { background: #373124; color: #fff7dc; }
 .weather-speech::after { content: ''; position: absolute; top: 42px; right: -6px; width: 13px; height: 13px; border-radius: 3px; background: inherit; transform: rotate(45deg); }
 .weather-reporter-label { display: block; color: #665722; font-size: 10px; font-weight: 700; letter-spacing: -.1px; }
 html[data-theme='dark'] .weather-reporter-label { color: #ffe885; }
-.weather-speech .weather-now { margin: 10px 0 0; align-items: center; gap: 2px; }
-.weather-speech .weather-now > div { min-width: 0; }
+/* Keep long descriptions from pushing the illustration to the card edge. */
+.weather-speech .weather-now { display: grid; grid-template-columns: max-content minmax(0,1fr); margin: 10px 0 0; align-items: center; gap: 0 8px; }
+.weather-speech .weather-now > div { display: contents; }
+.weather-speech .weather-place, .weather-speech .weather-degrees { grid-column: 1; }
 .weather-speech .weather-place { color: inherit; font-size: 12px; }
 .weather-speech .weather-degrees strong { font-size: 48px; letter-spacing: -2px; }
 .weather-speech .weather-degrees > span { color: inherit; padding-top: 7px; font-size: 18px; }
-.weather-speech .weather-description { color: inherit; opacity: .8; font-size: 11px; line-height: 1.6; }
-.weather-speech .weather-symbol { width: 104px; height: 104px; flex-basis: 104px; }
+.weather-speech .weather-description { grid-column: 1 / -1; color: inherit; opacity: .8; font-size: 11px; line-height: 1.6; }
+.weather-speech .weather-symbol { --weather-art-size: 104px; grid-column: 2; grid-row: 1 / 3; justify-self: center; width: min(var(--weather-art-size),100%); height: auto; aspect-ratio: 1; }
 .weather-speech .weather-tip { margin-top: 12px; padding-top: 10px; border-top: 1px solid #806c2626; color: inherit; font-size: 11px; line-height: 1.75; word-break: keep-all; overflow-wrap: anywhere; }
 html[data-theme='dark'] .weather-speech .weather-tip { border-color: #ffe88526; }
 .weather-guide-character { min-width: 0; margin: 0; align-self: center; overflow: hidden; }
@@ -1449,14 +1449,14 @@ html[data-theme='dark'] .weather-speech .weather-tip { border-color: #ffe88526; 
   .header-weather .weather-panel { padding: 18px; border-radius: 23px; }
   .weather-report { grid-template-columns: minmax(0,1fr) 92px; gap: 7px; }
   .weather-speech { padding: 14px; border-radius: 19px 19px 6px 19px; }
-  .weather-speech .weather-symbol { width: 90px; height: 90px; flex-basis: 90px; }
+  .weather-speech .weather-symbol { --weather-art-size: 90px; }
 }
 @media (max-width: 360px) {
   .header-weather .weather-panel { padding: 15px; }
   .weather-report { grid-template-columns: minmax(0,1fr) 74px; gap: 6px; }
   .weather-speech { padding: 11px; }
   .weather-speech .weather-degrees strong { font-size: 40px; }
-  .weather-speech .weather-symbol { width: 72px; height: 72px; flex-basis: 72px; }
+  .weather-speech .weather-symbol { --weather-art-size: 72px; }
   .weather-guide-character figcaption { font-size: 8px; }
 }
 

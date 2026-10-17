@@ -109,7 +109,7 @@ try{
    await tab.locator('[data-key="±"]').click();assert.equal(await expression.inputValue(),'-81');
    await tab.locator('[data-key="%"]').click();assert.equal(await expression.inputValue(),'-0.81');
    await tab.locator('[data-key="7"]').click();assert.equal(await expression.inputValue(),'7');
-   await tab.locator('[data-key="⌫"]').click();assert.equal(await expression.inputValue(),'');
+   assert.equal(await tab.locator('.mini-erase,[data-key="⌫"]').count(),0);await expression.press('Backspace');assert.equal(await expression.inputValue(),'');
    await expression.fill('2+(3*4)');await expression.press('Enter');assert.ok((await tab.locator('#mini-answer').innerText()).includes('14'));
    await expression.fill('1/0');await expression.press('Enter');assert.equal(await tab.locator('#mini-answer').getAttribute('data-error'),'true');
    await tab.locator('[data-key="C"]').click();assert.equal(await tab.locator('#mini-answer').innerText(),'0');

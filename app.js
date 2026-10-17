@@ -301,7 +301,7 @@ function payFields(record) {
 let miniExpression='', miniAnswer='', miniEvaluated=false;
 function miniCalculatorView() {
   const labels={'C':'계산식 초기화','±':'부호 바꾸기','%':'백분율','=':'계산 결과'};
-  return `<section class="panel mini-calculator"><div class="mini-calculator-heading"><h2>${icon('calculator')}계산기</h2></div><form id="mini-form" class="calculator-device"><div class="mini-display"><label class="field"><span class="sr-only">계산식</span><input id="mini-expression" type="text" inputmode="decimal" maxlength="200" placeholder="계산식 입력" value="${esc(miniExpression)}" autocomplete="off" aria-describedby="mini-help"></label><output id="mini-answer" aria-live="polite">${esc(miniAnswer||'0')}</output><button type="button" class="mini-erase" data-action="mini-key" data-key="⌫" aria-label="한 글자 지우기">⌫</button></div><div class="mini-keys">${['C','±','%','÷','7','8','9','×','4','5','6','−','1','2','3','+','0','.','='].map(key=>`<button type="button" data-action="mini-key" data-key="${key}" class="mini-key ${['÷','×','−','+'].includes(key)?'operator':['C','±','%'].includes(key)?'utility':key==='='?'equals':key==='0'?'zero':''}" aria-label="${labels[key]||key}">${key==='C'?'AC':key}</button>`).join('')}</div></form><p class="sr-only" id="mini-help">키보드 입력과 Enter도 사용할 수 있어요. 부호와 백분율은 현재 계산한 값에 적용합니다.</p></section>`;
+  return `<section class="panel mini-calculator"><div class="mini-calculator-heading"><h2>${icon('calculator')}계산기</h2></div><form id="mini-form" class="calculator-device"><div class="mini-display"><label class="field"><span class="sr-only">계산식</span><input id="mini-expression" type="text" inputmode="decimal" spellcheck="false" autocapitalize="off" maxlength="200" placeholder="계산식 입력" value="${esc(miniExpression)}" autocomplete="off" aria-describedby="mini-help"></label><output id="mini-answer" aria-live="polite">${esc(miniAnswer||'0')}</output></div><div class="mini-keys">${['C','±','%','÷','7','8','9','×','4','5','6','−','1','2','3','+','0','.','='].map(key=>`<button type="button" data-action="mini-key" data-key="${key}" class="mini-key ${['÷','×','−','+'].includes(key)?'operator':['C','±','%'].includes(key)?'utility':key==='='?'equals':key==='0'?'zero':''}" aria-label="${labels[key]||key}">${key==='C'?'AC':key}</button>`).join('')}</div></form><p class="sr-only" id="mini-help">숫자와 +, −, ×, ÷, 소수점, 괄호를 입력하고 Enter로 계산할 수 있어요. 부호와 백분율은 현재 계산한 값에 적용합니다.</p></section>`;
 }
 function taxFormula(result) {
   if(result.taxType==='daily')return '일용: max(1일 과세급여 − 150,000원, 0) × 6% × (1 − 55%). 소득세 1,000원 미만은 소액부징수로 0원. 지방소득세는 소득세의 10%. 1일분씩 지급받는 기준이며 여러 날 급여를 합쳐 지급받으면 소액부징수 판단이 달라질 수 있어요.';
@@ -434,6 +434,14 @@ function calculateMini() {
   catch(failure){$('#mini-answer').textContent=failure.message;$('#mini-answer').dataset.error='true';}
 }
 const miniNumber=value=>value.toLocaleString('en-US',{useGrouping:false,maximumFractionDigits:12});
+const filterMiniExpression=value=>value.replace(/[^\d\s.()+\-*/×÷−]/g,'').slice(0,200);
+function readMiniInput(input) {
+  const raw=input.value,start=input.selectionStart??raw.length,end=input.selectionEnd??start;
+  const filtered=filterMiniExpression(raw);
+  if(raw!==filtered){input.value=filtered;input.setSelectionRange(filterMiniExpression(raw.slice(0,start)).length,filterMiniExpression(raw.slice(0,end)).length);}
+  if(raw!==filtered&&filtered===miniExpression)return;
+  miniExpression=filtered;miniAnswer='';miniEvaluated=false;updateMiniDisplay();
+}
 function updateMiniDisplay(){
   $('#mini-expression').value=miniExpression;$('#mini-answer').textContent=miniAnswer||'0';$('#mini-answer').dataset.error='false';
 }
@@ -763,7 +771,7 @@ document.addEventListener('input', event => {
   if(event.target.id==='application-search'){applicationSearch=event.target.value;applicationPage=0;renderApplicationList();return;}
   if(['application-career','application-template'].includes(event.target.id)){const career=event.target.id==='application-career',value=event.target.value;if(value.length>30000)return;state[career?'applicationCareer':'applicationTemplate']=value;const saved=save();$('#'+(career?'career':'template')+'-save-state').textContent=value.length.toLocaleString('ko-KR')+' / 30,000자 · '+(saved?'저장했어요':'저장되지 않음 · 내용을 복사해 두세요');return;}
   if(event.target.id==='memo-fallback'){state.workMemo=event.target.value;state.workMemoDelta=null;const saved=save();updateMemoStatus(saved);setMemoSaveState(saved?'ready':'error');return;}
-  if(event.target.id==='mini-expression'){miniExpression=event.target.value;miniAnswer='';miniEvaluated=false;updateMiniDisplay();return;}
+  if(event.target.id==='mini-expression'){readMiniInput(event.target);return;}
   const form = event.target.closest('form');
   if (form?.id === 'calculator-form') {
     const draft=formValues(form),days=Number(draft.days);
@@ -901,7 +909,6 @@ document.addEventListener('click', async event => {
         catch(failure){$('#mini-answer').textContent=failure.message;$('#mini-answer').dataset.error='true';}return;
       }
       if(key==='C')miniExpression='';
-      else if(key==='⌫')miniExpression=miniExpression.slice(0,-1);
       else{if(miniEvaluated&&/^[\d.]$/.test(key))miniExpression='';if(miniExpression.length<200)miniExpression+=key;}
       miniAnswer='';miniEvaluated=false;updateMiniDisplay();
     }
