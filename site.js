@@ -430,9 +430,10 @@ function validateApplication(post) {
   if(!post||!textValue(post.id,100)||!post.id||!textValue(post.title,160)||!post.title.trim()||!textValue(post.body,20000)||!textValue(post.url,2000)||!stamp(post.createdAt)||!stamp(post.updatedAt))throw new Error('지원 공고의 제목이나 내용 형식을 확인해 주세요.');
   if(post.pinned!==undefined&&typeof post.pinned!=='boolean')throw new Error('지원 공고의 고정 설정을 확인해 주세요.');
   if(post.decided!==undefined&&typeof post.decided!=='boolean')throw new Error('지원 공고의 결정 상태를 확인해 주세요.');
+  if(post.rejected!==undefined&&typeof post.rejected!=='boolean')throw new Error('지원 공고의 결과를 확인해 주세요.');
   if(post.url){let link;try{link=new URL(post.url);}catch{throw new Error('공고 링크를 확인해 주세요.');}if(!['http:','https:'].includes(link.protocol)||link.username||link.password)throw new Error('공고 링크는 http 또는 https 주소만 사용할 수 있어요.');}
   // Preserve old pins for backup compatibility; a pin never implies a decision.
-  return {id:post.id,title:post.title.trim(),body:post.body,url:post.url,createdAt:post.createdAt,updatedAt:post.updatedAt,...(post.pinned?{pinned:true}:{}),...(post.decided?{decided:true}:{})};
+  return {id:post.id,title:post.title.trim(),body:post.body,url:post.url,createdAt:post.createdAt,updatedAt:post.updatedAt,...(post.pinned?{pinned:true}:{}),...(post.decided?{decided:true}:{}),...(post.rejected?{rejected:true}:{})};
 }
 function validateState(data) {
   if (!data || ![1, 2, VERSION].includes(data.version) || !data.settings || !['light', 'dark'].includes(data.settings.theme) || !data.schedule || !Array.isArray(data.records) || data.records.length > 50000 || !Array.isArray(data.workplaces) || data.workplaces.some(w => !textValue(w, 100)) || (data.workMemo !== undefined && !textValue(data.workMemo, 30000))) throw new Error('지원하지 않는 백업 형식 또는 버전입니다.');
@@ -985,7 +986,7 @@ function mountWeatherWidget() {
 }
 
 
-const APP_RELEASE = '629fecdddc69';
+const APP_RELEASE = '10b92ac1d619';
 let latestRelease = APP_RELEASE;
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -1028,6 +1029,7 @@ const icons = {
 const icon = (name, className = '') => `<svg class="icon ${className}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.notebook}</svg>`;
 // Older cached HTML may still contain the retired header shortcut.
 $$('.updates-top-link').forEach(node=>node.remove());
+$$('.mobile-nav [data-page]').filter(node=>!['home','notes','schedule','calculator'].includes(node.dataset.page)).forEach(node=>node.remove());
 $$('[data-icon]').forEach(node => { node.innerHTML = icon(node.dataset.icon); });
 $('.topbar').before($('#storage-alert'));
 
@@ -1123,6 +1125,7 @@ function render() {
   });
   memoQuill = null;
   $('#main').innerHTML = ({ home: homeView, applications: applicationsView, schedule: scheduleView, calculator: calculatorView, records: recordsView, stats: statsView, guide: guideView, privacy: privacyView, settings: settingsView, notes:notesView })[page]();
+  $$('[data-iso-date]', $('#main')).forEach(input=>syncIsoDate(input));
   applyTheme();updateCloudUI();
   if (activeTool() === 'schedule') renderScheduleResult();
   if (activeTool() === 'calculator') updateCalculator(false);
@@ -1137,6 +1140,23 @@ function render() {
 }
 const head = (eyebrow, title, text, action = '') => `<div class="page-heading"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1><p>${text}</p></div>${action}</div>`;
 const field = (label, name, type, value, options = '') => `<label class="field"><span>${label}</span><input type="${type}" name="${name}" value="${esc(value)}" ${options}></label>`;
+// A text value fixes the visible format; the companion native control keeps the calendar picker.
+function workDateField(id,value) {
+  return `<div class="field iso-date-field"><label for="${id}">근무 날짜</label><div class="iso-date-control"><input id="${id}" name="date" type="text" inputmode="numeric" data-iso-date value="${esc(value)}" placeholder="YYYY-MM-DD" maxlength="10" pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}" required autocomplete="off"><button type="button" class="date-picker-button" data-action="open-date-picker" aria-label="근무 날짜 달력 열기">${icon('calendar')}</button><input type="date" data-date-picker value="${validDate(value)?esc(value):''}" min="1900-01-01" max="9999-12-31" tabindex="-1" aria-hidden="true"></div></div>`;
+}
+function syncIsoDate(input,format=false) {
+  if(format){
+    const raw=input.value,caret=input.selectionStart??raw.length,before=raw.slice(0,caret).replace(/\D/g,'').length;
+    const digits=raw.replace(/\D/g,'').slice(0,8),value=[digits.slice(0,4),digits.slice(4,6),digits.slice(6,8)].filter(Boolean).join('-');
+    if(value!==raw){
+      input.value=value;let position=0,count=0;
+      while(position<value.length&&count<before){if(/\d/.test(value[position]))count++;position++;}
+      input.setSelectionRange(position,position);
+    }
+  }
+  input.setCustomValidity(input.value&&!validDate(input.value)?'올바른 날짜를 YYYY-MM-DD 형식으로 입력해 주세요.':'');
+  input.parentElement.querySelector('[data-date-picker]').value=validDate(input.value)?input.value:'';
+}
 const smallEmpty = (title, text, button = '') => `<div class="empty-state"><div class="empty-icon">${icon('notebook')}</div><h3>${title}</h3><p>${text}</p>${button}</div>`;
 const workplaceOptions = () => [...new Set([...state.workplaces, ...state.records.map(r => r.workplace)])].sort((a, b) => a.localeCompare(b, 'ko'));
 const appTile = (route, image, name, color) => `<a class="app-tile" href="#${route}"><span class="app-tile-icon ${color}"><img src="./assets/${route}-icon.png?v=${APP_RELEASE}" width="68" height="68" alt=""></span><span>${name}</span></a>`;
@@ -1265,9 +1285,10 @@ function taxFields(record) {
 function payFields(record) {
   return `<div class="form-grid">${field('출근시간','start','time',record.start,'required')}${field('퇴근시간','end','time',record.end,'required')}${field('무급 휴게시간 (분)','breakMinutes','number',record.breakMinutes,'required min="0" max="1439" step="1"')}<label class="field"><span>급여 기준</span><select name="payType"><option value="hourly" ${record.payType==='hourly'?'selected':''}>시급</option><option value="daily" ${record.payType==='daily'?'selected':''}>일급</option></select></label>${field('시급 / 일급 (원)','rate','number',record.rate,'required min="0" max="1000000000" step="1"')}${field('추가 지급액 (원)','extra','number',record.extra,'required min="0" max="1000000000" step="1"')}${field('기타 공제액 (원)','deduction','number',record.deduction,'required min="0" max="1000000000" step="1"')}</div>${taxFields(record)}`;
 }
-let miniExpression='', miniAnswer='';
+let miniExpression='', miniAnswer='', miniEvaluated=false;
 function miniCalculatorView() {
-  return `<section class="panel mini-calculator"><div class="panel-title"><h2>${icon('calculator')}작은 계산기</h2><span class="small-badge">사칙연산</span></div><form id="mini-form"><label class="field"><span class="sr-only">계산식</span><input id="mini-expression" type="text" inputmode="decimal" maxlength="200" placeholder="예: 12000 × 8" value="${esc(miniExpression)}" autocomplete="off"></label><output id="mini-answer" aria-live="polite">${esc(miniAnswer)}</output><div class="mini-keys">${['C','⌫','(',')','7','8','9','÷','4','5','6','×','1','2','3','−','0','.','=','+'].map(key=>`<button type="button" data-action="mini-key" data-key="${key}" class="mini-key ${key==='='?'equals':''}" aria-label="${key==='C'?'계산식 초기화':key==='⌫'?'한 글자 지우기':key==='='?'계산 결과':key}">${key}</button>`).join('')}</div><p class="field-hint">키보드 입력과 Enter도 지원해요. ×·÷를 먼저 계산해요.</p></form></section>`;
+  const labels={'C':'계산식 초기화','±':'부호 바꾸기','%':'백분율','=':'계산 결과'};
+  return `<section class="panel mini-calculator"><div class="mini-calculator-heading"><h2>${icon('calculator')}계산기</h2></div><form id="mini-form" class="calculator-device"><div class="mini-display"><label class="field"><span class="sr-only">계산식</span><input id="mini-expression" type="text" inputmode="decimal" maxlength="200" placeholder="계산식 입력" value="${esc(miniExpression)}" autocomplete="off" aria-describedby="mini-help"></label><output id="mini-answer" aria-live="polite">${esc(miniAnswer||'0')}</output><button type="button" class="mini-erase" data-action="mini-key" data-key="⌫" aria-label="한 글자 지우기">⌫</button></div><div class="mini-keys">${['C','±','%','÷','7','8','9','×','4','5','6','−','1','2','3','+','0','.','='].map(key=>`<button type="button" data-action="mini-key" data-key="${key}" class="mini-key ${['÷','×','−','+'].includes(key)?'operator':['C','±','%'].includes(key)?'utility':key==='='?'equals':key==='0'?'zero':''}" aria-label="${labels[key]||key}">${key==='C'?'AC':key}</button>`).join('')}</div></form><p class="sr-only" id="mini-help">키보드 입력과 Enter도 사용할 수 있어요. 부호와 백분율은 현재 계산한 값에 적용합니다.</p></section>`;
 }
 function taxFormula(result) {
   if(result.taxType==='daily')return '일용: max(1일 과세급여 − 150,000원, 0) × 6% × (1 − 55%). 소득세 1,000원 미만은 소액부징수로 0원. 지방소득세는 소득세의 10%. 1일분씩 지급받는 기준이며 여러 날 급여를 합쳐 지급받으면 소액부징수 판단이 달라질 수 있어요.';
@@ -1276,7 +1297,7 @@ function taxFormula(result) {
 }
 function calculatorView() {
   const calc=calculatorDefaults();
-  return head('PAY CALCULATOR','급여 계산기','하루부터 여러 날까지, 실제 근무시간과 예상 수령액을 확인해요.')+`<div class="tool-layout"><section class="panel form-panel"><div class="panel-title"><h2>${icon('calculator')}근무 정보</h2><span class="small-badge">자동 계산</span></div><form id="calculator-form"><div class="form-grid calculator-basics">${field('근무 날짜','date','date',calc.date,'required min="1900-01-01" max="9999-12-31"')}${field('근무지 이름','workplace','text',calc.workplace,'maxlength="100" list="workplaces" placeholder="예: 행사장"')}${field('총 근무일 수','days','number',calc.days,'required min="1" max="366" step="1" inputmode="numeric"')}</div><p class="field-hint">매일 같은 조건으로 일하는 경우예요. 아래 시간·급여·공제액은 모두 1일 기준으로 입력해 주세요.</p><div class="form-divider"></div>${payFields(calc)}<p class="field-hint">퇴근이 출근보다 이르면 다음 날 퇴근으로 계산해요.</p><button class="button primary full-width" type="submit">${icon('calculator')}급여 계산하기</button></form></section><div class="pay-side"><section class="panel calculation-panel"><div class="panel-title"><h2>내 예상 수령액</h2><span class="small-badge blue-badge">세금 선택 반영</span></div><div id="calculation-result" aria-live="polite"></div><div id="calculator-error" class="form-error" role="alert" hidden></div><button class="button primary full-width" data-action="save-calculation" id="save-calculation">${icon('plus')}선택한 날짜의 1일 기록 저장</button><p class="field-hint centered">기록장에는 입력한 날짜의 하루치만 저장해요. 날짜별 기록은 각각 추가해 주세요.</p><a href="#records" class="text-link centered-link">나의 알바 기록 보기 ${icon('arrow')}</a></section>${miniCalculatorView()}</div></div><aside class="info-strip">${icon('shield')}<p><strong>입력에 따른 예상 원천징수액이에요.</strong> 전체 예상액은 1일 예상 수령액에 근무일 수를 곱한 금액입니다. 실제 소득 분류·비과세·지급 방식에 따라 달라질 수 있으며 4대보험과 최종 정산세액, 주휴·야간·연장 수당은 별도예요.</p><a href="#guide">계산 기준 ${icon('arrow')}</a></aside>${workplacesDatalist()}`;
+  return head('PAY CALCULATOR','급여 계산기','하루부터 여러 날까지, 실제 근무시간과 예상 수령액을 확인해요.')+`<div class="tool-layout"><section class="panel form-panel"><div class="panel-title"><h2>${icon('calculator')}근무 정보</h2><span class="small-badge">자동 계산</span></div><form id="calculator-form"><div class="form-grid calculator-basics">${workDateField('calculator-work-date',calc.date)}${field('근무지 이름','workplace','text',calc.workplace,'maxlength="100" list="workplaces" placeholder="예: 행사장"')}${field('총 근무일 수','days','number',calc.days,'required min="1" max="366" step="1" inputmode="numeric"')}</div><p class="field-hint">매일 같은 조건으로 일하는 경우예요. 아래 시간·급여·공제액은 모두 1일 기준으로 입력해 주세요.</p><div class="form-divider"></div>${payFields(calc)}<p class="field-hint">퇴근이 출근보다 이르면 다음 날 퇴근으로 계산해요.</p><button class="button primary full-width" type="submit">${icon('calculator')}급여 계산하기</button></form></section><div class="pay-side"><section class="panel calculation-panel"><div class="panel-title"><h2>내 예상 수령액</h2><span class="small-badge blue-badge">세금 선택 반영</span></div><div id="calculation-result" aria-live="polite"></div><div id="calculator-error" class="form-error" role="alert" hidden></div><button class="button primary full-width" data-action="save-calculation" id="save-calculation">${icon('plus')}선택한 날짜의 1일 기록 저장</button><p class="field-hint centered">기록장에는 입력한 날짜의 하루치만 저장해요. 날짜별 기록은 각각 추가해 주세요.</p><a href="#records" class="text-link centered-link">나의 알바 기록 보기 ${icon('arrow')}</a></section>${miniCalculatorView()}</div></div><aside class="info-strip">${icon('shield')}<p><strong>입력에 따른 예상 원천징수액이에요.</strong> 전체 예상액은 1일 예상 수령액에 근무일 수를 곱한 금액입니다. 실제 소득 분류·비과세·지급 방식에 따라 달라질 수 있으며 4대보험과 최종 정산세액, 주휴·야간·연장 수당은 별도예요.</p><a href="#guide">계산 기준 ${icon('arrow')}</a></aside>${workplacesDatalist()}`;
 }
 function workplacesDatalist(){ return `<datalist id="workplaces">${workplaceOptions().map(name=>`<option value="${esc(name)}"></option>`).join('')}</datalist>`; }
 function formValues(form){return Object.fromEntries(new FormData(form));}
@@ -1396,15 +1417,19 @@ function openCompletePayment(id) {
   dialog.showModal();
 }
 function calculateMini() {
-  try{const result=evaluateExpression(miniExpression);miniAnswer=`= ${result.toLocaleString('ko-KR',{maximumFractionDigits:12})}`;miniExpression=String(result);$('#mini-expression').value=miniExpression;$('#mini-answer').textContent=miniAnswer;}
-  catch(failure){$('#mini-answer').textContent=failure.message;}
+  try{const result=evaluateExpression(miniExpression);miniAnswer=`= ${result.toLocaleString('ko-KR',{maximumFractionDigits:12})}`;miniExpression=miniNumber(result);miniEvaluated=true;updateMiniDisplay();}
+  catch(failure){$('#mini-answer').textContent=failure.message;$('#mini-answer').dataset.error='true';}
+}
+const miniNumber=value=>value.toLocaleString('en-US',{useGrouping:false,maximumFractionDigits:12});
+function updateMiniDisplay(){
+  $('#mini-expression').value=miniExpression;$('#mini-answer').textContent=miniAnswer||'0';$('#mini-answer').dataset.error='false';
 }
 
 function applicationsView() {
   return head('MY APPLICATIONS','알바 지원','지원한 공고, 나의 경력, 문자 지원 양식을 한곳에 모아 두세요.')+`
     <div class="applications-layout">
       <section class="panel application-board" aria-labelledby="application-board-title">
-        <div class="panel-title"><div><h2 id="application-board-title"><img src="./assets/applications-icon.png?v=${APP_RELEASE}" width="39" height="39" alt="">지원한 알바 공고</h2><p>공고 내용을 확인하고, 결정한 공고에 fix를 눌러 표시하세요.</p></div><button type="button" class="button primary" data-action="new-application">${icon('plus')}공고 작성</button></div>
+        <div class="panel-title"><div><h2 id="application-board-title"><img src="./assets/applications-icon.png?v=${APP_RELEASE}" width="39" height="39" alt="">지원한 알바 공고</h2><p>공고 내용을 확인하고, 버튼을 눌러 fix · 떨어짐 상태를 표시하세요.</p></div><button type="button" class="button primary" data-action="new-application">${icon('plus')}공고 작성</button></div>
         <label class="field application-search"><span>제목 검색</span><input id="application-search" type="search" maxlength="160" placeholder="찾는 공고 제목" value="${esc(applicationSearch)}"></label>
         <div id="application-list" aria-live="polite"></div>
       </section>
@@ -1428,7 +1453,7 @@ function renderApplicationList() {
   const posts=state.applications.filter(post=>post.title.toLocaleLowerCase('ko-KR').includes(applicationSearch.trim().toLocaleLowerCase('ko-KR'))).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)||a.id.localeCompare(b.id));
   const pages=Math.max(1,Math.ceil(posts.length/10));applicationPage=Math.max(0,Math.min(applicationPage,pages-1));
   const shown=posts.slice(applicationPage*10,applicationPage*10+10);
-  host.innerHTML=`<div class="application-list-caption"><span>${posts.length.toLocaleString('ko-KR')}개의 공고</span></div>${shown.length?`<ul class="application-titles">${shown.map(post=>`<li${post.decided?' class="is-decided"':''}><button type="button" data-action="view-application" data-id="${esc(post.id)}" title="${esc(post.title)}"><span>${esc(post.title)}</span>${icon('chevron')}</button><button type="button" class="application-fix" data-action="fix-application" data-id="${esc(post.id)}" aria-label="${esc(post.title)} ${post.decided?'결정 취소':'결정하기'}" aria-pressed="${!!post.decided}" title="${post.decided?'결정한 공고 · 다시 누르면 취소':'이 공고로 결정'}">fix</button></li>`).join('')}</ul>`:smallEmpty(applicationSearch?'검색한 제목이 없어요':'지원한 공고를 모아 보세요',applicationSearch?'다른 제목으로 검색해 보세요.':'지원 내용이나 모집 조건을 남기면 다시 찾기 쉬워요.')}<div class="application-pagination"><button type="button" class="button secondary small" data-action="application-prev" ${applicationPage===0?'disabled':''}>이전</button><span>${applicationPage+1} / ${pages}</span><button type="button" class="button secondary small" data-action="application-next" ${applicationPage>=pages-1?'disabled':''}>다음</button></div>`;
+  host.innerHTML=`<div class="application-list-caption"><span>${posts.length.toLocaleString('ko-KR')}개의 공고</span></div>${shown.length?`<ul class="application-titles">${shown.map(post=>`<li${post.rejected?' class="is-rejected"':''}><button type="button" data-action="view-application" data-id="${esc(post.id)}" title="${esc(post.title)}"><span>${esc(post.title)}</span>${icon('chevron')}</button><button type="button" class="application-fix" data-action="fix-application" data-id="${esc(post.id)}" aria-label="${esc(post.title)} ${post.rejected?'fix로 변경':'떨어짐으로 변경'}" aria-pressed="${!!post.rejected}" title="${post.rejected?'떨어짐 · 다시 누르면 fix로 변경':'클릭하면 떨어짐으로 변경'}">${post.rejected?'떨어짐':'fix'}</button></li>`).join('')}</ul>`:smallEmpty(applicationSearch?'검색한 제목이 없어요':'지원한 공고를 모아 보세요',applicationSearch?'다른 제목으로 검색해 보세요.':'지원 내용이나 모집 조건을 남기면 다시 찾기 쉬워요.')}<div class="application-pagination"><button type="button" class="button secondary small" data-action="application-prev" ${applicationPage===0?'disabled':''}>이전</button><span>${applicationPage+1} / ${pages}</span><button type="button" class="button secondary small" data-action="application-next" ${applicationPage>=pages-1?'disabled':''}>다음</button></div>`;
 }
 function openApplication(id, edit=false) {
   const post=id?state.applications.find(post=>post.id===id):null;
@@ -1450,7 +1475,7 @@ function saveApplication(form) {
     const id=dialog.dataset.id,existing=id?state.applications.find(post=>post.id===id):null;
     if(JSON.stringify(existing??null)!==dialog.dataset.base)throw new Error('다른 화면에서 공고가 변경됐어요. 입력한 내용을 복사한 뒤 다시 열어 주세요.');
     if(!id&&state.applications.length>=2000)throw new Error('공고는 2,000개까지 저장할 수 있어요. JSON으로 백업한 뒤 정리해 주세요.');
-    const now=new Date().toISOString(),post=validateApplication({id:id||crypto.randomUUID(),title:values.title,body:values.body,url:values.url.trim(),createdAt:existing?.createdAt||now,updatedAt:now,pinned:existing?.pinned,decided:existing?.decided});
+    const now=new Date().toISOString(),post=validateApplication({id:id||crypto.randomUUID(),title:values.title,body:values.body,url:values.url.trim(),createdAt:existing?.createdAt||now,updatedAt:now,pinned:existing?.pinned,decided:existing?.decided,rejected:existing?.rejected});
     if(id)state.applications[state.applications.findIndex(item=>item.id===id)]=post;else state.applications.push(post);
     applicationSearch='';applicationPage=0;persisted('지원 공고를 저장했어요.');dialog.close();render();
   }catch(failure){error.hidden=false;error.textContent=failure.message;}
@@ -1582,7 +1607,8 @@ function paymentFields(payment = { date: today(), amount: '' }) {
 function openRecord(id) {
   const record = state.records.find(r => r.id === id) || { ...calculatorDefaults(), id: '', task: '', note: '', dueDate: '', payments: [] };
   const dialog = $('#record-dialog');
-  dialog.innerHTML = `<div class="dialog-head"><div><span class="eyebrow">MY WORK LOG</span><h2 id="record-dialog-title">${id ? '알바 기록 수정' : '새로운 알바 기록'}</h2></div><button type="button" class="icon-button" data-action="close-record" aria-label="기록 편집 닫기">${icon('close')}</button></div><form id="record-form" data-id="${esc(record.id)}"><div class="form-grid">${field('근무 날짜', 'date', 'date', record.date, 'required min="1900-01-01" max="9999-12-31"')}${field('근무지', 'workplace', 'text', record.workplace, 'required maxlength="100" list="record-workplaces" placeholder="근무지 이름"')}${field('담당 업무', 'task', 'text', record.task, 'maxlength="200" placeholder="예: 운영스텝"')}${field('급여 지급 예정일 (선택)', 'dueDate', 'date', record.dueDate, 'min="1900-01-01" max="9999-12-31"')}</div><div class="form-divider"></div>${payFields(record)}<div class="modal-pay-preview" id="record-preview" aria-live="polite"></div><section class="payment-section"><div class="section-heading"><h3>급여 입금 내역</h3><button type="button" class="button secondary small" data-action="add-payment">${icon('plus')}입금 내역 추가</button></div><p class="field-hint">나누어 입금받았다면 날짜별로 추가하세요. 지급 상태는 자동으로 계산돼요.</p><div id="payments">${record.payments.map(paymentFields).join('')}</div></section><label class="field"><span>메모 (선택)</span><textarea name="note" rows="3" maxlength="2000" placeholder="기억해 두고 싶은 내용을 남겨 주세요.">${esc(record.note)}</textarea></label><div id="record-error" class="form-error" role="alert" hidden></div><div class="dialog-actions"><button type="button" class="button secondary" data-action="close-record">취소</button><button type="submit" class="button primary">${icon('check')}기록 저장</button></div><datalist id="record-workplaces">${workplaceOptions().map(w => `<option value="${esc(w)}"></option>`).join('')}</datalist></form>`;
+  dialog.innerHTML = `<div class="dialog-head"><div><span class="eyebrow">MY WORK LOG</span><h2 id="record-dialog-title">${id ? '알바 기록 수정' : '새로운 알바 기록'}</h2></div><button type="button" class="icon-button" data-action="close-record" aria-label="기록 편집 닫기">${icon('close')}</button></div><form id="record-form" data-id="${esc(record.id)}"><div class="form-grid">${workDateField('record-work-date',record.date)}${field('근무지', 'workplace', 'text', record.workplace, 'required maxlength="100" list="record-workplaces" placeholder="근무지 이름"')}${field('담당 업무', 'task', 'text', record.task, 'maxlength="200" placeholder="예: 운영스텝"')}${field('급여 지급 예정일 (선택)', 'dueDate', 'date', record.dueDate, 'min="1900-01-01" max="9999-12-31"')}</div><div class="form-divider"></div>${payFields(record)}<div class="modal-pay-preview" id="record-preview" aria-live="polite"></div><section class="payment-section"><div class="section-heading"><h3>급여 입금 내역</h3><button type="button" class="button secondary small" data-action="add-payment">${icon('plus')}입금 내역 추가</button></div><p class="field-hint">나누어 입금받았다면 날짜별로 추가하세요. 지급 상태는 자동으로 계산돼요.</p><div id="payments">${record.payments.map(paymentFields).join('')}</div></section><label class="field"><span>메모 (선택)</span><textarea name="note" rows="3" maxlength="2000" placeholder="기억해 두고 싶은 내용을 남겨 주세요.">${esc(record.note)}</textarea></label><div id="record-error" class="form-error" role="alert" hidden></div><div class="dialog-actions"><button type="button" class="button secondary" data-action="close-record">취소</button><button type="submit" class="button primary">${icon('check')}기록 저장</button></div><datalist id="record-workplaces">${workplaceOptions().map(w => `<option value="${esc(w)}"></option>`).join('')}</datalist></form>`;
+  $$('[data-iso-date]',dialog).forEach(input=>syncIsoDate(input));
   dialog.showModal();
   updateRecordPreview();
 }
@@ -1697,10 +1723,11 @@ document.addEventListener('submit', async event => {
   }
 });
 document.addEventListener('input', event => {
+  if(event.target.matches('[data-iso-date]'))syncIsoDate(event.target,true);
   if(event.target.id==='application-search'){applicationSearch=event.target.value;applicationPage=0;renderApplicationList();return;}
   if(['application-career','application-template'].includes(event.target.id)){const career=event.target.id==='application-career',value=event.target.value;if(value.length>30000)return;state[career?'applicationCareer':'applicationTemplate']=value;const saved=save();$('#'+(career?'career':'template')+'-save-state').textContent=value.length.toLocaleString('ko-KR')+' / 30,000자 · '+(saved?'저장했어요':'저장되지 않음 · JSON 백업 필요');return;}
   if(event.target.id==='memo-fallback'){state.workMemo=event.target.value;state.workMemoDelta=null;const saved=save();updateMemoStatus(saved);setMemoSaveState(saved?'ready':'error');return;}
-  if(event.target.id==='mini-expression'){miniExpression=event.target.value;miniAnswer='';$('#mini-answer').textContent='';return;}
+  if(event.target.id==='mini-expression'){miniExpression=event.target.value;miniAnswer='';miniEvaluated=false;updateMiniDisplay();return;}
   const form = event.target.closest('form');
   if (form?.id === 'calculator-form') {
     const draft=formValues(form),days=Number(draft.days);
@@ -1727,6 +1754,10 @@ document.addEventListener('input', event => {
 document.addEventListener('toggle',event=>{if(event.target.id==='schedule-settings'&&event.target.isConnected&&compactSchedule())mobileScheduleSettingsOpen=event.target.open;},true);
 document.addEventListener('pointerdown',event=>{if(event.target.closest('#memo-format-toolbar button'))event.preventDefault();});
 document.addEventListener('change', event => {
+  if(event.target.matches('[data-date-picker]')){
+    const input=event.target.parentElement.querySelector('[data-iso-date]');input.value=event.target.value;
+    input.dispatchEvent(new Event('input',{bubbles:true}));return;
+  }
   if(event.target.closest('#rest-adjust-form')){
     if(event.target.name==='changeCycle')updateRestCycleFields();
     if(event.target.name==='restCycle'){
@@ -1774,13 +1805,19 @@ document.addEventListener('click', async event => {
   if (!button || button.disabled) return;
   const action = button.dataset.action;
   try {
+    if(action==='open-date-picker'){
+      const control=button.parentElement,picker=control.querySelector('[data-date-picker]'),input=control.querySelector('[data-iso-date]');
+      picker.value=validDate(input.value)?input.value:today();
+      try{if(picker.showPicker)picker.showPicker();else{picker.focus();picker.click();}}catch{picker.focus();picker.click();}
+      return;
+    }
     if(action==='new-application'){openApplication(null,true);return;}
     if(action==='view-application'){openApplication(button.dataset.id);return;}
     if(action==='fix-application'){
       const index=state.applications.findIndex(post=>post.id===button.dataset.id);if(index<0)return;
       const post=state.applications[index];
-      state.applications[index]=validateApplication({...post,decided:!post.decided});
-      if(!save())toast('공고 결정 상태가 이 기기에 저장되지 않았어요. JSON으로 백업해 주세요.');
+      state.applications[index]=validateApplication({...post,rejected:!post.rejected});
+      if(!save())toast('공고 결과가 이 기기에 저장되지 않았어요. JSON으로 백업해 주세요.');
       renderApplicationList();
       $$('[data-action="fix-application"]').find(node=>node.dataset.id===post.id)?.focus({preventScroll:true});
       return;
@@ -1838,8 +1875,14 @@ document.addEventListener('click', async event => {
     if(action==='mini-key'){
       const key=button.dataset.key;
       if(key==='='){calculateMini();return;}
-      if(key==='C'){miniExpression='';miniAnswer='';}else if(key==='⌫')miniExpression=miniExpression.slice(0,-1);else if(miniExpression.length<200)miniExpression+=key;
-      $('#mini-expression').value=miniExpression;$('#mini-answer').textContent='';
+      if(key==='±'||key==='%'){
+        try{const value=evaluateExpression(miniExpression||'0'),result=key==='±'?-value:value/100;miniExpression=miniNumber(result);miniAnswer=`= ${result.toLocaleString('ko-KR',{maximumFractionDigits:12})}`;miniEvaluated=true;updateMiniDisplay();}
+        catch(failure){$('#mini-answer').textContent=failure.message;$('#mini-answer').dataset.error='true';}return;
+      }
+      if(key==='C')miniExpression='';
+      else if(key==='⌫')miniExpression=miniExpression.slice(0,-1);
+      else{if(miniEvaluated&&/^[\d.]$/.test(key))miniExpression='';if(miniExpression.length<200)miniExpression+=key;}
+      miniAnswer='';miniEvaluated=false;updateMiniDisplay();
     }
     if (action === 'add-record') openRecord();
     if (action === 'edit-record') openRecord(button.dataset.id);

@@ -69,7 +69,7 @@ try{
   await page.reload();const delta=await page.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data')).workMemoDelta);
   assert.ok(delta.ops.some(op=>op.attributes?.underline&&op.attributes?.size==='24px'&&op.attributes?.color==='#1db954'&&op.attributes?.background==='#ffe885'));
  });
- await check('모바일 날짜 입력은 한 줄 너비로 표시되고 행사장·운영스텝 예시 적용',async()=>{
+ await check('모바일 근무 날짜는 하이픈으로 표시되고 달력 연동·날짜 검증·기록 저장 유지',async()=>{
   const mobile=await browser.newContext({isMobile:true,hasTouch:true,locale:'ko-KR',viewport:{width:390,height:844}}),tab=await mobile.newPage();
   tab.on('pageerror',error=>errors.push(error.message));
   try{
@@ -79,12 +79,40 @@ try{
     const field=tab.locator('#calculator-form [name="date"]'),box=await field.boundingBox(),grid=await tab.locator('.calculator-basics').boundingBox();
     assert.ok(Math.abs(box.width-grid.width)<=1&&box.width>=200,JSON.stringify({width,box,grid}));
     assert.equal(await tab.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
-    await field.fill('2026-12-31');assert.equal(await field.inputValue(),'2026-12-31');
+    assert.equal(await field.getAttribute('type'),'text');await field.fill('20261017');assert.equal(await field.inputValue(),'2026-10-17');
+    const picker=tab.locator('#calculator-form [data-date-picker]');
+    assert.equal(await picker.inputValue(),'2026-10-17');
+    await picker.evaluate(node=>{node.value='2026-12-31';node.dispatchEvent(new Event('change',{bubbles:true}));});
+    assert.equal(await field.inputValue(),'2026-12-31');
     assert.equal(await tab.locator('#calculator-form [name="workplace"]').getAttribute('placeholder'),'예: 행사장');
-    if(width===390)await tab.screenshot({path:join(output,`calculator-date-${theme}.png`),fullPage:true});
+    assert.equal(await tab.locator('.mini-calculator h2').innerText(),'계산기');assert.equal(await tab.locator('.mini-calculator .small-badge').count(),0);
+    assert.equal(await tab.locator('.mini-key.operator').first().evaluate(n=>getComputedStyle(n).backgroundColor),'rgb(29, 185, 84)');
+    assert.equal(await tab.locator('.mini-calculator').evaluate(n=>n.scrollWidth>n.clientWidth+1),false);
+    assert.deepEqual(await tab.locator('.mobile-nav [data-page]').evaluateAll(nodes=>nodes.map(n=>n.dataset.page)),['home','notes','schedule','calculator']);
+    if(width===390){await tab.screenshot({path:join(output,`calculator-date-${theme}.png`),fullPage:true});await tab.locator('.mini-calculator').screenshot({path:join(output,`calculator-device-${theme}.png`)});}
    }
    await tab.goto(new URL('records.html',site.base).href);await tab.locator('main[data-ready]').waitFor();await tab.locator('[data-action="add-record"]').first().click();
    assert.equal(await tab.locator('#record-form [name="task"]').getAttribute('placeholder'),'예: 운영스텝');
+   for(const width of [320,390]){
+    await tab.setViewportSize({width,height:844});const date=tab.locator('#record-form [name="date"]');
+    await date.fill('20261017');assert.equal(await date.inputValue(),'2026-10-17');
+    const box=await date.boundingBox(),grid=await tab.locator('#record-form > .form-grid').first().boundingBox();assert.ok(Math.abs(box.width-grid.width)<=1);
+    assert.ok(await date.evaluate(node=>node.scrollWidth<=node.clientWidth+1));
+   }
+   await tab.locator('#record-form [name="date"]').fill('2026-02-30');assert.equal(await tab.locator('#record-form [name="date"]').evaluate(n=>n.checkValidity()),false);
+   await tab.locator('#record-form [name="date"]').fill('2026-10-17');await tab.locator('#record-form [name="workplace"]').fill('날짜 형식 테스트 행사장');
+   await tab.locator('#record-form button[type="submit"]').click();
+   assert.equal(await tab.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data')).records[0].date),'2026-10-17');
+   await tab.reload();await tab.locator('main[data-ready]').waitFor();assert.ok((await tab.locator('#record-results').innerText()).includes('2026-10-17'));
+   await tab.goto(new URL('calculator.html',site.base).href);await tab.locator('main[data-ready]').waitFor();
+   const expression=tab.locator('#mini-expression');await expression.fill('9 × 9');await expression.press('Enter');assert.equal(await expression.inputValue(),'81');
+   await tab.locator('[data-key="±"]').click();assert.equal(await expression.inputValue(),'-81');
+   await tab.locator('[data-key="%"]').click();assert.equal(await expression.inputValue(),'-0.81');
+   await tab.locator('[data-key="7"]').click();assert.equal(await expression.inputValue(),'7');
+   await tab.locator('[data-key="⌫"]').click();assert.equal(await expression.inputValue(),'');
+   await expression.fill('2+(3*4)');await expression.press('Enter');assert.ok((await tab.locator('#mini-answer').innerText()).includes('14'));
+   await expression.fill('1/0');await expression.press('Enter');assert.equal(await tab.locator('#mini-answer').getAttribute('data-error'),'true');
+   await tab.locator('[data-key="C"]').click();assert.equal(await tab.locator('#mini-answer').innerText(),'0');
   }finally{await mobile.close();}
  });
  await check('새 버전 안내·저장 오류·알림 배너가 모바일 화면 안에서 줄바꿈',async()=>{

@@ -324,9 +324,10 @@ export function validateApplication(post) {
   if(!post||!textValue(post.id,100)||!post.id||!textValue(post.title,160)||!post.title.trim()||!textValue(post.body,20000)||!textValue(post.url,2000)||!stamp(post.createdAt)||!stamp(post.updatedAt))throw new Error('지원 공고의 제목이나 내용 형식을 확인해 주세요.');
   if(post.pinned!==undefined&&typeof post.pinned!=='boolean')throw new Error('지원 공고의 고정 설정을 확인해 주세요.');
   if(post.decided!==undefined&&typeof post.decided!=='boolean')throw new Error('지원 공고의 결정 상태를 확인해 주세요.');
+  if(post.rejected!==undefined&&typeof post.rejected!=='boolean')throw new Error('지원 공고의 결과를 확인해 주세요.');
   if(post.url){let link;try{link=new URL(post.url);}catch{throw new Error('공고 링크를 확인해 주세요.');}if(!['http:','https:'].includes(link.protocol)||link.username||link.password)throw new Error('공고 링크는 http 또는 https 주소만 사용할 수 있어요.');}
   // Preserve old pins for backup compatibility; a pin never implies a decision.
-  return {id:post.id,title:post.title.trim(),body:post.body,url:post.url,createdAt:post.createdAt,updatedAt:post.updatedAt,...(post.pinned?{pinned:true}:{}),...(post.decided?{decided:true}:{})};
+  return {id:post.id,title:post.title.trim(),body:post.body,url:post.url,createdAt:post.createdAt,updatedAt:post.updatedAt,...(post.pinned?{pinned:true}:{}),...(post.decided?{decided:true}:{}),...(post.rejected?{rejected:true}:{})};
 }
 export function validateState(data) {
   if (!data || ![1, 2, VERSION].includes(data.version) || !data.settings || !['light', 'dark'].includes(data.settings.theme) || !data.schedule || !Array.isArray(data.records) || data.records.length > 50000 || !Array.isArray(data.workplaces) || data.workplaces.some(w => !textValue(w, 100)) || (data.workMemo !== undefined && !textValue(data.workMemo, 30000))) throw new Error('지원하지 않는 백업 형식 또는 버전입니다.');

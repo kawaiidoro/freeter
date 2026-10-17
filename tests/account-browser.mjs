@@ -79,7 +79,7 @@ try{
   await a.waitForFunction(()=>document.querySelector('.application-titles')?.textContent.includes('두 기기에서 확인할 지원 공고'),null,{timeout:25000});assert.equal(await a.evaluate(()=>document.querySelector('#application-career')===globalThis.__careerEditor&&document.activeElement===globalThis.__careerEditor&&globalThis.__careerEditor.selectionStart===2),true);
   await b.locator('[data-action="fix-application"]').click();
   await a.waitForFunction(()=>document.querySelector('[data-action="fix-application"]')?.getAttribute('aria-pressed')==='true',null,{timeout:25000});
-  assert.equal(server.get(alice).data.applications[0].decided,true);
+  assert.equal(server.get(alice).data.applications[0].rejected,true);
   assert.equal(server.get(alice).data.applications.length,1);assert.equal(server.get(alice).data.applicationCareer,'전시회 안내 3회');await a.goto(new URL('notes.html',site.base).href);await b.goto(new URL('notes.html',site.base).href);await waitMemo(a,'모바일에서 수정한 업무');await waitMemo(b,'모바일에서 수정한 업무');
  });
  await check('로그아웃 시 계정 캐시를 지우고 로그인 전 메모로 돌아오기',async()=>{

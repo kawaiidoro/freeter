@@ -1244,7 +1244,7 @@ html[data-theme] .profile-wordmark.freeter-wordmark { width: 220px; }
 .application-titles button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .application-titles .icon { color: var(--muted); width: 17px; height: 17px; }
 .application-titles button.application-fix { flex: 0 0 auto; justify-content: center; min-width: 52px; min-height: 40px; padding: 8px 12px; border: 1px solid #1db954; border-radius: 11px; background: #1db954; color: #101010; font-size: 13px; font-weight: 750; }
-.application-titles .application-fix[aria-pressed='true'] { background: #e7ff00; border-color: #e7ff00; color: #101010; }
+.application-titles .application-fix[aria-pressed='true'] { background: #fde68a; border-color: #fde68a; color: #101010; }
 .application-pagination { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 25px; }
 .application-pagination > span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 #application-dialog { width: 620px; max-width: calc(100vw - 32px); max-height: calc(100dvh - 40px); padding: 27px; border-radius: 23px; overflow-y: auto; }
@@ -1261,9 +1261,9 @@ html[data-theme] .profile-wordmark.freeter-wordmark { width: 220px; }
 @media(max-width:1100px){ .applications-layout { grid-template-columns: 1fr; } .application-writing { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:800px){
   /* Give the native date value and calendar picker their full row on mobile. */
-  .calculator-basics > .field:first-child { grid-column: 1 / -1; }
+  .calculator-basics > .field:first-child, #record-form .iso-date-field { grid-column: 1 / -1; }
   #calculator-form input[type='date'] { max-width: 100%; min-width: 0; }
-  html[data-theme] .mobile-nav { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); padding-inline: 4px; }
+  html[data-theme] .mobile-nav { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); padding-inline: 4px; }
   html[data-theme] .mobile-nav a { min-width: 0; min-height: 44px; padding-inline: 2px; font-size: 9px; gap: 4px; }
   html[data-theme] .mobile-nav a .icon { width: 20px; height: 20px; }
   html[data-theme] .mobile-brand .freeter-wordmark { width: clamp(82px,25vw,118px); max-height: none; }
@@ -1296,6 +1296,38 @@ html[data-theme] .profile-wordmark.freeter-wordmark { width: 220px; }
   #application-dialog .dialog-actions > .button { flex: 1; }
 }
 @media(max-width:360px){ .workspace-grid .app-launcher { gap: 15px 5px; } .workspace-grid .app-tile-icon { width: 44px; height: 44px; } .workspace-grid .app-tile { font-size: 9px; } .application-board, .application-note { padding: 20px 17px; } }
+
+/* ISO work dates keep the same visible format on every phone. */
+html[data-theme] .iso-date-field > label { color: var(--body); font-size: 13px; font-weight: 600; }
+.iso-date-control { position: relative; min-width: 0; }
+html[data-theme] .iso-date-control input[data-iso-date] { width: 100%; max-width: 100%; padding-right: 52px; font-size: 16px; font-variant-numeric: tabular-nums; letter-spacing: .3px; }
+.date-picker-button { position: absolute; top: 0; right: 2px; bottom: 0; width: 44px; display: grid; place-items: center; color: var(--blue); border-radius: 10px; }
+.date-picker-button:hover { background: var(--blue-soft); }
+html[data-theme] .iso-date-control input[data-date-picker] { position: absolute; right: 0; top: 0; width: 44px; height: 100%; min-width: 0; min-height: 0; opacity: 0; pointer-events: none; }
+
+/* A compact calculator with a dark display and round, green action keys. */
+html[data-theme] .mini-calculator { padding: 0; overflow: hidden; }
+.mini-calculator-heading { padding: 22px 23px 18px; }
+.mini-calculator-heading h2 { display: flex; align-items: center; gap: 9px; font-size: 18px; }
+.calculator-device { max-width: 360px; margin: 0 auto 22px; width: calc(100% - 32px); border-radius: 25px; overflow: hidden; box-shadow: 0 5px 18px #00000012; }
+.mini-display { position: relative; padding: 22px 22px 19px; background: #07110b; color: #fff; }
+html[data-theme] .mini-calculator .mini-display input { background: transparent; border: 0; box-shadow: none; border-radius: 0; color: #a7c3b0; font-size: 17px; min-height: 36px; padding: 0; }
+.mini-display input::placeholder { color: #8aa193; }
+html[data-theme] .mini-calculator output { min-height: 72px; margin: 9px 0 0; padding: 0 0 14px; color: #fff; font-size: clamp(32px,5vw,46px); line-height: 1.35; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -.6px; }
+html[data-theme] .mini-calculator output[data-error='true'] { color: #fde68a; font-size: 14px; line-height: 1.7; letter-spacing: 0; }
+.mini-erase { position: absolute; bottom: 7px; right: 16px; min-height: 32px; min-width: 40px; color: #8dbb9e; font-size: 20px; }
+.mini-erase:hover { color: #1db954; }
+.mini-calculator .mini-keys { padding: 19px 16px; gap: 9px; background: #f1f5f2; }
+html[data-theme] .mini-calculator .mini-key { width: 100%; min-height: 44px; aspect-ratio: 1; border: 0; border-radius: 50%; background: #fff; color: #17281c; font-size: 22px; font-weight: 500; box-shadow: 0 3px 5px #0000000a; }
+html[data-theme='dark'] .mini-calculator .mini-keys { background: #19251e; }
+html[data-theme='dark'] .mini-calculator .mini-key { background: #303e35; color: #f5fff8; }
+html[data-theme] .mini-calculator .mini-key.utility { background: #dcefe3; color: #17512c; font-size: 18px; }
+html[data-theme] .mini-calculator .mini-key.operator { background: #1db954; color: #052f14; font-size: 27px; }
+html[data-theme] .mini-calculator .mini-key.equals { background: #101c14; color: #fff; font-size: 27px; }
+html[data-theme='dark'] .mini-calculator .mini-key.equals { background: #1db954; color: #052f14; }
+html[data-theme] .mini-calculator .mini-key.zero { grid-column: span 2; aspect-ratio: auto; border-radius: 999px; text-align: left; padding-left: 23px; }
+html[data-theme] .mini-calculator .mini-key:hover { filter: brightness(.94); }
+.mini-key:active { transform: translateY(1px); }
 
 /* Quiet header details keep attention on the workspace. */
 html[data-theme] .breadcrumb { font-size: 13px; white-space: nowrap; }
