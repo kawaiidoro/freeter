@@ -1737,14 +1737,15 @@ html[data-theme] .panel.settings-card.data-transfer { padding: 0; overflow: hidd
 /* Filled app marks use the same charcoal, white and vivid green palette. */
 html[data-theme] .dashboard-layout { --tool-ink: #263238; --tool-paper: #ffffff; --tool-mint: #c4efdb; --tool-accent: #00c853; --tool-gray: #9aa3aa; --tool-background: #f4f6f6; }
 html[data-theme] .dashboard-layout .app-tile-icon { background: linear-gradient(145deg,#f9faf9,#f0f3f4); border: 1px solid #edf0f070; }
-.tool-illustration { width: 46px; height: 46px; stroke-width: 2.5px; filter: drop-shadow(0 1px 1px #14202412); }
-.tool-dark { fill: var(--tool-ink); stroke: var(--tool-ink); }
-.tool-gray { fill: var(--tool-gray); stroke: none; }
-.tool-accent { stroke: var(--tool-accent); }
-.tool-pencil { fill: var(--tool-accent); stroke: #ffffff; stroke-width: 2px; }
+.tool-illustration { width: 46px; height: 46px; }
+.tool-dark { fill: var(--tool-ink); }
+.tool-gray { fill: var(--tool-gray); }
+.tool-outline { stroke: var(--tool-ink); }
+.tool-sheet { fill: var(--tool-paper); stroke: #e2e7e5; stroke-width: 1px; }
+.tool-badge { stroke: var(--tool-paper); stroke-width: 2px; }
+.tool-divider { stroke: #ffffff20; stroke-width: 1px; }
 .tool-white-line { fill: none; stroke: #ffffff; }
 .tool-green-line { fill: none; stroke: var(--tool-accent); }
-.tool-white-fill { fill: #ffffff; stroke: none; }
 @media(max-width:480px){ .tool-illustration { width: 40px; height: 40px; } }
 @media(max-width:360px){ .tool-illustration { width: 36px; height: 36px; } }
 @media(max-width:650px) {
