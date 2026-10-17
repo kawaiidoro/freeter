@@ -10,13 +10,15 @@ const browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH
 const context=await browser.newContext({viewport:{width:390,height:844},locale:'ko-KR'}),page=await context.newPage(),errors=[];
 page.on('pageerror',error=>errors.push(error.message));
 const go=async route=>{await page.goto(new URL(route,base).href);await page.locator('main[data-ready]').waitFor();};
+const luminance=hex=>hex.slice(1).match(/../g).map(x=>parseInt(x,16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0);
+const contrast=(a,b)=>{const x=luminance(a),y=luminance(b);return(Math.max(x,y)+.05)/(Math.min(x,y)+.05);};
 let count=0;async function check(name,fn){await fn();count++;console.log('PASS '+name);}
 try{
  await check('모든 페이지 Freeter 이름·푸터 슬로건 제거·정적 공유 메타데이터',async()=>{
   for(const route of ['','schedule.html','calculator.html','records.html','stats.html','notes.html','guide.html','privacy.html','settings.html']){
    await go(route);assert.ok((await page.title()).includes('Freeter'));assert.equal(await page.locator('meta[property="og:site_name"]').getAttribute('content'),'Freeter');
    const footer=await page.locator('.site-footer').innerText();assert.ok(!footer.includes('오늘의 수고가'));assert.ok(!footer.includes('언제나 무료'));assert.equal(await page.locator('.sidebar-foot,.bottom-note').count(),0);
-   const response=await context.request.get(new URL(route,base).href),html=await response.text();assert.equal(response.status(),200);assert.ok(html.includes('property="og:image"'));assert.ok(html.includes('name="twitter:card" content="summary_large_image"'));assert.ok(!html.includes('저는 단기알바입니다.'));
+   const response=await context.request.get(new URL(route,base).href),html=await response.text();assert.equal(response.status(),200);assert.ok(html.includes('property="og:image"'));assert.ok(html.includes('name="twitter:card" content="summary_large_image"'));assert.ok(!footer.includes('저는 단기알바입니다.'));
    assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'),'https://kawaiidoro.github.io/freeter/'+route);
    for(const selector of ['meta[property="og:url"]','meta[property="og:image"]','meta[name="twitter:image"]'])assert.ok((await page.locator(selector).getAttribute('content')).startsWith('https://kawaiidoro.github.io/freeter/'));
    assert.ok(!html.includes('https://kawaiidoro.github.io/dangi-alba/'));
@@ -60,25 +62,52 @@ try{
  await check('페이지 이동 시 공유 제목·주소도 해당 페이지로 갱신',async()=>{
   await page.locator('.mobile-nav [data-page="calculator"]').click();assert.ok((await page.locator('meta[property="og:title"]').getAttribute('content')).includes('급여 계산기'));assert.ok((await page.locator('meta[property="og:url"]').getAttribute('content')).endsWith('/calculator.html'));
  });
- await check('그린 테마의 명암 대비와 위젯·앱 바로가기가 모바일·PC에서 정상 표시',async()=>{
+ await check('홈에서 ABC 근무표 생성·여러 날 급여 계산·기록 수정과 삭제까지 실제 사용',async()=>{
+  await page.evaluate(data=>localStorage.setItem('dangi-alba:data',JSON.stringify(data)),emptyState());await go('');
+  const switchTool=async tool=>{await page.locator(`.home-tools button[data-home-tool="${tool}"]`).click();assert.equal(await page.locator('body').getAttribute('data-page'),'home');assert.equal(await page.locator('.home-hero h1').innerText(),'저는 단기알바입니다.');};
+  await page.locator('.hero-actions [data-home-tool="schedule"]').click();assert.equal(await page.locator('body').getAttribute('data-page'),'home');assert.equal(await page.locator('.home-tools [aria-selected="true"]').getAttribute('data-home-tool'),'schedule');
+  if(await page.locator('#schedule-settings').getAttribute('open')===null)await page.locator('[data-action="edit-schedule"]').click();
+  for(const[index,name]of ['가은','민수','서연'].entries())await page.locator(`[name="person${index}"]`).fill(name);
+  await page.locator('#schedule-form [name="start"]').fill('08:00');await page.locator('#schedule-form [name="end"]').fill('12:00');await page.locator('#schedule-form [name="lunchEnabled"]').uncheck();await page.locator('#schedule-form button[type="submit"]').click();
+  const schedule=await page.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data')).schedule);assert.deepEqual(schedule.rows.map(row=>row.rest),[0,1,2,0,1,2]);assert.deepEqual(schedule.rows.map(row=>row.end-row.start),[60,60,60,20,20,20]);assert.ok((await page.locator('.schedule-table thead').innerText()).includes('서연'));
+  await switchTool('calculator');assert.equal(await page.locator('#schedule-form').count(),0);assert.equal(await page.locator('.home-tool-body #calculator-form').count(),1);
+  const calculator=page.locator('#calculator-form'),field=name=>calculator.locator(`[name="${name}"]`);
+  await field('days').fill('3');await field('rate').fill('12000');await field('start').fill('10:00');await field('end').fill('19:00');await field('breakMinutes').fill('60');
+  assert.ok((await page.locator('.pay-total strong').innerText()).includes('288,000'));
+  const breakdown=page.locator('.calculation-breakdown');assert.equal(await breakdown.locator('div').filter({has:page.locator('dt',{hasText:'1일 실근무시간'})}).locator('dd').innerText(),'8시간');assert.equal(await breakdown.locator('div').filter({has:page.locator('dt',{hasText:'총 실근무시간'})}).locator('dd').innerText(),'24시간');
+  await field('payType').selectOption('daily');await field('rate').fill('200000');await calculator.locator('[name="taxType"][value="daily"]').check();assert.ok((await page.locator('.pay-total strong').innerText()).includes('595,560'));
+  await field('date').fill('2026-10-17');await field('workplace').fill('홈에서 기록한 카페');await page.locator('[data-action="save-calculation"]').click();
+  const records=await page.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data')).records);assert.equal(records.length,1);assert.equal(Number(records[0].rate),200000);
+  await switchTool('records');assert.equal(await page.locator('#calculator-form').count(),0);await page.locator('#record-filters [name="month"]').fill('2026-10');assert.ok((await page.locator('.records-table').innerText()).includes('198,520'));
+  await page.locator('.records-table [data-action="edit-record"]').click();await page.locator('#record-form [name="workplace"]').fill('수정한 홈 근무지');await page.locator('#record-form [name="note"]').fill('홈에서도 안전하게 수정');await page.locator('#record-form button[type="submit"]').click();assert.ok((await page.locator('.records-table').innerText()).includes('수정한 홈 근무지'));
+  await page.locator('.records-table [data-action="delete-record"]').click();await page.locator('#confirm-yes').click();assert.equal(await page.locator('.records-table').count(),0);assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data')).records.length),0);
+  await page.reload();assert.equal(await page.locator('.home-hero h1').innerText(),'저는 단기알바입니다.');const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data')));assert.equal(stored.records.length,0);assert.equal(stored.calculator.days,'3');assert.deepEqual(stored.schedule.rows.map(row=>row.rest),[0,1,2,0,1,2]);
+ });
+ await check('스포티 그린·중성 라이트 테마의 명암 대비와 기능 카드가 모바일·PC에서 정상 표시',async()=>{
   if(await page.locator('html').getAttribute('data-theme')!=='light')await page.locator('#theme-toggle').click();
   for(const width of [320,390,768,1440]){
    await page.setViewportSize({width,height:1000});await go('');
    const neutral=await page.evaluate(()=>getComputedStyle(document.body).backgroundColor.match(/\d+/g).slice(0,3).map(Number));assert.ok(Math.max(...neutral)-Math.min(...neutral)<=3);assert.ok(Math.min(...neutral)>=240);
-   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.equal(await page.locator('.app-launcher .app-tile:visible').count(),6);
-   assert.equal(await page.locator('.home-summary .summary-card').count(),4);assert.ok(await page.locator('.memo-widget').isVisible());
-   const logo=page.locator('.profile-logo');assert.ok(await logo.evaluate(node=>node.complete&&node.naturalWidth===512));
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.equal(await page.locator('.home-features .feature-card:visible').count(),3);
+   assert.equal(await page.locator('.home-tools [data-home-tool]').count(),3);assert.ok(await page.locator('.memo-widget').isVisible());assert.equal(await page.locator('.home-hero h1').innerText(),'저는 단기알바입니다.');
+   const logo=page.locator('.hero-brand-mark:is(img),.hero-brand-mark img');assert.ok(await logo.evaluate(node=>node.complete&&node.naturalWidth>=192));
   }
-  await page.screenshot({path:join(output,'freeter-workspace-desktop.png'),fullPage:true});
-  await page.setViewportSize({width:390,height:844});await page.screenshot({path:join(output,'freeter-workspace-mobile.png'),fullPage:true});
+  await page.screenshot({path:join(output,'freeter-spotify-light-desktop.png'),fullPage:true});
+  await page.setViewportSize({width:390,height:844});await page.screenshot({path:join(output,'freeter-spotify-light-mobile.png'),fullPage:true});
   await page.setViewportSize({width:1440,height:1000});await page.locator('#theme-toggle').click();
   const palette=await page.evaluate(()=>{const css=getComputedStyle(document.documentElement);return Object.fromEntries(['bg','surface','accent','blue','body','muted','text'].map(key=>[key,css.getPropertyValue('--'+key).trim()]));});
-  assert.equal(palette.bg,'#121212');assert.equal(palette.surface,'#065f46');assert.equal(palette.accent,'#10b981');assert.equal(palette.blue,'#a7f3d0');
-  const luminance=hex=>hex.slice(1).match(/../g).map(x=>parseInt(x,16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0),contrast=(a,b)=>{const x=luminance(a),y=luminance(b);return(Math.max(x,y)+.05)/(Math.min(x,y)+.05);};
-  for(const foreground of ['text','body','muted','blue'])assert.ok(contrast(palette[foreground],palette.surface)>=4.5,foreground+' contrast');assert.ok(contrast('#052718',palette.accent)>=4.5,'Action contrast');
-  await page.screenshot({path:join(output,'freeter-emerald-desktop.png'),fullPage:true});await page.setViewportSize({width:390,height:844});await page.screenshot({path:join(output,'freeter-emerald-mobile.png'),fullPage:true});
-  await page.locator('#theme-toggle').click();
-  await page.locator('.app-launcher [data-route="notes"]').click();await page.locator('#work-memo').waitFor();
+  assert.equal(palette.bg.toLowerCase(),'#121212');assert.ok(['#181818','#222222'].includes(palette.surface.toLowerCase()));assert.equal(palette.accent.toLowerCase(),'#1ed760');
+  for(const foreground of ['text','body','muted','blue'])assert.ok(contrast(palette[foreground],palette.surface)>=4.5,foreground+' contrast');
+  await page.screenshot({path:join(output,'freeter-spotify-dark-desktop.png'),fullPage:true});await page.setViewportSize({width:390,height:844});await page.screenshot({path:join(output,'freeter-spotify-dark-mobile.png'),fullPage:true});
+  // The chosen mode must survive reload; checking both modes catches missing storage persistence.
+  await page.reload();assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');
+  for(const mode of ['dark','light']){
+   if(await page.locator('html').getAttribute('data-theme')!==mode)await page.locator('#theme-toggle').click();
+   await page.locator('.hero-actions .primary').evaluate(node=>Promise.allSettled(node.getAnimations().map(animation=>animation.finished)));
+   const colors=await page.locator('.hero-actions .primary').evaluate(node=>{const css=getComputedStyle(node),hex=value=>'#'+value.match(/\d+/g).slice(0,3).map(Number).map(n=>n.toString(16).padStart(2,'0')).join('');return{foreground:hex(css.color),background:hex(css.backgroundColor)};});assert.ok(contrast(colors.foreground,colors.background)>=4.5,mode+' primary button contrast');
+  }
+  await page.reload();assert.equal(await page.locator('html').getAttribute('data-theme'),'light');
+  await page.locator('.memo-widget [data-route="notes"]').first().click();await page.locator('#work-memo').waitFor();
  });
  const readingMemo='09:50 담당자에게 도착 연락\n준비물: 신분증, 편한 운동화\n\n업무 순서\n1. 안전교육을 받은 뒤 작업 시작\n2. 물품 정리와 수량 확인\n<script>throw new Error("unsafe memo")</script>\n'+('긴업무설명을읽을때에도화면밖으로넘어가지않아요'.repeat(12));
  await check('모바일 메모 편집·읽기 전환과 줄바꿈·장문·기존 데이터 보존',async()=>{

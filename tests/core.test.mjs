@@ -134,6 +134,15 @@ test('미완성 설정은 보존하지만 손상된 백업·중복 ID·잘못된
   const brokenRows = emptyState(); brokenRows.schedule.rows = [{ start: 0, end: 1, rest: 0 }]; assert.throws(() => validateState(brokenRows));
   const brokenCalc = emptyState(); brokenCalc.calculator = { rate: '<script>' }; assert.throws(() => validateState(brokenCalc));
 });
+test('계산기 근무일 수는 기존 백업의 하루 기본값과 새 여러 날 설정을 보존한다', () => {
+  const data=emptyState();data.calculator={date:'2026-10-17',workplace:'카페',start:'09:00',end:'17:30',payType:'hourly',rate:'12000',breakMinutes:'60',extra:'0',deduction:'0'};
+  assert.equal(validateState(data).calculator.days,'1');
+  data.calculator.days='3';assert.equal(validateState(JSON.parse(JSON.stringify(data))).calculator.days,'3');
+  // A period estimate does not multiply the tax or pay of an individual work record.
+  assert.equal(calculatePay(data.calculator).paidMinutes,450);assert.equal(calculatePay(data.calculator).expected,90000);
+  for(const days of ['','1','366']){data.calculator.days=days;assert.equal(validateState(data).calculator.days,days);}
+  for(const days of [3,'0','367','1.5','-1','<svg>']){data.calculator.days=days;assert.throws(()=>validateState(data));}
+});
 test('백업 복원은 알 수 없는 속성을 앱 상태로 병합하지 않는다', () => {
   const data = JSON.parse(JSON.stringify(emptyState()));
   data.__proto__ = { injected: true }; data.extra = 'unexpected';

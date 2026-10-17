@@ -38,7 +38,7 @@ try {
  await check('영문·한글 로고와 상단 날씨는 모든 화면에 표시하고 구석 도우미·자동 날씨 조회는 없음',async()=>{
   const{page,control}=await setup();
   for(const route of ['','schedule.html','calculator.html','records.html','stats.html','notes.html','guide.html','privacy.html','settings.html']){
-   await go(page,route);assert.ok(await page.locator('.mobile-brand .freeter-wordmark').isVisible());assert.equal(await page.locator('.mobile-brand .freeter-wordmark').getAttribute('alt'),'FREETER · 프리터');assert.ok(await page.locator('.topbar .header-weather-toggle').isVisible());assert.equal(await page.locator('.gomssi-weather,.gomssi-button,.gomssi-bubble,.gomssi-restore').count(),0);
+   await go(page,route);assert.ok(await page.locator('.mobile-brand .freeter-wordmark').isVisible());assert.equal(await page.locator('.mobile-brand .freeter-wordmark').getAttribute('alt'),'프리터.');assert.ok(await page.locator('.topbar .header-weather-toggle').isVisible());assert.equal(await page.locator('.gomssi-weather,.gomssi-button,.gomssi-bubble,.gomssi-restore').count(),0);
    if(route==='schedule.html')assert.equal(await page.locator('main h1').innerText(),'교대 근무표');
   }
   assert.equal(control.requests.length,0);assert.equal(await page.locator('.weather-panel').isVisible(),false);

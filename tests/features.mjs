@@ -47,6 +47,44 @@ try{
   await page.locator('[name="taxType"][value="freelance"]').check();assert.ok((await page.locator('.pay-total strong').innerText()).includes('193,400'));
   await field('date').fill('2026-10-01');await field('workplace').fill('새 기능 테스트 근무지');await action('save-calculation').click();
  });
+ await check('3일 급여·총 실근무시간·일별 세금과 하루치 기록 저장',async()=>{
+  const isolated=await browser.newContext({viewport:{width:390,height:844}}),calc=await isolated.newPage();
+  calc.on('pageerror',error=>errors.push(error.message));
+  const input=name=>calc.locator(`#calculator-form [name="${name}"]`),saved=()=>calc.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data')));
+  try{
+   await calc.goto(new URL('calculator.html',base).href);await calc.locator('main[data-ready]').waitFor();
+   await input('start').fill('09:00');await input('end').fill('17:30');await input('days').fill('3');
+   assert.equal(await calc.locator('.pay-total strong').innerText(),'₩270,000');
+   const actual=label=>calc.locator('.calculation-breakdown>div').filter({has:calc.getByText(label,{exact:true})}).locator('dd');
+   assert.equal(await actual('1일 실근무시간').innerText(),'7시간 30분');assert.equal(await actual('총 실근무시간').innerText(),'22시간 30분');
+   await calc.reload();await calc.locator('main[data-ready]').waitFor();assert.equal(await input('days').inputValue(),'3');assert.equal(await calc.locator('.pay-total strong').innerText(),'₩270,000');
+   await input('payType').selectOption('daily');await input('rate').fill('200000');await calc.locator('[name="taxType"][value="daily"]').check();
+   assert.equal(await calc.locator('.pay-total strong').innerText(),'₩595,560');assert.equal(await actual('1일 예상 수령액').innerText(),'198,520원');
+   await input('date').fill('2026-10-17');await input('workplace').fill('여러 날 계산');await calc.locator('[data-action="save-calculation"]').click();
+   let state=await saved();assert.equal(state.records.length,1);assert.equal(state.records[0].rate,'200000');assert.equal(state.records[0].days,undefined);assert.equal(state.calculator.days,'3');
+   await input('days').fill('5');assert.equal(await calc.locator('[data-action="save-calculation"]').isDisabled(),true);assert.equal((await saved()).records.length,1);
+   for(const invalid of ['0','1.5','367']){await input('days').fill(invalid);assert.equal(await calc.locator('#calculator-error').isVisible(),true);assert.equal(await calc.locator('[data-action="save-calculation"]').isDisabled(),true);assert.equal((await saved()).calculator.days,'5');}
+   await calc.reload();await calc.locator('main[data-ready]').waitFor();assert.equal(await input('days').inputValue(),'5');assert.equal(await calc.locator('#storage-alert').isVisible(),false);state=await saved();assert.equal(state.records.length,1);
+  }finally{await isolated.close();}
+ });
+ await check('기기별 테마는 새 기록 설정·새로고침 후에도 유지하고 메모 입력을 보존',async()=>{
+  const isolated=await browser.newContext(),screen=await isolated.newPage();screen.on('pageerror',error=>errors.push(error.message));
+  try{
+   await screen.goto(new URL('settings.html',base).href);await screen.locator('main[data-ready]').waitFor();
+   await screen.locator('[data-action="set-theme"][data-theme="light"]').click();assert.equal(await screen.evaluate(()=>localStorage.getItem('freeter:theme')),'light');
+   const incoming=emptyState();incoming.settings.theme='dark';await screen.evaluate(data=>{localStorage.setItem('dangi-alba:data',JSON.stringify(data));dispatchEvent(new StorageEvent('storage',{key:'dangi-alba:data',newValue:JSON.stringify(data)}));},incoming);
+   assert.equal(await screen.locator('html').getAttribute('data-theme'),'light');assert.equal(await screen.locator('.theme-option.selected').getAttribute('data-theme'),'light');
+   await screen.reload();await screen.locator('main[data-ready]').waitFor();assert.equal(await screen.locator('html').getAttribute('data-theme'),'light');
+   await screen.goto(new URL('notes.html',base).href);await screen.locator('#work-memo .ql-editor').fill('테마를 바꿔도 작성 중인 메모');
+   await screen.evaluate(()=>{globalThis.beforeThemeEditor=document.querySelector('#work-memo .ql-editor');localStorage.setItem('freeter:theme','dark');dispatchEvent(new StorageEvent('storage',{key:'freeter:theme',newValue:'dark'}));});
+   assert.equal(await screen.locator('html').getAttribute('data-theme'),'dark');assert.equal(await screen.evaluate(()=>beforeThemeEditor===document.querySelector('#work-memo .ql-editor')&&document.activeElement===beforeThemeEditor),true);assert.equal(await screen.locator('#work-memo .ql-editor').innerText(),'테마를 바꿔도 작성 중인 메모');
+   assert.equal(await screen.locator('meta[name="theme-color"]').getAttribute('content'),'#121212');
+   await screen.evaluate(()=>dispatchEvent(new StorageEvent('storage',{key:'freeter:theme',newValue:'<script>'})));assert.equal(await screen.locator('html').getAttribute('data-theme'),'dark');
+   await screen.evaluate(()=>localStorage.setItem('dangi-alba:data','original corrupt data'));await screen.reload();await screen.locator('main[data-ready]').waitFor();await screen.locator('#theme-toggle').click();assert.equal(await screen.evaluate(()=>localStorage.getItem('dangi-alba:data')),'original corrupt data');assert.equal(await screen.locator('meta[name="theme-color"]').getAttribute('content'),'#f7f7f7');
+  }finally{await isolated.close();}
+  const blocked=await browser.newContext();await blocked.addInitScript(()=>{Storage.prototype.getItem=()=>{throw new Error('blocked');};Storage.prototype.setItem=()=>{throw new Error('blocked');};});
+  try{const restricted=await blocked.newPage();restricted.on('pageerror',error=>errors.push(error.message));await restricted.goto(new URL('calculator.html',base).href);await restricted.locator('main[data-ready]').waitFor();await restricted.locator('#theme-toggle').click();assert.equal(await restricted.locator('html').getAttribute('data-theme'),'light');}finally{await blocked.close();}
+ });
  await check('작은 계산기: 버튼·키보드·소수·잘못된 수식',async()=>{
   await page.locator('#mini-expression').fill('12000 × 8 - 1000');await page.locator('#mini-expression').press('Enter');assert.ok((await page.locator('#mini-answer').innerText()).includes('95,000'));
   await page.locator('[data-action="mini-key"][data-key="C"]').click();

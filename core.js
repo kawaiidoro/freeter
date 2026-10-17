@@ -339,6 +339,7 @@ export function validateState(data) {
     for (const key of ['date', 'workplace', 'start', 'end', 'payType', 'rate', 'breakMinutes', 'extra', 'deduction']) if (!textValue(data.calculator[key], 100)) throw new Error('계산기 항목 형식이 올바르지 않습니다.');
     if (data.calculator.taxType !== undefined && !Object.hasOwn(TAX_TYPES, data.calculator.taxType)) throw new Error('계산기 세금 유형이 올바르지 않습니다.');
     if (data.calculator.taxExempt !== undefined && (!textValue(data.calculator.taxExempt, 20) || !/^\d*$/.test(data.calculator.taxExempt))) throw new Error('계산기 비과세 입력이 올바르지 않습니다.');
+    if (data.calculator.days !== undefined && (!textValue(data.calculator.days, 3) || !/^\d*$/.test(data.calculator.days) || (data.calculator.days !== '' && (Number(data.calculator.days)<1 || Number(data.calculator.days)>366)))) throw new Error('계산기 근무일 수가 올바르지 않습니다.');
   }
   // Copy only the supported schema, never merge arbitrary keys into app objects.
   const copyConfig = c => {
@@ -350,7 +351,7 @@ export function validateState(data) {
     schedule: { config: copyConfig(config), generatedConfig: rows.length ? copyConfig(data.schedule.generatedConfig) : null, rows: rows.map(row => ({ start: row.start, end: row.end, rest: row.rest, ...(row.lunchers ? { lunchers: [...row.lunchers] } : {}),...(row.allWork?{allWork:true}:{}),...(Number.isInteger(row.cycle)?{cycle:row.cycle}:{}) })) },
     workplaces: [...new Set(data.workplaces)],
     records: data.records.map(r => ({ id: r.id, date: r.date, workplace: r.workplace, task: r.task, start: r.start, end: r.end, breakMinutes: Number(r.breakMinutes), payType: r.payType, rate: Number(r.rate), extra: Number(r.extra), deduction: Number(r.deduction), taxType: r.taxType ?? 'none', taxExempt: Number(r.taxExempt ?? 0), dueDate: r.dueDate, note: r.note, payments: r.payments.map(p => ({ date: p.date, amount: p.amount })) })),
-    calculator: data.calculator === null ? null : { ...Object.fromEntries(['date', 'workplace', 'start', 'end', 'payType', 'rate', 'breakMinutes', 'extra', 'deduction'].map(k => [k, data.calculator[k]])), taxType: data.calculator.taxType ?? 'none', taxExempt: data.calculator.taxExempt ?? '0' },
+    calculator: data.calculator === null ? null : { ...Object.fromEntries(['date', 'workplace', 'start', 'end', 'payType', 'rate', 'breakMinutes', 'extra', 'deduction'].map(k => [k, data.calculator[k]])), taxType: data.calculator.taxType ?? 'none', taxExempt: data.calculator.taxExempt ?? '0', days: data.calculator.days ?? '1' },
   };
 }
 export function evaluateExpression(expression) {
