@@ -20,7 +20,7 @@ try{
  await page.evaluate(data=>localStorage.setItem('dangi-alba:data',JSON.stringify(data)),data);await page.reload();const before=await state();
  await check('백업·복원·저장 경고와 테마 카드의 저장 건수·버전 안내 제거',async()=>{
   assert.equal(await page.locator('[data-action="backup"],[data-action="raw-backup"],[data-action="restore"],#restore-file').count(),0);
-  const text=await page.locator('main').innerText();assert.ok(!text.includes('브라우저 저장, 꼭 알아두세요'));assert.ok(!text.includes('이 브라우저의 알바 기록'));assert.ok(!text.includes('저장 형식 버전'));
+  const text=await page.locator('main').innerText();assert.ok(!text.includes('브라우저 저장, 꼭 알아두세요'));assert.ok(!text.includes('이 브라우저의 알바 기록'));assert.ok(!text.includes('저장 형식 버전'));assert.equal(await page.locator('.account-card .field-hint a').count(),0);assert.equal(await page.locator('.homescreen-banner').count(),1);
   assert.ok(text.includes('브라우저 저장 말고 백업을 따로 원하시면'));assert.ok(text.includes('별도 백업 지원은 카카오톡에서 문의해 주세요.'));
  });
  await check('곰씨 버튼은 카카오톡 문의 링크만 열고 그림 전환·기록 보존·다운로드 없음',async()=>{
@@ -45,7 +45,7 @@ try{
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
    const layout=await page.locator('.coffee-banner').evaluate(node=>{const r=node.getBoundingClientRect(),image=node.querySelector('img').getBoundingClientRect(),button=node.querySelector('.coffee-button').getBoundingClientRect();return{left:r.left,right:r.right,imageWidth:image.width,imageHeight:image.height,buttonLeft:button.left,buttonRight:button.right,background:getComputedStyle(node).backgroundImage,color:getComputedStyle(node.querySelector('.coffee-message')).color};});
    assert.ok(layout.left>=0&&layout.right<=width+1&&layout.buttonLeft>=0&&layout.buttonRight<=width+1,JSON.stringify(layout));
-   assert.ok(layout.imageWidth>=160&&layout.imageHeight>=200);assert.ok(layout.background.includes('20, 51, 33'),layout.background);assert.equal(layout.color,'rgb(239, 255, 243)');
+   assert.ok(layout.imageWidth>=160&&layout.imageHeight>=200);assert.ok(layout.background.includes('29, 185, 84')&&layout.background.includes('6, 9, 8'),layout.background);assert.equal(layout.color,'rgb(239, 255, 243)');
    if(width===390||width===1440)await page.screenshot({path:join(output,`coffee-please-${width}-${theme}.png`),fullPage:true});
   }
   await page.reload();assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');assert.deepEqual(await state(),before);

@@ -1298,9 +1298,9 @@ html[data-theme] .profile-wordmark.freeter-wordmark { width: 220px; }
 @media(max-width:360px){ .workspace-grid .app-launcher { gap: 15px 5px; } .workspace-grid .app-tile-icon { width: 44px; height: 44px; } .workspace-grid .app-tile { font-size: 9px; } .application-board, .application-note { padding: 20px 17px; } }
 
 /* Coffee support opens a conversation; the illustration only celebrates a click. */
-html[data-theme] .panel.settings-card.coffee-banner { display: grid; grid-template-columns: minmax(0,1fr) minmax(180px,290px); gap: 24px; align-items: center; background: linear-gradient(135deg,#143321,#07140c); color: #f2fff5; border-color: #2c573d; padding: 32px; overflow: hidden; }
+html[data-theme] .panel.settings-card.coffee-banner { display: grid; grid-template-columns: minmax(0,1fr) minmax(180px,290px); gap: 24px; align-items: center; background: linear-gradient(#00000030,#00000030),linear-gradient(145deg,#1db954 -5%,#14783c 28%,#0b3020 55%,#060908 100%); color: #f2fff5; border-color: #2c573d; padding: 32px; overflow: hidden; }
 .coffee-copy { min-width: 0; }
-.coffee-eyebrow { color: #a2cdb1; font-size: 10px; letter-spacing: 1.2px; font-weight: 650; }
+.coffee-eyebrow { color: #effff3; font-size: 10px; letter-spacing: 1.2px; font-weight: 650; }
 html[data-theme] .coffee-banner h2 { color: #f2fff5; font-size: 27px; margin: 12px 0 16px; }
 .coffee-message { font-size: 17px; font-weight: 650; line-height: 1.8; color: #effff3; }
 .coffee-detail { color: #b9d1c0; font-size: 12px; line-height: 1.8; margin-top: 11px; }
@@ -1323,6 +1323,29 @@ html[data-theme] .coffee-button:hover { background: #ffedb0; border-color: #ffed
   .coffee-button { width: 100%; justify-content: center; }
 }
 @media(prefers-reduced-motion:reduce){ .coffee-banner[data-coffee-state='drive'] .coffee-illustration { animation: none; } }
+
+/* Install instructions use the same padded artwork as the phone launcher. */
+.homescreen-banner { padding: 30px; min-width: 0; }
+.homescreen-heading { display: flex; align-items: center; gap: 21px; min-width: 0; }
+.homescreen-preview { width: 80px; height: 80px; border-radius: 21%; flex-shrink: 0; object-fit: contain; }
+.homescreen-eyebrow { display: block; color: var(--blue); font-size: 10px; font-weight: 700; letter-spacing: 1px; }
+.homescreen-banner .homescreen-heading h2 { margin: 7px 0 6px; font-size: 22px; line-height: 1.45; text-wrap: balance; }
+.homescreen-heading p { color: var(--muted); font-size: 13px; }
+.homescreen-steps { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin-top: 24px; }
+.homescreen-steps > div { padding: 15px 16px; border: 1px solid var(--border); border-radius: 15px; min-width: 0; }
+.homescreen-steps strong { font-size: 12px; }
+.homescreen-steps p { color: var(--muted); font-size: 12px; line-height: 1.8; margin-top: 5px; overflow-wrap: anywhere; }
+.homescreen-banner .homescreen-note { color: var(--muted); font-size: 11px; line-height: 1.8; margin-top: 17px; }
+@media(max-width:600px) {
+  .homescreen-banner { padding: 23px 21px; }
+  .homescreen-heading { gap: 14px; align-items: flex-start; }
+  .homescreen-preview { width: 58px; height: 58px; }
+  .homescreen-eyebrow { font-size: 8px; letter-spacing: .7px; }
+  .homescreen-banner .homescreen-heading h2 { font-size: 17px; margin-top: 5px; }
+  .homescreen-heading p { font-size: 11px; }
+  .homescreen-steps { grid-template-columns: minmax(0,1fr); gap: 9px; margin-top: 19px; }
+  .homescreen-steps > div { padding: 12px 14px; }
+}
 
 /* ISO work dates keep the same visible format on every phone. */
 html[data-theme] .iso-date-field > label { color: var(--body); font-size: 13px; font-weight: 600; }

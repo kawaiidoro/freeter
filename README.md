@@ -15,6 +15,7 @@
 - `assets/{applications,notes,schedule,calculator,records,stats,settings,guide}-icon.png`는 각 도구마다 다른 색상의 앱 일러스트 8종입니다. `assets/freeter-wordmark.png`, `freeter-logo.svg`, `freeter-share.png`에도 복원한 레이싱 로고를 적용합니다.
 - 모바일 근무표는 전체 근무자를 화면 안에 표시하며, 생성 후 결과를 먼저 보여줍니다. 근무자 칸을 눌러 해당 구간 휴식자를 바꿀 수 있습니다. 테마·기존 기록·PNG 저장 등 나머지 도구는 유지합니다.
 - 하단은 사용법·개인정보·설정 링크와 저작권만 남기고, 상단 정보는 날씨 → 날짜 → 분 단위 시간 순서입니다.
+- 데이터·설정과 사용 가이드에 삼성 인터넷·Chrome·Safari의 홈 화면 추가 방법을 안내합니다. 설치 전용 곰씨 아이콘은 180·192·512px로 제공하며 얼굴을 줄이고 중앙에 여백을 둡니다. Android maskable 아이콘과 iOS touch icon은 설치 전용 그림을 사용하고, 사이트의 기존 로고는 유지합니다.
 
 ## 추가된 근무 관리 기능
 
