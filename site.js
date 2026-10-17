@@ -987,7 +987,7 @@ function mountWeatherWidget() {
 
 const SUPPORT_CONFIG = {"coffeeUrl":"https://open.kakao.com/o/sg56FSSi"};
 
-const APP_RELEASE = '0c5466b24877';
+const APP_RELEASE = '4920bbd6b09b';
 let latestRelease = APP_RELEASE;
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -995,7 +995,7 @@ document.documentElement.dataset.brandFont = globalThis.origin === 'null' ? 'fal
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 const icons = {
   apply: '<path d="M8 3H5v18h14V3h-7M8 7h5m-5 4h4m-4 4h3m3-8 7-4-3 8-1-3-3-1Z"/>',
-  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>',
+  user: '<circle cx="12" cy="7" r="3"/><path d="M4 20v-1a8 6 0 0 1 16 0v1"/>',
   home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/>',
   calendar: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18M7 15h2m4 0h4M7 18h2"/>',
   calculator: '<rect x="5" y="2" width="14" height="20" rx="3"/><path d="M8 6h8M8 10h1m6 0h1m-8 4h1m6 0h1m-8 4h1m6 0h1"/>',

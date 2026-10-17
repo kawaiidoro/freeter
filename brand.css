@@ -1511,3 +1511,6 @@ html[data-theme] .profile-widget .profile-link { color: #c1ffd7; border-color: #
 
 /* Header icons share the navigation's light, rounded outline style. */
 .top-actions .header-illustration, .header-weather-toggle .header-illustration { stroke-width: 1.7px; stroke-linecap: round; stroke-linejoin: round; }
+/* A flex wrapper prevents inline SVG baselines from lowering some controls. */
+.top-actions .icon-button > [data-icon] { display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; flex: 0 0 20px; }
+.top-actions .icon-button .header-illustration { display: block; width: 20px; height: 20px; flex: 0 0 20px; }
