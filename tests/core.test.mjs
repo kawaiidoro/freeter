@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULT_SCHEDULE, generateSchedule, scheduleTotals, calculatePay, recordStatus, monthStats, emptyState, validateState, validDate, csvText, calculateTax, shiftState, evaluateExpression, validateMemoDelta } from '../core.js';
+import { DEFAULT_SCHEDULE, generateSchedule, scheduleTotals, calculatePay, recordStatus, nextWorkRecord, monthStats, emptyState, validateState, validDate, csvText, calculateTax, shiftState, evaluateExpression, validateMemoDelta } from '../core.js';
 
 test('메모의 모든 서식과 본문이 JSON 백업 왕복 후 보존된다', () => {
   const data = emptyState(); data.workMemo = '업무 설명\n준비물';
@@ -26,6 +26,23 @@ test('메모 본문·서식 불일치와 제한 초과 백업을 거부한다', 
 
 const pay = { start: '10:00', end: '19:00', breakMinutes: 60, payType: 'hourly', rate: 12000, extra: 0, deduction: 0, taxType:'none',taxExempt:0 };
 const record = (changes = {}) => ({ ...pay, id: 'record-one', date: '2026-09-30', workplace: '우리 카페', task: '판매', dueDate: '2026-10-05', note: '', payments: [], ...changes });
+
+test('대시보드는 끝난 근무를 제외하고 시작이 가장 빠른 근무를 보여준다', () => {
+  const ended=record({id:'ended',date:'2026-10-18',start:'08:00',end:'10:00'});
+  const later=record({id:'later',date:'2026-10-20'});
+  const next=record({id:'next',date:'2026-10-18',start:'13:00',end:'17:00'});
+  const records=[later,ended,next],before=structuredClone(records);
+  assert.equal(nextWorkRecord(records,new Date(2026,9,18,10,0)),next);
+  assert.deepEqual(records,before);
+  assert.equal(nextWorkRecord([],new Date(2026,9,18)),null);
+  assert.equal(nextWorkRecord([ended],new Date(2026,9,18,10,0)),null);
+});
+test('전날 시작한 야간 근무는 퇴근 전까지 표시하고 퇴근 시 다음 일정으로 바뀐다', () => {
+  const overnight=record({id:'night',date:'2026-10-17',start:'22:00',end:'06:00'});
+  const future=record({id:'future',date:'2026-10-18',start:'09:00',end:'18:00'});
+  assert.equal(nextWorkRecord([future,overnight],new Date(2026,9,18,2,30)),overnight);
+  assert.equal(nextWorkRecord([future,overnight],new Date(2026,9,18,6,0)),future);
+});
 
 test('요구사항 예시: 점심 10–11시, A·B 5시간 / C 6시간', () => {
   const rows = generateSchedule({ ...DEFAULT_SCHEDULE, fair:false, lunchStart: '10:00', lunchEnd: '11:00' });

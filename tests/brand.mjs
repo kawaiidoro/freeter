@@ -25,9 +25,9 @@ try{
    assert.ok(!html.includes('https://kawaiidoro.github.io/dangi-alba/'));
   }
  });
- await check('홈의 도구 8개는 다색 앱 아이콘으로 중앙 정렬하고 상단 정보는 차분하게 표시',async()=>{
-  await go('');assert.equal(await page.locator('.app-tile-icon img').count(),8);
-  assert.equal(await page.locator('.app-tile-icon').evaluateAll(nodes=>nodes.every(node=>node.querySelector('img').complete&&node.querySelector('img').naturalWidth===256)),true);
+ await check('홈의 도구 8개는 통일된 초록 일러스트로 중앙 정렬하고 상단 정보는 차분하게 표시',async()=>{
+  await go('');assert.equal(await page.locator('.app-tile-icon .tool-illustration').count(),8);
+  assert.equal(await page.locator('.app-tile-icon').evaluateAll(nodes=>nodes.every(node=>node.querySelector('svg').getBBox().width>0&&!node.innerHTML.includes('undefined'))),true);
   assert.ok(await page.locator('#today-label').evaluate(node=>parseFloat(getComputedStyle(node).fontSize)<=12));
   assert.ok(await page.locator('#live-clock').evaluate(node=>parseFloat(getComputedStyle(node).fontSize)<=14));
   assert.equal(await page.locator('.app-tile-icon').evaluateAll(nodes=>nodes.every(node=>{const tile=node.closest('.app-tile').getBoundingClientRect(),box=node.getBoundingClientRect();return box.width<=68&&Math.abs(box.x+box.width/2-tile.x-tile.width/2)<1;})),true);

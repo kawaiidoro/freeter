@@ -300,6 +300,15 @@ export function recordStatus(record, date = today()) {
   return 'scheduled';
 }
 export const STATUS = { paid: '지급 완료', partial: '일부 지급', unpaid: '미지급', scheduled: '지급 예정' };
+// Use local calendar dates and keep overnight work visible until it ends.
+export function nextWorkRecord(records, now = new Date()) {
+  return records.map(record => {
+    const start = new Date(`${record.date}T${record.start}:00`);
+    const end = new Date(`${record.date}T${record.end}:00`);
+    if (end <= start) end.setDate(end.getDate() + 1);
+    return { record, start, end };
+  }).filter(shift => shift.end > now).sort((a, b) => a.start - b.start || a.record.id.localeCompare(b.record.id))[0]?.record ?? null;
+}
 export function monthStats(records, month) {
   const work = records.filter(record => record.date.startsWith(month));
   const expected = work.reduce((sum, record) => sum + calculatePay(record).expected, 0);
