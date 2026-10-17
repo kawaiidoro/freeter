@@ -87,7 +87,7 @@ try{
  await check('새 로고의 버전 주소도 오프라인 재접속에서 정상 표시',async()=>{
   const offline=await browser.newContext(),tab=await offline.newPage();try{
    await tab.goto(site.base);await tab.locator('main[data-ready]').waitFor();await tab.evaluate(()=>navigator.serviceWorker.ready);await tab.waitForFunction(()=>navigator.serviceWorker.controller);await offline.setOffline(true);await tab.reload();await tab.locator('main[data-ready]').waitFor();
-   for(const selector of ['.brand > img','.brand .freeter-wordmark','.hero-brand-mark','.hero-wordmark'])assert.equal(await tab.locator(selector).evaluate(image=>image.complete&&image.naturalWidth>0),true,selector);
+   for(const selector of ['.brand > img','.brand .freeter-wordmark','.profile-logo','.profile-wordmark'])assert.equal(await tab.locator(selector).evaluate(image=>image.complete&&image.naturalWidth>0),true,selector);
    const manifestIcons=await tab.evaluate(async()=>{const url=document.querySelector('link[rel="manifest"]').href,manifest=await(await fetch(url)).json();return Promise.all(manifest.icons.map(async icon=>{const response=await fetch(new URL(icon.src,url));return{url:icon.src,ok:response.ok,bytes:(await response.arrayBuffer()).byteLength};}));});assert.equal(manifestIcons.length,3);assert.ok(manifestIcons.every(icon=>icon.ok&&icon.bytes>1000&&new URL(icon.url,'https://freeter.test/').searchParams.has('v')),'Versioned app icons must remain available offline');
   }finally{await offline.close();}
  });

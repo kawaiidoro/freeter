@@ -4,10 +4,17 @@ import { cloudConfig } from '../cloud.js';
 
 const config = cloudConfig(JSON.parse(await readFile(new URL('../cloud-config.json', import.meta.url), 'utf8')));
 if (!config) throw new Error('Supabase public configuration is missing');
-const request = (path, options = {}) => fetch(config.url + path, {
-  ...options, headers: { apikey: config.publishableKey, ...options.headers },
-  credentials: 'omit', redirect: 'error', cache: 'no-store', signal: AbortSignal.timeout(15000),
-});
+// The free project can take time to answer after inactivity. These probes are read-only
+// (or an impossible NULL write), so a single transport retry does not change user data.
+const request = async (path, options = {}) => {
+  for(let attempt=0;attempt<2;attempt++){
+    try{
+      const response=await fetch(config.url+path,{...options,headers:{apikey:config.publishableKey,...options.headers},credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(30000)});
+      if(attempt===0&&response.status>=500){await response.body?.cancel();await new Promise(resolve=>setTimeout(resolve,1000));continue;}
+      return response;
+    }catch(error){if(attempt===1)throw error;await new Promise(resolve=>setTimeout(resolve,1000));}
+  }
+};
 let passed = 0;
 async function blocked(path, options) {
   const response = await request(path, options);
@@ -19,6 +26,7 @@ async function blocked(path, options) {
   if (error.code !== '42501') throw new Error('Unexpected denial response; no private response logged');
   passed++;
 }
+try {
 const settings = await request('/auth/v1/settings');
 if (!settings.ok) throw new Error(`Auth settings unavailable (HTTP ${settings.status})`);
 if ((await settings.json()).external?.google !== true) throw new Error('Google sign-in is not enabled');
@@ -33,3 +41,5 @@ await blocked('/rest/v1/rpc/freeter_save_workspace', {
 });
 console.log('PASS live Supabase: anonymous save RPC denied');
 console.log(`Live backend checks: ${passed} passed. Signed-in cross-account access is tested separately in isolation.`);
+
+}catch(error){console.log('::error title=Live Supabase API::'+String(error.name+': '+error.message).replaceAll('%','%25').replaceAll('\n','%0A'));throw error;}

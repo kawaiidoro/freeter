@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "프리터.",
-  "short_name": "프리터.",
+  "name": "Freeter",
+  "short_name": "Freeter",
   "description": "나의 근무와 수입을 관리하는 무료 알바 매니저",
   "lang": "ko",
   "start_url": "./",

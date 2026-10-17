@@ -79,8 +79,6 @@ jobs:
           echo "TEST_OUTPUT_DIR=$RUNNER_TEMP/dangi-alba-live-tests" >> "$GITHUB_ENV"
       - name: Verify the published website in Chromium
         run: |
-          npm run check:backend
-          node scripts/weather-check.mjs
           node tests/security-browser.mjs
           node tests/account-browser.mjs
           node tests/weather-browser.mjs
@@ -89,8 +87,15 @@ jobs:
           node tests/update-recovery.mjs
           node tests/browser.mjs
           node tests/features.mjs
+          node tests/applications-browser.mjs
           node tests/brand.mjs
           node tests/editor.mjs
+      - name: Verify public backend security
+        if: always()
+        run: npm run check:backend
+      - name: Verify public weather service
+        if: always()
+        run: node scripts/weather-check.mjs
       - name: Save browser verification results
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

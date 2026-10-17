@@ -33,6 +33,9 @@ export function mergeWorkspaces(base, local, remote) {
   for (const key of ['schedule', 'settings', 'calculator']) result[key] = choose(key, base[key], local[key], remote[key]);
   const memo = s => [s.workMemo, s.workMemoDelta];
   [result.workMemo, result.workMemoDelta] = choose('memo', memo(base), memo(local), memo(remote));
+  for(const key of ['applicationCareer','applicationTemplate'])result[key]=choose(key,base[key],local[key],remote[key]);
+  const applicationMaps=[base,local,remote].map(s=>new Map((s.applications||[]).map(post=>[post.id,post])));
+  result.applications=[...new Set(applicationMaps.flatMap(map=>[...map.keys()]))].map(id=>choose('application:'+id,...applicationMaps.map(map=>map.get(id)))).filter(Boolean);
   const maps = [base, local, remote].map(s => new Map(s.records.map(r => [r.id, r])));
   result.records = [...new Set(maps.flatMap(m => [...m.keys()]))].map(id => choose('record:' + id, ...maps.map(m => m.get(id)))).filter(Boolean);
   result.workplaces = [...new Set([...local.workplaces, ...remote.workplaces, ...result.records.map(r => r.workplace)])];
@@ -159,7 +162,7 @@ export class FreeterCloud {
     if (error) throw error;
     if (!data) return { data: emptyState(), revision: 0, generation: 1, updated_at: null };
     if (!Number.isSafeInteger(data.revision) || data.revision < 1 || !Number.isSafeInteger(data.generation) || data.generation < 1) throw new Error('Invalid server revision');
-    return { ...data, data: validateState(data.data) };
+    return { ...data, applicationFieldsPresent: ['applications','applicationCareer','applicationTemplate'].every(key=>Object.hasOwn(data.data,key)), data: validateState(data.data) };
   }
   applyRemote(remote) {
     const changed = !same(this.current, remote.data);
@@ -170,6 +173,10 @@ export class FreeterCloud {
   }
   reconcile(remote) {
     if (remote.revision < this.revision || remote.generation < this.generation) { this.status('conflict', '서버 기록이 이전 상태로 바뀌었어요. 이 기기의 기록을 유지했으니 사용할 내용을 선택해 주세요.'); return false; }
+    // An already-open older client can save a v3 workspace without the new fields.
+    // Keep confirmed application data on this device and ask which copy to use.
+    const hadApplications=this.base.applications?.length||this.base.applicationCareer||(this.base.applicationTemplate&&this.base.applicationTemplate!=='행사명/이름/나이/거주지/경력사항');
+    if(!this.reset&&remote.generation===this.generation&&remote.applicationFieldsPresent===false&&hadApplications){this.status('conflict','이전 버전의 기기에서 지원 자료가 빠진 저장이 감지됐어요. 이 기기의 자료를 유지했으니 모든 기기를 업데이트한 뒤 사용할 기록을 선택해 주세요.');return false;}
     if (!this.dirty) { this.applyRemote(remote); return true; }
     if (remote.generation !== this.generation || remote.revision < this.revision || (this.reset&&remote.revision!==this.revision)) { this.status('conflict'); return false; }
     if(this.reset)return true;

@@ -308,7 +308,7 @@ export function monthStats(records, month) {
   return { days: new Set(work.map(r => r.date)).size, minutes: work.reduce((sum, r) => sum + calculatePay(r).paidMinutes, 0), expected, receivedForWork, outstanding, cash, work };
 }
 export function emptyState() {
-  return { version: VERSION, settings: { theme: 'dark' }, schedule: { config: structuredClone(DEFAULT_SCHEDULE), generatedConfig: null, rows: [] }, workplaces: [], records: [], calculator: null, workMemo: '', workMemoDelta: null };
+  return { version: VERSION, settings: { theme: 'dark' }, schedule: { config: structuredClone(DEFAULT_SCHEDULE), generatedConfig: null, rows: [] }, workplaces: [], records: [], calculator: null, workMemo: '', workMemoDelta: null, applications: [], applicationCareer: '', applicationTemplate: '행사명/이름/나이/거주지/경력사항' };
 }
 const textValue = (value, max = 2000) => typeof value === 'string' && value.length <= max;
 export function validateRecord(record) {
@@ -317,8 +317,19 @@ export function validateRecord(record) {
   if (!Array.isArray(record.payments) || record.payments.length > 1000 || record.payments.some(p => !p || !validDate(p.date) || typeof p.amount !== 'number' || !Number.isFinite(p.amount) || p.amount <= 0 || p.amount > 1_000_000_000)) throw new Error('입금 내역의 날짜 또는 금액이 올바르지 않습니다.');
   return record;
 }
+// Application posts stay plain text; external listing links must be HTTP(S).
+export function validateApplication(post) {
+  const stamp=value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)&&Number.isFinite(Date.parse(value));
+  if(!post||!textValue(post.id,100)||!post.id||!textValue(post.title,160)||!post.title.trim()||!textValue(post.body,20000)||!textValue(post.url,2000)||!stamp(post.createdAt)||!stamp(post.updatedAt))throw new Error('지원 공고의 제목이나 내용 형식을 확인해 주세요.');
+  if(post.url){let link;try{link=new URL(post.url);}catch{throw new Error('공고 링크를 확인해 주세요.');}if(!['http:','https:'].includes(link.protocol)||link.username||link.password)throw new Error('공고 링크는 http 또는 https 주소만 사용할 수 있어요.');}
+  return {id:post.id,title:post.title.trim(),body:post.body,url:post.url,createdAt:post.createdAt,updatedAt:post.updatedAt};
+}
 export function validateState(data) {
   if (!data || ![1, 2, VERSION].includes(data.version) || !data.settings || !['light', 'dark'].includes(data.settings.theme) || !data.schedule || !Array.isArray(data.records) || data.records.length > 50000 || !Array.isArray(data.workplaces) || data.workplaces.some(w => !textValue(w, 100)) || (data.workMemo !== undefined && !textValue(data.workMemo, 30000))) throw new Error('지원하지 않는 백업 형식 또는 버전입니다.');
+  const applications=data.applications??[];
+  if(!Array.isArray(applications)||applications.length>2000||!textValue(data.applicationCareer??'',30000)||!textValue(data.applicationTemplate??'행사명/이름/나이/거주지/경력사항',30000))throw new Error('알바 지원 자료 형식을 확인해 주세요.');
+  const cleanApplications=applications.map(validateApplication);
+  if(new Set(cleanApplications.map(post=>post.id)).size!==cleanApplications.length)throw new Error('중복된 지원 공고가 있습니다.');
   const config = normalizeSchedule(data.schedule.config);
   if (!config || !Array.isArray(config.names) || config.names.length !== 3 || config.names.some(n => !textValue(n, 40)) || typeof config.lunchEnabled !== 'boolean' || typeof config.fair !== 'boolean') throw new Error('근무표 설정이 올바르지 않습니다.');
   // Draft input may be incomplete; validate types here and times when generating.
@@ -347,7 +358,7 @@ export function validateState(data) {
     return Object.fromEntries(Object.keys(DEFAULT_SCHEDULE).map(key => [key, key === 'names' ? n.names.map((name, i) => data.version === 1 && name === `근무자 ${'ABC'[i]}` ? '' : name) : key==='roundMinutes'?[...n.roundMinutes]:key==='workOnly'?n.workOnly.map(window=>({start:window.start,end:window.end})):n[key]]));
   };
   return {
-    version: VERSION, settings: { theme: data.settings.theme }, workMemo: data.workMemo ?? '', workMemoDelta: validateMemoDelta(data.workMemoDelta, data.workMemo ?? ''),
+    version: VERSION, applications: cleanApplications, applicationCareer: data.applicationCareer??'', applicationTemplate: data.applicationTemplate??'행사명/이름/나이/거주지/경력사항', settings: { theme: data.settings.theme }, workMemo: data.workMemo ?? '', workMemoDelta: validateMemoDelta(data.workMemoDelta, data.workMemo ?? ''),
     schedule: { config: copyConfig(config), generatedConfig: rows.length ? copyConfig(data.schedule.generatedConfig) : null, rows: rows.map(row => ({ start: row.start, end: row.end, rest: row.rest, ...(row.lunchers ? { lunchers: [...row.lunchers] } : {}),...(row.allWork?{allWork:true}:{}),...(Number.isInteger(row.cycle)?{cycle:row.cycle}:{}) })) },
     workplaces: [...new Set(data.workplaces)],
     records: data.records.map(r => ({ id: r.id, date: r.date, workplace: r.workplace, task: r.task, start: r.start, end: r.end, breakMinutes: Number(r.breakMinutes), payType: r.payType, rate: Number(r.rate), extra: Number(r.extra), deduction: Number(r.deduction), taxType: r.taxType ?? 'none', taxExempt: Number(r.taxExempt ?? 0), dueDate: r.dueDate, note: r.note, payments: r.payments.map(p => ({ date: p.date, amount: p.amount })) })),
