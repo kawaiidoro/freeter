@@ -39,7 +39,7 @@ test('메모 본문과 서식은 함께 병합하고 삭제와 수정 충돌은 
 });
 test('공식 SDK 설정은 PKCE이며 로그인 요청은 Google 최소 권한만 사용',async t=>{
  const{cloud,control}=harness(t);assert.equal(control.options.auth.flowType,'pkce');assert.equal(control.options.auth.detectSessionInUrl,false);
- const url=await cloud.googleLogin('https://kawaiidoro.github.io/freeter/');assert.ok(url.startsWith(config.url));assert.equal(control.oauth.provider,'google');assert.equal(control.oauth.options.redirectTo,'https://kawaiidoro.github.io/freeter/');assert.equal(control.oauth.options.skipBrowserRedirect,true);assert.equal(control.oauth.options.scopes,undefined);
+ const url=await cloud.googleLogin('https://kawaiidoro.github.io/freeter/');assert.ok(url.startsWith(config.url));assert.equal(control.oauth.provider,'google');assert.equal(control.oauth.options.redirectTo,'https://kawaiidoro.github.io/freeter/');assert.equal(control.oauth.options.skipBrowserRedirect,true);assert.equal(control.oauth.options.scopes,undefined);assert.equal(control.oauth.options.queryParams.prompt,'select_account');
 });
 test('OAuth 코드는 URL에서 즉시 지우고 PKCE 교환으로만 로그인',async t=>{
  const{cloud,control}=harness(t);let cleaned;await cloud.start('https://kawaiidoro.github.io/freeter/?code=one-time&v=release',url=>{cleaned=url;});assert.ok(!cleaned.includes('code='));assert.ok(cleaned.includes('v=release'));assert.equal(control.code,'one-time');assert.equal(cloud.user.id,'alice');
@@ -80,10 +80,10 @@ test('전체 삭제의 세대 변경을 발견한 오래된 기기는 삭제 기
  const server=new Map(),a=harness(t,{server}),b=harness(t,{server});await a.signIn();a.cloud.save({...emptyState(),records:[record('old')]});await a.cloud.sync();await b.signIn();b.cloud.save({...b.cloud.current,workMemo:'offline change'});a.cloud.save(emptyState(),{reset:true});await a.cloud.sync();await b.cloud.sync();assert.equal(b.cloud.phase,'conflict');assert.equal(server.get('alice').data.records.length,0);assert.equal(server.get('alice').generation,2);
 });
 test('명시적 로그아웃은 현재 계정 캐시를 지우고 게스트·다른 계정 자료는 보존',async t=>{
- const{cloud,storage,signIn}=harness(t);storage.setItem('dangi-alba:data','guest');storage.setItem('freeter:account:abcdefghijklmnopqrst:bob','bob');await signIn();const key=cloud.cacheKey;cloud.save({...emptyState(),workMemo:'saved before logout'});await cloud.signOut();assert.equal(cloud.user,null);assert.equal(storage.getItem(key),null);assert.equal(storage.getItem('dangi-alba:data'),'guest');assert.equal(storage.getItem('freeter:account:abcdefghijklmnopqrst:bob'),'bob');
+ const{cloud,storage,signIn}=harness(t);storage.setItem('dangi-alba:data','guest');storage.setItem('freeter:account:abcdefghijklmnopqrst:bob','bob');await signIn();const key=cloud.cacheKey;cloud.save({...emptyState(),workMemo:'saved before logout'});await cloud.sync();await cloud.signOut();assert.equal(cloud.user,null);assert.equal(storage.getItem(key),null);assert.equal(storage.getItem('dangi-alba:data'),'guest');assert.equal(storage.getItem('freeter:account:abcdefghijklmnopqrst:bob'),'bob');
 });
-test('미저장 오프라인 편집이 있으면 로그아웃으로 지우지 않음',async t=>{
- const{cloud,control,storage,signIn}=harness(t);await signIn();control.offline=true;cloud.save({...emptyState(),workMemo:'not yet uploaded'});const key=cloud.cacheKey;await assert.rejects(cloud.signOut(),/백업/);assert.equal(cloud.user.id,'alice');assert.equal(JSON.parse(storage.getItem(key)).data.workMemo,'not yet uploaded');
+test('미전송 편집은 서버를 기다리지 않고 로그아웃하며 계정별로 보존',async t=>{
+ const{cloud,control,storage,signIn}=harness(t);await signIn();control.offline=true;cloud.save({...emptyState(),workMemo:'not yet uploaded'});const key=cloud.cacheKey;const result=await cloud.signOut();assert.equal(result.pending,true);assert.equal(cloud.user,null);assert.equal(JSON.parse(storage.getItem(key)).data.workMemo,'not yet uploaded');
 });
 test('손상된 계정 캐시는 덮어쓰지 않고 동기화 중지',async t=>{
  const{cloud,storage,control,signIn}=harness(t);const key='freeter:account:abcdefghijklmnopqrst:alice';storage.setItem(key,'{broken');await signIn();assert.equal(storage.getItem(key),'{broken');assert.equal(cloud.cacheBlocked,true);assert.equal(control.writes,0);assert.equal(cloud.save(emptyState()),false);
@@ -140,4 +140,28 @@ test('멈춘 API 요청은 제한 시간에 취소하고 호출자의 취소 신
 test('응답 헤더만 온 채 본문이 멈춰도 API 제한 시간 적용',async t=>{
  const request=async(_url,{signal})=>new Response(new ReadableStream({start(controller){signal.addEventListener('abort',()=>controller.error(signal.reason),{once:true});}}),{headers:{'content-type':'application/json'}});
  const{control}=harness(t,{request,requestTimeout:20});await assert.rejects(control.options.global.fetch(config.url+'/rest/v1/freeter_workspaces',{}),{name:'TimeoutError'});
+});
+
+test('로그아웃한 미전송 메모는 다른 계정에 노출되지 않고 원래 계정으로 돌아오면 전송',async t=>{
+ const{cloud,control,storage,signIn}=harness(t);await signIn();control.offline=true;
+ cloud.save({...emptyState(),workMemo:'Alice only, not uploaded'});const key=cloud.cacheKey;
+ await cloud.signOut();assert.equal(JSON.parse(storage.getItem(key)).dirty,true);
+ control.offline=false;control.id='bob';await signIn();assert.equal(cloud.current.workMemo,'');assert.equal(control.server.has('alice'),false);
+ await cloud.signOut();control.id='alice';await signIn();assert.equal(cloud.current.workMemo,'Alice only, not uploaded');assert.equal(control.server.get('alice').data.workMemo,'Alice only, not uploaded');assert.equal(cloud.dirty,false);
+});
+test('데이터 조회가 끝나지 않아도 로그아웃하고 늦은 응답은 무시',async t=>{
+ const{cloud,control,storage,signIn}=harness(t);await signIn();const hold=gate();control.readGate=hold.promise;
+ const reading=cloud.sync();cloud.save({...emptyState(),workMemo:'Keep my pending note'});const key=cloud.cacheKey;
+ await cloud.signOut();assert.equal(cloud.user,null);assert.equal(JSON.parse(storage.getItem(key)).data.workMemo,'Keep my pending note');
+ hold.release();await reading;assert.equal(cloud.user,null);assert.equal(control.writes,0);
+});
+test('로그아웃 후 늦은 토큰 저장은 차단하고 새 로그인에서만 저장 재개',async t=>{
+ const{cloud,control,storage,signIn}=harness(t);await signIn();const key='freeter:auth:abcdefghijklmnopqrst';
+ await cloud.signOut();control.options.auth.storage.setItem(key,'late refresh');assert.equal(storage.getItem(key),null);
+ await cloud.googleLogin('https://kawaiidoro.github.io/freeter/');control.options.auth.storage.setItem(key,'new login');assert.equal(storage.getItem(key),'new login');
+});
+test('로그아웃 중 저장소 접근이 막혀도 편집 잠금을 해제하고 자료 보존',async t=>{
+ const{cloud,storage,signIn}=harness(t);await signIn();cloud.save({...emptyState(),workMemo:'Do not lose this note'});
+ const remove=storage.removeItem.bind(storage);storage.removeItem=()=>{throw new Error('Blocked storage');};
+ await assert.rejects(cloud.signOut(),/브라우저 저장소/);assert.equal(cloud.signingOut,false);assert.equal(cloud.authWritesBlocked,false);assert.equal(cloud.user.id,'alice');assert.equal(JSON.parse(storage.getItem(cloud.cacheKey)).data.workMemo,'Do not lose this note');storage.removeItem=remove;
 });

@@ -11,7 +11,7 @@ const config={url:'https://abcdefghijklmnopqrst.supabase.co',publishableKey:'sb_
 const browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{})});
 const output=process.env.TEST_OUTPUT_DIR||'/tmp/freeter-account-tests';await mkdir(output,{recursive:true});
 const alice='00000000-0000-4000-8000-000000000001',bob='00000000-0000-4000-8000-000000000002';
-const server=new Map(),errors=[],contexts=[];let chosenUser=alice,pkceSeen=false,exchangeSeen=false,count=0;
+const server=new Map(),errors=[],contexts=[];let chosenUser=alice,pkceSeen=false,exchangeSeen=false,count=0,dataOffline=false,logoutOffline=false;
 const token=id=>Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')+'.'+Buffer.from(JSON.stringify({sub:id,role:'authenticated',aud:'authenticated',iss:config.url+'/auth/v1',iat:Math.floor(Date.now()/1000),exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.isolated_test_signature';
 const user=id=>({id,aud:'authenticated',role:'authenticated',email:id===alice?'alice@example.test':'<img src=x onerror=bad()>@example.test',app_metadata:{provider:'google',providers:['google']},user_metadata:{},created_at:new Date().toISOString()});
 const jsonb=value=>Array.isArray(value)?value.map(jsonb):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).reverse().map(([key,item])=>[key,jsonb(item)])):value;
@@ -23,7 +23,7 @@ async function context(){
   if(request.method()==='OPTIONS')return reply({});
   if(url.pathname==='/auth/v1/settings')return reply({external:{google:true}});
   if(url.pathname==='/auth/v1/authorize'){
-   assert.equal(url.searchParams.get('provider'),'google');assert.equal(url.searchParams.get('code_challenge_method'),'s256');assert.ok(url.searchParams.get('code_challenge')?.length>=40);pkceSeen=true;
+   assert.equal(url.searchParams.get('provider'),'google');assert.equal(url.searchParams.get('prompt'),'select_account');assert.equal(url.searchParams.get('code_challenge_method'),'s256');assert.ok(url.searchParams.get('code_challenge')?.length>=40);pkceSeen=true;
    const target=new URL(url.searchParams.get('redirect_to'));assert.equal(target.href,site.base);target.searchParams.set('code','isolated_authorization_code');return route.fulfill({status:302,headers:{location:target.href},body:''});
   }
   if(url.pathname==='/auth/v1/token'){
@@ -33,7 +33,8 @@ async function context(){
   let id;try{id=JSON.parse(Buffer.from((request.headers().authorization||'').split('.')[1]||'','base64url').toString()).sub;}catch{}
   if(!id)return reply({message:'Authentication required'},401);
   if(url.pathname==='/auth/v1/user')return reply(user(id));
-  if(url.pathname==='/auth/v1/logout')return reply({},204);
+  if(url.pathname==='/auth/v1/logout')return logoutOffline?route.abort('internetdisconnected'):reply({},204);
+  if(dataOffline&&url.pathname.startsWith('/rest/v1/'))return reply({message:'Data service unavailable'},503);
   if(url.pathname==='/rest/v1/freeter_workspaces'){
    assert.equal(url.searchParams.get('user_id'),'eq.'+id);return reply(server.has(id)?[server.get(id)]:[]);
   }
@@ -87,6 +88,27 @@ try{
   await a.locator('[data-action="clear-memo"]').click();assert.ok(await a.locator('#confirm-dialog').isVisible());
   const tab=await newPage(a.context());await tab.goto(site.base);await tab.waitForFunction(()=>document.querySelector('.account-top-link')?.dataset.signedIn==='true');await tab.locator('.account-top-link').click();await tab.locator('[data-action="account-logout"]').click();
   await a.waitForFunction(()=>!document.querySelector('#confirm-dialog').open);await waitMemo(a,'로그인 전의 소중한 메모');assert.equal(server.get(bob).data.workMemo,'Bob의 개인 기록');
+ });
+ await check('저장 서버·로그아웃 API가 끊겨도 즉시 기기 로그아웃하고 전송 대기 기록 보존',async()=>{
+  const c=await newPage(await context());globalThis.recoveryPage=c;chosenUser=alice;
+  await c.goto(site.base);await login(c);await c.goto(new URL('notes.html',site.base).href);await waitMemo(c,'모바일에서 수정한 업무');
+  dataOffline=true;logoutOffline=true;
+  await c.locator('#work-memo .ql-editor').fill('오프라인에서 보존할 Alice 메모');await c.locator('[data-action="save-memo"]').click();
+  const key='freeter:account:abcdefghijklmnopqrst:'+alice;
+  await c.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.dirty===true,key);
+  await c.locator('.account-top-link').click();await c.locator('[data-action="account-logout"]').click();
+  await c.waitForFunction(()=>document.querySelector('.account-top-link').dataset.signedIn==='false',null,{timeout:2500});
+  assert.equal(await c.evaluate(()=>localStorage.getItem('freeter:auth:abcdefghijklmnopqrst')),null);
+  assert.equal(await c.evaluate(key=>JSON.parse(localStorage.getItem(key)).data.workMemo,key),'오프라인에서 보존할 Alice 메모');
+  await closeAccount(c);await c.reload();assert.equal(await c.locator('.account-top-link').getAttribute('data-signed-in'),'false');
+  dataOffline=false;logoutOffline=false;
+ });
+ await check('계정 전환 버튼으로 Google 계정을 선택하고 원래 계정의 미전송 메모 복구',async()=>{
+  const c=globalThis.recoveryPage;chosenUser=bob;await login(c);await c.goto(new URL('notes.html',site.base).href);await waitMemo(c,'Bob의 개인 기록');
+  chosenUser=alice;await c.locator('.account-top-link').click();await c.locator('[data-action="account-switch"]').click();
+  await c.waitForFunction(()=>document.querySelector('.account-top-link')?.dataset.signedIn==='true');await c.goto(new URL('notes.html',site.base).href);await waitMemo(c,'오프라인에서 보존할 Alice 메모');
+  await c.waitForFunction(()=>JSON.parse(localStorage.getItem('freeter:account:abcdefghijklmnopqrst:00000000-0000-4000-8000-000000000001'))?.dirty===false);
+  assert.equal(server.get(alice).data.workMemo,'오프라인에서 보존할 Alice 메모');assert.equal(server.get(bob).data.workMemo,'Bob의 개인 기록');
  });
  assert.deepEqual(errors,[],'Unexpected browser errors');console.log(`계정·동기화 브라우저 시나리오 ${count}개 통과 (격리 OAuth/REST 모사)`);
 }finally{await browser.close();await site.close();}

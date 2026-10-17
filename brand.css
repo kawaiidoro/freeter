@@ -1262,3 +1262,35 @@ html[data-theme] .profile-wordmark.freeter-wordmark { width: 220px; }
   #application-dialog .dialog-actions > .button { flex: 1; }
 }
 @media(max-width:360px){ .workspace-grid .app-launcher { gap: 15px 5px; } .workspace-grid .app-tile-icon { width: 44px; height: 44px; } .workspace-grid .app-tile { font-size: 9px; } .application-board, .application-note { padding: 20px 17px; } }
+
+/* Readable at a glance: weather → date → time, with no seconds control. */
+html[data-theme] .breadcrumb { font-size: 13px; white-space: nowrap; }
+html[data-theme] .breadcrumb > span:first-child { color: var(--body); font-weight: 650; }
+.header-clock { gap: 18px; padding: 9px 14px; background: var(--surface-raised); border: 1px solid var(--border); border-radius: 15px; }
+html[data-theme] .header-clock .today { color: var(--text); font-size: 14px; font-weight: 650; letter-spacing: -.3px; }
+.clock-face { padding-left: 16px; border-left: 1px solid var(--input-border); }
+#live-clock { min-width: 63px; color: var(--text); font-size: 23px; font-weight: 800; letter-spacing: -.7px; line-height: 1.25; }
+.header-weather-toggle { font-size: 13px; }
+.memo-save-button { min-width: 84px; flex-shrink: 0; }
+@media (min-width: 801px) and (max-width: 1200px) {
+  html[data-theme] .topbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; height: auto; min-height: 126px; padding-block: 12px; gap: 10px; }
+  .breadcrumb { grid-column: 1; grid-row: 1; }
+  .top-actions { grid-column: 2; grid-row: 1; }
+  .header-clock { grid-column: 1 / -1; grid-row: 2; width: 100%; margin: 0; justify-content: space-between; }
+}
+@media (max-width: 800px) {
+  html[data-theme] .topbar { grid-template-rows: 40px auto; min-height: 116px; gap: 8px; }
+  .header-clock { padding: 8px 10px; gap: 7px; border-radius: 13px; }
+  html[data-theme] .header-clock .today { font-size: 13px; }
+  .clock-face { padding-left: 9px; }
+  #live-clock { min-width: 57px; font-size: 21px; }
+  .header-weather-toggle { padding-inline: 0; font-size: 12px; }
+  .notes-toolbar { gap: 12px; }
+  .memo-save-button { min-width: 73px; padding: 9px 13px; }
+}
+/* All tools use the same generated green/charcoal illustration family. */
+html[data-theme] .app-tile-icon { width: 78px; height: 78px; background: transparent; border: 0; box-shadow: none; border-radius: 20px; }
+html[data-theme] .app-tile-icon img { width: 100%; height: 100%; object-fit: contain; }
+@media (max-width: 480px) {
+  html[data-theme] .app-tile-icon { width: 64px; height: 64px; border-radius: 17px; }
+}

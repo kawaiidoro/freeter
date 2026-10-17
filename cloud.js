@@ -47,6 +47,7 @@ const labels = {
   offline: '연결 대기 · 이 기기의 기록은 보존돼요', conflict: '동시 수정 확인 필요', error: '동기화 확인 필요',
 };
 export function cloudError(error) {
+  if (error?.name === 'TimeoutError' || /timed?\s*out|timeout/i.test(error?.message || '')) return 'Supabase 저장 서버의 응답이 늦어요. 기록은 이 기기에 보관하며 자동으로 다시 연결합니다.';
   if (error?.code === 'FREETER_VERIFY') return '서버에 저장된 내용을 확인하지 못했어요. 이 기기의 기록을 유지하며 다시 확인합니다.';
   if (['42P01', 'PGRST202', 'PGRST205'].includes(error?.code)) return '계정 저장소 설정이 완료되지 않았어요. 잠시 후 다시 시도해 주세요.';
   if (error?.code === '42501') return '계정 기록에 접근할 수 없어요. 다시 로그인해 주세요.';
@@ -55,11 +56,17 @@ export function cloudError(error) {
 export class FreeterCloud {
   constructor({ config, createClient, storage, onStatus = () => {}, onWorkspace = () => {}, onGuest = () => {}, delay = 800, requestTimeout = 15000, request = (...args)=>globalThis.fetch(...args) }) {
     this.config = cloudConfig(config); this.storage = storage; this.onStatus = onStatus; this.onWorkspace = onWorkspace; this.onGuest = onGuest; this.delay = delay;this.request=request;
+    this.requests = new Set(); this.authWritesBlocked = false;
     this.user = null; this.target = undefined; this.epoch = 0; this.phase = this.config ? 'guest' : 'disabled'; this.message = ''; this.revision = 0; this.generation = 1; this.dirty = false; this.reset = false; this.current = emptyState(); this.base = emptyState(); this.lastSynced = null;
     if (this.config) try{this.client = createClient(this.config.url, this.config.publishableKey, {
-      auth: { flowType: 'pkce', autoRefreshToken: true, persistSession: true, detectSessionInUrl: false, storageKey: `freeter:auth:${this.config.project}`, storage },
+      auth: { flowType: 'pkce', autoRefreshToken: true, persistSession: true, detectSessionInUrl: false, storageKey: `freeter:auth:${this.config.project}`, storage: {
+        getItem: key => storage.getItem(key), removeItem: key => storage.removeItem(key),
+        // A refresh already in progress must not restore a signed-out session.
+        setItem: (key, value) => { if (!this.authWritesBlocked) storage.setItem(key, value); },
+      } },
       global: { fetch: async (url, options) => {
         const controller = new AbortController(), signal = options?.signal || url?.signal;
+        this.requests.add(controller);
         const abort = () => controller.abort(signal.reason);
         if (signal?.aborted) abort(); else signal?.addEventListener('abort', abort, { once: true });
         const timer = setTimeout(() => controller.abort(new DOMException('Request timed out', 'TimeoutError')), requestTimeout);
@@ -69,7 +76,7 @@ export class FreeterCloud {
           if (!response.body) return response;
           return new Response(await response.arrayBuffer(), { status: response.status, statusText: response.statusText, headers: response.headers });
         }
-        finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
+        finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); this.requests.delete(controller); }
       } },
     });}catch{this.config=null;this.phase='disabled';this.message='이 브라우저에서 계정 서비스를 시작하지 못했어요. 기존 도구는 계속 사용할 수 있습니다.';}
   }
@@ -111,6 +118,7 @@ export class FreeterCloud {
     if (epoch !== this.epoch) return;
     if (error || !data.user || data.user.id !== target) { this.target = undefined; this.onGuest(); this.status('error', '계정을 확인하지 못했어요. 인터넷 연결 후 다시 시도해 주세요.'); return; }
     this.user = { id: data.user.id, email: data.user.email || '' };
+    this.authWritesBlocked = false;
     try {
       const raw = this.storage.getItem(this.cacheKey);
       if (raw) {
@@ -142,6 +150,7 @@ export class FreeterCloud {
     let settings;
     try{const response=await this.request(this.config.url+'/auth/v1/settings',{headers:{apikey:this.config.publishableKey},cache:'no-store',referrerPolicy:'no-referrer',signal:AbortSignal.timeout(10000)});if(response.ok)settings=await response.json();}catch{/* Keep the current page and saved data when login is unavailable. */}
     if(settings?.external?.google!==true)throw new Error('지금은 Google 로그인을 사용할 수 없어요. 잠시 후 다시 시도해 주세요. 기존 도구는 계속 사용할 수 있습니다.');
+    this.authWritesBlocked = false;
     const { data, error } = await this.client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo, skipBrowserRedirect: true, queryParams: { prompt: 'select_account' } } });
     if (error) throw new Error('Google 로그인을 시작하지 못했어요. 잠시 후 다시 시도해 주세요.');
     const url = new URL(data.url);
@@ -189,7 +198,7 @@ export class FreeterCloud {
     if (changed) this.onWorkspace(copy(this.current)); return true;
   }
   async sync() {
-    if (!this.user || this.cacheBlocked || this.phase === 'conflict') return false;
+    if (!this.user || this.cacheBlocked || this.signingOut || this.phase === 'conflict') return false;
     if (this.inFlight?.epoch === this.epoch) return this.inFlight.promise;
     const epoch = this.epoch, user = this.user.id;
     const promise = this.runSync(epoch, user).catch(error => { if (epoch === this.epoch) this.status(error?.code === 'FREETER_VERIFY' ? 'error' : 'offline', cloudError(error)); return false; }).finally(() => { if (this.inFlight?.epoch === epoch) this.inFlight = null; });
@@ -236,20 +245,40 @@ export class FreeterCloud {
     this.base = copy(remote.data); this.revision = remote.revision; this.generation = remote.generation; this.dirty = true; this.persist(); this.status('pending'); await this.sync();
   }
   async signOut({discardPending=false}={}) {
-    const epoch=this.epoch;
-    if (this.dirty && !discardPending && !await this.sync()) { const error=new Error('아직 계정에 저장하지 못한 기록이 있어요. JSON으로 백업해 주세요.');error.code='UNSAVED';throw error; }
-    if(epoch!==this.epoch)throw new Error('계정이 변경되어 로그아웃을 중지했어요.');
-    const key = this.cacheKey;
+    const epoch=this.epoch, key=this.cacheKey, pending=this.dirty&&!discardPending;
+    // Saving is local-first: never wait for an unavailable data API to log out.
+    // Unsent edits stay under their owner's UID and resume only on that account.
+    if(pending)this.persist();
     this.signingOut=true;this.status('syncing','로그아웃 중');
-    let result;try{result=await this.client.auth.signOut({ scope: 'local' });}catch{if(epoch!==this.epoch)return {revoked:false,changedAccount:!!this.user};this.signingOut=false;this.status('error');throw new Error('로그아웃을 완료하지 못했어요. 다시 시도해 주세요.');}
-    const {error}=result;
-    if (epoch !== this.epoch) {
-      if (key && key !== this.cacheKey) { this.storage.removeItem(key); this.storage.removeItem(key + ':recovery'); }
-      return { revoked:!error, changedAccount:!!this.user };
+    clearTimeout(this.timer);this.stopPolling();this.authWritesBlocked=true;
+    for(const controller of this.requests)controller.abort();
+    const authKey=`freeter:auth:${this.config.project}`;
+    let accessToken;
+    try{const session=JSON.parse(this.storage.getItem(authKey));if(session?.user?.id===this.user?.id)accessToken=session.access_token;}catch{/* No token is needed for device logout. */}
+    try{
+      if(this.client.auth.stopAutoRefresh)await this.client.auth.stopAutoRefresh();
+      if(epoch!==this.epoch){if(!pending&&key&&key!==this.cacheKey){this.storage.removeItem(key);this.storage.removeItem(key+':recovery');}this.authWritesBlocked=false;return {revoked:false,changedAccount:!!this.user,pending};}
+      // Clear the persisted session first; the public SDK then removes PKCE state
+      // and broadcasts SIGNED_OUT without an HTTP call or expired-token refresh.
+      this.storage.removeItem(authKey);this.storage.removeItem(authKey+'-user');
+    }catch{
+      this.signingOut=false;this.authWritesBlocked=false;this.status('error','로그인 정보를 지우지 못했어요. 브라우저 저장소 권한을 확인해 주세요.');
+      throw new Error('기기에서 로그인 정보를 지우지 못했어요. 브라우저 저장소 권한을 확인해 주세요.');
     }
-    if (error && this.storage.getItem(`freeter:auth:${this.config.project}`)) {this.signingOut=false;this.status('error');throw new Error('로그아웃을 완료하지 못했어요. 인터넷 연결 후 다시 시도해 주세요.');}
-    if (key) { this.storage.removeItem(key); this.storage.removeItem(key + ':recovery'); }
-    this.cacheBlocked = false;this.signingOut=false;await this.sessionChanged(null);return {revoked:!error};
+    let result;
+    try{result=await this.client.auth.signOut({scope:'local'});}catch{result={error:true};}
+    const error=result?.error;
+    if (epoch !== this.epoch) {
+      if (!pending && key && key !== this.cacheKey) { this.storage.removeItem(key); this.storage.removeItem(key + ':recovery'); }
+      return { revoked:false, changedAccount:!!this.user, pending };
+    }
+    if (error && this.storage.getItem(authKey)) {this.signingOut=false;this.status('error');throw new Error('기기에서 로그인 정보를 지우지 못했어요. 브라우저 저장소 권한을 확인해 주세요.');}
+    if (!pending && key) { this.storage.removeItem(key); this.storage.removeItem(key + ':recovery'); }
+    this.cacheBlocked=false;this.signingOut=false;await this.sessionChanged(null);
+    // Revocation is separate from device logout and bounded. No user data is sent.
+    let revoked=!accessToken&&!error;
+    if(accessToken)try{const response=await this.request(this.config.url+'/auth/v1/logout?scope=local',{method:'POST',headers:{apikey:this.config.publishableKey,Authorization:'Bearer '+accessToken},cache:'no-store',referrerPolicy:'no-referrer',signal:AbortSignal.timeout(3000)});revoked=response.ok||[401,403,404].includes(response.status);}catch{/* Local session is already gone, even offline. */}
+    return {revoked,pending,changedAccount:!!this.user};
   }
   stopPolling() { if (this.interval) clearInterval(this.interval); this.interval = null; }
   stop() { clearTimeout(this.timer); this.stopPolling(); this.subscription?.unsubscribe(); this.epoch++; }

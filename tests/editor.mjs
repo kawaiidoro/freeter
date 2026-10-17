@@ -23,15 +23,16 @@ try{
   await a.locator('[data-action="close-updates"]').click();assert.equal(await a.locator('#updates-dialog').isVisible(),false);
   await go(a,'guide.html');assert.equal(await a.getByRole('heading',{name:'새로운 근무 관리 도구',exact:true}).count(),0);await a.locator('.updates-trigger').click();assert.ok(await a.locator('#updates-dialog').isVisible());await a.locator('[data-action="close-updates"]').click();
  });
- await check('선택한 메모에 굵게·밑줄·크기·글자색·형광펜 적용 및 읽기 보기 보존',async()=>{
+ await check('선택한 메모에 굵게·밑줄·크기·글자색·형광펜 적용 및 즉시 저장',async()=>{
   await go(a,'notes.html');await editor(a).fill(text);await editor(a).press('ControlOrMeta+a');
   await a.locator('[data-action="memo-format-bold"]').click();await a.locator('[data-action="memo-format-underline"]').click();await a.locator('#memo-font-size').selectOption('24px');
   await a.locator('#memo-font-color').evaluate(node=>{node.value='#cc2211';node.dispatchEvent(new Event('change',{bubbles:true}));});
   await a.locator('[data-action="memo-format-highlight"]').click();
   const data=await state(a);assert.equal(data.workMemo,text);const attrs=data.workMemoDelta.ops.find(op=>op.insert.startsWith('오늘')).attributes;
   assert.deepEqual(attrs,{bold:true,underline:true,size:'24px',color:'#cc2211',background:'#a7f3d0'});
-  await a.locator('[data-action="memo-mode"][data-mode="read"]').click();assert.equal(await a.locator('#memo-reader').textContent(),text);assert.equal(await a.locator('#memo-reader script').count(),0);
-  assert.equal(await a.locator('#memo-reader span').first().evaluate(node=>getComputedStyle(node).fontSize),'24px');assert.ok(await a.locator('#memo-format-toolbar').isHidden());
+  assert.equal(await a.locator('[data-action="memo-mode"],#memo-reader').count(),0);
+  await a.locator('[data-action="save-memo"]').click();assert.equal(await memo(a),text);assert.equal(await a.locator('#work-memo script').count(),0);
+  assert.equal(await a.locator('#work-memo [style*="24px"]').first().evaluate(node=>getComputedStyle(node).fontSize),'24px');assert.ok(await a.locator('#memo-format-toolbar').isVisible());
   await a.screenshot({path:join(output,'formatted-memo-mobile.png'),fullPage:true});
  });
  await check('서식 메모의 새로고침·전체 JSON 백업 및 v3 저장',async()=>{
