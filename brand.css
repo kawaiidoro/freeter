@@ -1735,10 +1735,15 @@ html[data-theme] .panel.settings-card.data-transfer { padding: 0; overflow: hidd
 .data-transfer-status { font-size: 13px; line-height: 1.8; color: var(--blue); margin: 0 24px 20px; }
 .data-transfer-status[data-error='true'] { color: var(--danger,#c43d50); }
 /* Filled app marks use the same charcoal, white and vivid green palette. */
-html[data-theme] .dashboard-layout { --tool-ink: #263238; --tool-paper: #ffffff; --tool-mint: #c4efdb; --tool-accent: #00c853; --tool-gray: #9aa3aa; --tool-background: #f4f6f6; }
+html[data-theme] .dashboard-layout { --tool-ink: #263238; --tool-panel: #263238; --tool-solid: #263238; --tool-paper: #ffffff; --tool-mint: #c4efdb; --tool-accent: #00c853; --tool-gray: #9aa3aa; --tool-background: #f4f6f6; }
 html[data-theme] .dashboard-layout .app-tile-icon { background: linear-gradient(145deg,#f9faf9,#f0f3f4); border: 1px solid #edf0f070; }
-.tool-illustration { width: 46px; height: 46px; }
+html[data-theme='dark'] .dashboard-layout { --tool-ink: #657984; --tool-panel: #657984; --tool-solid: #bdcbd1; --tool-paper: #eef4f1; --tool-gray: #91a0a8; }
+html[data-theme='dark'] .dashboard-layout .app-tile-icon { background: linear-gradient(145deg,#282f33,#20262a); border-color: #ffffff12; }
+/* The drawing occupies the same proportion of every tile at every breakpoint. */
+.dashboard-layout .app-tile-icon .tool-illustration { width: 75%; height: 75%; }
 .tool-dark { fill: var(--tool-ink); }
+.tool-panel { fill: var(--tool-panel); }
+.tool-solid { fill: var(--tool-solid); }
 .tool-gray { fill: var(--tool-gray); }
 .tool-outline { stroke: var(--tool-ink); }
 .tool-sheet { fill: var(--tool-paper); stroke: #e2e7e5; stroke-width: 1px; }
@@ -1746,8 +1751,6 @@ html[data-theme] .dashboard-layout .app-tile-icon { background: linear-gradient(
 .tool-divider { stroke: #ffffff20; stroke-width: 1px; }
 .tool-white-line { fill: none; stroke: #ffffff; }
 .tool-green-line { fill: none; stroke: var(--tool-accent); }
-@media(max-width:480px){ .tool-illustration { width: 40px; height: 40px; } }
-@media(max-width:360px){ .tool-illustration { width: 36px; height: 36px; } }
 @media(max-width:650px) {
   .guide-shortcuts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin-bottom: 21px; }
   .guide-shortcuts a { font-size: 11px; padding: 10px; }
