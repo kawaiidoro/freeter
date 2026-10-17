@@ -981,7 +981,7 @@ function mountWeatherWidget() {
 }
 
 
-const APP_RELEASE = '6214384ac74c';
+const APP_RELEASE = '054cebf97fb4';
 let latestRelease = APP_RELEASE;
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];

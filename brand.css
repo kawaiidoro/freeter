@@ -819,7 +819,7 @@ html[data-theme] .profile-wordmark.freeter-wordmark { display: block; width: 220
 /* Hand-drawn weather, with readable environmental details. */
 .weather-panel { width: 360px; max-height: min(680px, calc(100vh - 195px)); max-height: min(680px, calc(100dvh - 195px)); }
 .weather-now { margin: 6px 0 12px; gap: 4px; }
-.weather-symbol { display: block; width: 126px; height: 126px; flex: 0 0 126px; background-image: url('./assets/weather-illustrations.png'); background-size: 300% 200%; background-position: 0 0; }
+.weather-symbol { display: block; width: 126px; height: 126px; flex: 0 0 126px; background-image: url('./assets/weather-flat-icons.png'); background-size: 300% 200%; background-position: 0 0; }
 .weather-symbol[data-kind='cloud'], .weather-symbol[data-kind='fog'] { background-position: 50% 0; }
 .weather-symbol[data-kind='rain'] { background-position: 100% 0; }
 .weather-symbol[data-kind='snow'] { background-position: 0 100%; }
@@ -1369,8 +1369,8 @@ html[data-theme] .workspace-widget .widget-bar { background: transparent; border
 html[data-theme] .workspace-grid .profile-widget {
   background: linear-gradient(145deg,#1db954 -5%,#14783c 28%,#0b3020 55%,#060908 100%);
   color: #ffffff;
-  border: 1px solid #ffffff24;
-  box-shadow: 0 12px 32px #0b302022,inset 0 1px 0 #ffffff24;
+  border: 0;
+  box-shadow: none;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }

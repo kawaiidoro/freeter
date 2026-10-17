@@ -9,7 +9,7 @@ const values = await Promise.all(names.map(read));
 const source = Object.fromEntries(names.map((name,index)=>[name,values[index]]));
 const launcherAssets=['applications','notes','schedule','calculator','records','stats','settings','guide'].map(name=>'assets/'+name+'-icon.png');
 const releaseHash = createHash('sha256').update(values.join('\0'));
-for(const asset of ['assets/freeter-wordmark.png','assets/weather-illustrations.png','assets/freeter-192.png','assets/freeter-512.png','assets/freeter-share.png',...launcherAssets,'icon.svg'])releaseHash.update(await readFile(new URL(asset,root)));
+for(const asset of ['assets/freeter-wordmark.png','assets/weather-flat-icons.png','assets/freeter-192.png','assets/freeter-512.png','assets/freeter-share.png',...launcherAssets,'icon.svg'])releaseHash.update(await readFile(new URL(asset,root)));
 const release=releaseHash.digest('hex').slice(0,12);
 const core = source['core.js'].replace(/^export /gm, '');
 const weather = source['weather.js'].replace(/^export /gm,'');
@@ -32,7 +32,7 @@ for(const name of pages){
   else html=html.replace('  <meta name="application-name"',`  <meta name="freeter-release" content="${release}">\n  <meta name="application-name"`);
   outputs.set(name,html);
 }
-const assets = ['./',...pages.map(name=>'./'+name),...['style.css','brand.css','vendor/quill.core.css','site.js','icon.svg','manifest.webmanifest','assets/freeter-192.png','assets/freeter-512.png','assets/freeter-wordmark.png',...launcherAssets].map(name=>`./${name}?v=${release}`),'./icon.svg','./manifest.webmanifest','./assets/freeter-display.woff2','./assets/freeter-192.png','./assets/freeter-512.png','./assets/gomssi.png',...launcherAssets.map(name=>'./'+name),'./assets/freeter-wordmark.png','./assets/weather-illustrations.png',...JSON.parse(source['manifest.webmanifest']).icons.map(icon=>icon.src)];
+const assets = ['./',...pages.map(name=>'./'+name),...['style.css','brand.css','vendor/quill.core.css','site.js','icon.svg','manifest.webmanifest','assets/freeter-192.png','assets/freeter-512.png','assets/freeter-wordmark.png',...launcherAssets].map(name=>`./${name}?v=${release}`),'./icon.svg','./manifest.webmanifest','./assets/freeter-display.woff2','./assets/freeter-192.png','./assets/freeter-512.png','./assets/gomssi.png',...launcherAssets.map(name=>'./'+name),'./assets/freeter-wordmark.png','./assets/weather-flat-icons.png',...JSON.parse(source['manifest.webmanifest']).icons.map(icon=>icon.src)];
 outputs.set('sw.js',source['scripts/sw-template.js'].replaceAll('__FREETER_RELEASE__',release).replace('__FREETER_ASSETS__',JSON.stringify(assets)));
 for(const [name,value]of outputs){
   if(process.argv.includes('--check')){if(await read(name)!==value)throw new Error(`${name} is stale. Run node scripts/build-site.mjs.`);}

@@ -47,7 +47,7 @@ try {
   const{page,control}=await setup();await go(page);await show(page);await ready(page);
   assert.equal(await page.locator('.weather-place').innerText(),'서울');assert.equal(await page.locator('.weather-degrees strong').innerText(),'21');assert.equal(await page.locator('.weather-low').innerText(),'최저 16°');assert.equal(await page.locator('.weather-high').innerText(),'최고 25°');
   for(const [key,value]of [['humidity','64%'],['uv','4.2'],['sunrise','06:40'],['sunset','17:52'],['pm10','28.0 ㎍/㎥'],['pm25','12.0 ㎍/㎥']])assert.equal(await page.locator(`[data-metric="${key}"] strong`).innerText(),value);
-  assert.ok((await page.locator('.weather-symbol').evaluate(node=>getComputedStyle(node).backgroundImage)).includes('weather-illustrations.png'));
+  assert.ok((await page.locator('.weather-symbol').evaluate(node=>getComputedStyle(node).backgroundImage)).includes('weather-flat-icons.png'));
   await page.locator('.weather-guide-character img').evaluate(node=>node.decode());assert.equal(await page.locator('.weather-guide-character img').evaluate(node=>node.naturalWidth>0),true);
   assert.ok((await page.locator('.weather-speech .weather-tip').innerText()).includes('곰씨'));
   await page.locator('#weather-city').selectOption('busan');await page.waitForFunction(()=>document.querySelector('.weather-degrees strong')?.textContent==='26');assert.equal(await page.locator('.weather-place').innerText(),'부산');
