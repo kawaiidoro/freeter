@@ -106,7 +106,7 @@ export function mountWeatherWidget() {
   let open=false,serial=0,active=null,location={...WEATHER_CITIES[0]},cache=null;
   const position=()=>{
     if(!open)return;
-    const button=toggle.getBoundingClientRect(),bar=document.querySelector('.topbar').getBoundingClientRect(),width=Math.min(360,innerWidth-32);
+    const button=toggle.getBoundingClientRect(),bar=document.querySelector('.topbar').getBoundingClientRect(),width=Math.min(420,innerWidth-32);
     const top=Math.max(8,Math.min(Math.max(bar.bottom,button.bottom)+8,innerHeight-100));
     panel.style.setProperty('--weather-top',top+'px');panel.style.setProperty('--weather-left',Math.max(16,Math.min(button.right-width,innerWidth-width-16))+'px');
   };
@@ -115,7 +115,7 @@ export function mountWeatherWidget() {
   const showWeather=data=>{
     // API strings never enter HTML. Only validated numbers and local labels are displayed.
     const metricIcon=kind=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${kind==='humidity'?'<path d="M12 3C9 8 5 11 5 15a7 7 0 0 0 14 0c0-4-4-7-7-12Z"/><path d="M8 15a4 4 0 0 0 4 4"/>':kind==='uv'?'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1 1m12 12 1 1M5 19l1-1M18 6l1-1"/>':kind.startsWith('sun')?'<path d="M3 18h18M6 15a6 6 0 0 1 12 0M12 2v4m-8 3 2 2m12 0 2-2M8 21h8"/>':'<path d="M3 8h12a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 17h6"/>'}</svg>`;
-    content.innerHTML='<div class="weather-now"><div><p class="weather-place"></p><div class="weather-degrees"><strong></strong><span>°C</span></div><p class="weather-description"></p></div><span class="weather-symbol" aria-hidden="true"></span></div><div class="weather-range"><span class="weather-low"></span><span class="weather-high"></span></div><div class="weather-metrics">'+[['humidity','습도'],['uv','오늘 최대 자외선'],['sunrise','일출'],['sunset','일몰'],['pm10','미세먼지 PM10'],['pm25','초미세먼지 PM2.5']].map(([key,label])=>`<div class="weather-metric" data-metric="${key}"><span class="weather-metric-label">${metricIcon(key)}${label}</span><strong></strong><small></small></div>`).join('')+'</div><p class="weather-air-note"></p><p class="weather-tip"></p>';
+    content.innerHTML='<div class="weather-report"><div class="weather-speech"><span class="weather-reporter-label">곰씨가 알려드려요</span><div class="weather-now"><div><p class="weather-place"></p><div class="weather-degrees"><strong></strong><span>°C</span></div><p class="weather-description"></p></div><span class="weather-symbol" aria-hidden="true"></span></div><p class="weather-tip"></p></div><figure class="weather-guide-character"><img src="./assets/gomssi.png" width="1280" height="1280" alt="안전모를 쓰고 옆에서 오늘의 날씨를 알려주는 곰씨"><figcaption>오늘도 안전하게!</figcaption></figure></div><div class="weather-range"><span class="weather-low"></span><span class="weather-high"></span></div><div class="weather-metrics">'+[['humidity','습도'],['uv','오늘 최대 자외선'],['sunrise','일출'],['sunset','일몰'],['pm10','미세먼지 PM10'],['pm25','초미세먼지 PM2.5']].map(([key,label])=>`<div class="weather-metric" data-metric="${key}"><span class="weather-metric-label">${metricIcon(key)}${label}</span><strong></strong><small></small></div>`).join('')+'</div><p class="weather-air-note"></p>';
     find('.weather-place').textContent=location.name;
     find('.weather-degrees strong').textContent=String(Math.round(data.temperature));
     find('.weather-description').textContent=`${data.label} · 체감 ${Math.round(data.feelsLike)}°`;

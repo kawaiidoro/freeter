@@ -32,8 +32,17 @@ try{
   assert.deepEqual(attrs,{bold:true,underline:true,size:'24px',color:'#cc2211',background:'#a7f3d0'});
   assert.equal(await a.locator('[data-action="memo-mode"],#memo-reader').count(),0);
   await a.locator('[data-action="save-memo"]').click();assert.equal(await memo(a),text);assert.equal(await a.locator('#work-memo script').count(),0);
+  assert.equal(await a.locator('[data-action="save-memo"]').getAttribute('data-save-state'),'saved');assert.equal(await a.locator('[data-action="save-memo"]').innerText(),'저장 완료');assert.equal(await a.locator('#toast').isVisible(),false);
+  await a.locator('#work-memo').evaluate(node=>{const q=Quill.find(node);q.insertText(q.getLength()-1,'!','user');});assert.equal(await a.locator('[data-action="save-memo"]').getAttribute('data-save-state'),'ready');
+  await a.locator('#work-memo').evaluate(node=>{const q=Quill.find(node);q.deleteText(q.getLength()-2,1,'user');});await a.locator('[data-action="save-memo"]').click();
   assert.equal(await a.locator('#work-memo [style*="24px"]').first().evaluate(node=>getComputedStyle(node).fontSize),'24px');assert.ok(await a.locator('#memo-format-toolbar').isVisible());
   await a.screenshot({path:join(output,'formatted-memo-mobile.png'),fullPage:true});
+ });
+ await check('기기 저장 실패는 완료로 표시하지 않고 재시도 시 원문과 서식 보존',async()=>{
+  await a.evaluate(()=>{globalThis.__memoOriginalSetItem=Storage.prototype.setItem;Storage.prototype.setItem=function(key,value){if(key==='dangi-alba:data')throw new DOMException('Quota exceeded','QuotaExceededError');return globalThis.__memoOriginalSetItem.call(this,key,value);};});
+  try{await a.locator('[data-action="save-memo"]').click();assert.equal(await a.locator('[data-action="save-memo"]').getAttribute('data-save-state'),'error');assert.equal(await memo(a),text);assert.equal(await a.locator('#toast').isVisible(),false);}
+  finally{await a.evaluate(()=>{Storage.prototype.setItem=globalThis.__memoOriginalSetItem;delete globalThis.__memoOriginalSetItem;});}
+  await a.locator('[data-action="save-memo"]').click();assert.equal(await a.locator('[data-action="save-memo"]').getAttribute('data-save-state'),'saved');assert.equal((await state(a)).workMemo,text);
  });
  await check('서식 메모의 새로고침·전체 JSON 백업 및 v3 저장',async()=>{
   await a.reload();assert.equal(await memo(a),text);assert.ok((await state(a)).workMemoDelta.ops.some(op=>op.attributes?.bold));

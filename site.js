@@ -912,7 +912,7 @@ function mountWeatherWidget() {
   let open=false,serial=0,active=null,location={...WEATHER_CITIES[0]},cache=null;
   const position=()=>{
     if(!open)return;
-    const button=toggle.getBoundingClientRect(),bar=document.querySelector('.topbar').getBoundingClientRect(),width=Math.min(360,innerWidth-32);
+    const button=toggle.getBoundingClientRect(),bar=document.querySelector('.topbar').getBoundingClientRect(),width=Math.min(420,innerWidth-32);
     const top=Math.max(8,Math.min(Math.max(bar.bottom,button.bottom)+8,innerHeight-100));
     panel.style.setProperty('--weather-top',top+'px');panel.style.setProperty('--weather-left',Math.max(16,Math.min(button.right-width,innerWidth-width-16))+'px');
   };
@@ -921,7 +921,7 @@ function mountWeatherWidget() {
   const showWeather=data=>{
     // API strings never enter HTML. Only validated numbers and local labels are displayed.
     const metricIcon=kind=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${kind==='humidity'?'<path d="M12 3C9 8 5 11 5 15a7 7 0 0 0 14 0c0-4-4-7-7-12Z"/><path d="M8 15a4 4 0 0 0 4 4"/>':kind==='uv'?'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1 1m12 12 1 1M5 19l1-1M18 6l1-1"/>':kind.startsWith('sun')?'<path d="M3 18h18M6 15a6 6 0 0 1 12 0M12 2v4m-8 3 2 2m12 0 2-2M8 21h8"/>':'<path d="M3 8h12a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 17h6"/>'}</svg>`;
-    content.innerHTML='<div class="weather-now"><div><p class="weather-place"></p><div class="weather-degrees"><strong></strong><span>°C</span></div><p class="weather-description"></p></div><span class="weather-symbol" aria-hidden="true"></span></div><div class="weather-range"><span class="weather-low"></span><span class="weather-high"></span></div><div class="weather-metrics">'+[['humidity','습도'],['uv','오늘 최대 자외선'],['sunrise','일출'],['sunset','일몰'],['pm10','미세먼지 PM10'],['pm25','초미세먼지 PM2.5']].map(([key,label])=>`<div class="weather-metric" data-metric="${key}"><span class="weather-metric-label">${metricIcon(key)}${label}</span><strong></strong><small></small></div>`).join('')+'</div><p class="weather-air-note"></p><p class="weather-tip"></p>';
+    content.innerHTML='<div class="weather-report"><div class="weather-speech"><span class="weather-reporter-label">곰씨가 알려드려요</span><div class="weather-now"><div><p class="weather-place"></p><div class="weather-degrees"><strong></strong><span>°C</span></div><p class="weather-description"></p></div><span class="weather-symbol" aria-hidden="true"></span></div><p class="weather-tip"></p></div><figure class="weather-guide-character"><img src="./assets/gomssi.png" width="1280" height="1280" alt="안전모를 쓰고 옆에서 오늘의 날씨를 알려주는 곰씨"><figcaption>오늘도 안전하게!</figcaption></figure></div><div class="weather-range"><span class="weather-low"></span><span class="weather-high"></span></div><div class="weather-metrics">'+[['humidity','습도'],['uv','오늘 최대 자외선'],['sunrise','일출'],['sunset','일몰'],['pm10','미세먼지 PM10'],['pm25','초미세먼지 PM2.5']].map(([key,label])=>`<div class="weather-metric" data-metric="${key}"><span class="weather-metric-label">${metricIcon(key)}${label}</span><strong></strong><small></small></div>`).join('')+'</div><p class="weather-air-note"></p>';
     find('.weather-place').textContent=location.name;
     find('.weather-degrees strong').textContent=String(Math.round(data.temperature));
     find('.weather-description').textContent=`${data.label} · 체감 ${Math.round(data.feelsLike)}°`;
@@ -981,7 +981,7 @@ function mountWeatherWidget() {
 }
 
 
-const APP_RELEASE = '9158070aabf1';
+const APP_RELEASE = '1e8659a8ca4e';
 let latestRelease = APP_RELEASE;
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -1006,6 +1006,9 @@ const icons = {
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   wallet: '<path d="M20 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h15V8H5a2 2 0 0 1 0-4m15 8h-5v5h5m-3-2.5h.01"/>',
   check: '<path d="m5 12 4 4L19 6"/>',
+  save: '<path d="M5 3h12l4 4v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a2 2 0 0 1 2-2Z"/><path d="M7 3v6h10V3M7 21v-8h10v8"/>',
+  saved: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+  warning: '<circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 4h.01"/>',
   download: '<path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/>',
   upload: '<path d="M12 16V4m-5 5 5-5 5 5M4 16v5h16v-5"/>',
   copy: '<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V3H3v13h5"/>',
@@ -1130,7 +1133,7 @@ const head = (eyebrow, title, text, action = '') => `<div class="page-heading"><
 const field = (label, name, type, value, options = '') => `<label class="field"><span>${label}</span><input type="${type}" name="${name}" value="${esc(value)}" ${options}></label>`;
 const smallEmpty = (title, text, button = '') => `<div class="empty-state"><div class="empty-icon">${icon('notebook')}</div><h3>${title}</h3><p>${text}</p>${button}</div>`;
 const workplaceOptions = () => [...new Set([...state.workplaces, ...state.records.map(r => r.workplace)])].sort((a, b) => a.localeCompare(b, 'ko'));
-const appTile = (route, image, name, color) => `<a class="app-tile" href="#${route}"><span class="app-tile-icon ${color}"><img src="./assets/${route}-icon.png" width="72" height="72" alt=""></span><span>${name}</span></a>`;
+const appTile = (route, image, name, color) => `<a class="app-tile" href="#${route}"><span class="app-tile-icon ${color}"><img src="./assets/${route}-icon.png?v=${APP_RELEASE}" width="68" height="68" alt=""></span><span>${name}</span></a>`;
 function homeView() {
   const stats = monthStats(state.records, monthNow());
   const recent = [...state.records].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4);
@@ -1301,7 +1304,7 @@ function updateRecords() {
 function notesView() {
   const lines=state.workMemo.trim()?state.workMemo.split('\n').length:0;
   return head('WORK NOTES','업무 메모장','설명은 적어 두고, 필요한 순간 가볍게 꺼내 보세요.')+`<div class="notes-layout"><aside class="notes-sidebar"><div class="notes-collection"><span class="notes-collection-icon">${icon('notebook')}</span><div><h2>나의 업무 메모</h2><p>이 브라우저에 자동 저장</p></div>${icon('lock')}</div><div class="note-selected"><span>업무 메모</span><p>${esc(state.workMemo.trim().split('\n')[0]||'첫 업무 설명을 남겨 보세요.')}</p></div><div class="notes-sidebar-help"><h3>출근 전 체크</h3><p>담당자 연락처와 도착 장소<br>꼭 챙겨야 할 준비물<br>업무 순서와 주의사항</p><a href="#settings">메모까지 함께 백업 ${icon('chevron')}</a></div></aside>
-    <section class="panel notes-panel"><div class="notes-toolbar"><div class="notes-document-title"><span class="notes-document-icon">${icon('edit')}</span><div><h2>오늘의 업무 설명</h2><p>나의 업무 메모</p></div></div><button type="button" class="button primary small memo-save-button" data-action="save-memo">${icon('check')}저장</button></div>
+    <section class="panel notes-panel"><div class="notes-toolbar"><div class="notes-document-title"><span class="notes-document-icon">${icon('edit')}</span><div><h2>오늘의 업무 설명</h2><p>나의 업무 메모</p></div></div><button type="button" class="button primary small memo-save-button" data-action="save-memo" data-save-state="ready" aria-label="업무 메모 저장">${icon('save')}<span>저장</span></button></div>
       <div id="memo-format-toolbar" class="memo-format-toolbar" aria-label="메모 서식"><div class="memo-format-group"><button type="button" class="memo-format-button" data-action="memo-format-bold" aria-label="굵게" aria-pressed="false"><b>B</b></button><button type="button" class="memo-format-button" data-action="memo-format-underline" aria-label="밑줄" aria-pressed="false"><u>U</u></button><label class="memo-size-label"><span class="sr-only">글자 크기</span><select id="memo-font-size" data-memo-format="size" aria-label="글자 크기">${MEMO_SIZES.map(size=>`<option value="${size}" ${size==='17px'?'selected':''}>${size.replace('px','')}</option>`).join('')}</select><span>px</span></label></div><div class="memo-format-group"><label class="memo-color-control"><span>글자색</span><input type="color" id="memo-font-color" data-memo-format="color" value="#1d1d1f" aria-label="글자색"></label><button type="button" class="memo-format-button marker-toggle" data-action="memo-format-highlight" aria-label="형광펜 마커" aria-pressed="false">${icon('edit')}</button><label class="memo-color-control"><span>마커색</span><input type="color" id="memo-highlight-color" data-memo-format="background" value="#a7f3d0" aria-label="마커색"></label></div></div>
       <div class="notes-paper"><div id="work-memo" class="notes-editor" aria-label="업무 메모 편집"></div></div>
       <div class="notes-save-state"><span id="memo-status" role="status">${state.workMemo.length.toLocaleString('ko-KR')} / 30,000자 · 브라우저 자동 저장</span><span id="memo-lines">${lines}줄</span></div><div class="notes-bottom-bar"><div class="export-actions"><button class="button secondary" data-action="copy-memo">${icon('copy')}메모 복사</button><button class="button secondary" data-action="download-memo">${icon('download')}TXT 저장</button></div><button class="button ghost" data-action="clear-memo" aria-label="메모 내용 비우기">${icon('trash')}비우기</button></div>
@@ -1329,7 +1332,7 @@ function setupMemoEditor() {
     try{
       if(text.length>30000)throw new Error('메모는 30,000자까지 작성할 수 있어요.');
       const delta=validateMemoDelta(memoQuill.getContents(),text);
-      state.workMemo=text;state.workMemoDelta=delta;updateMemoStatus(save());updateMemoTools();
+      state.workMemo=text;state.workMemoDelta=delta;const saved=save();updateMemoStatus(saved);setMemoSaveState(saved?'ready':'error');updateMemoTools();
     }catch(error){memoQuill.setContents(state.workMemoDelta||{ops:[{insert:state.workMemo+'\n'}]},'silent');toast(error.message);}
   });
 }
@@ -1337,6 +1340,15 @@ function updateMemoStatus(saved=true) {
   if(!$('#memo-status'))return;
   $('#memo-lines').textContent=`${state.workMemo.trim()?state.workMemo.split('\n').length:0}줄`;
   $('#memo-status').textContent=`${state.workMemo.length.toLocaleString('ko-KR')} / 30,000자 · ${saved?(cloud.user?'기기에 저장됨 · 계정 자동 동기화':'브라우저 자동 저장'):'저장되지 않음 · JSON 백업 필요'}`;
+}
+function setMemoSaveState(status) {
+  const button=$('[data-action="save-memo"]');if(!button)return;
+  const saved=status==='saved',failed=status==='error';
+  button.dataset.saveState=status;
+  button.innerHTML=icon(saved?'saved':failed?'warning':'save')+`<span>${saved?'저장 완료':failed?'다시 저장':'저장'}</span>`;
+  // This acknowledges device storage. Account upload is reported separately.
+  button.setAttribute('aria-label',saved?'메모 저장 완료 · 이 기기에 저장됨':failed?'메모 저장 실패 · 다시 저장':'업무 메모 저장');
+  button.title=saved?'이 기기에 저장했어요.':'업무 메모 저장';
 }
 function updateMemoTools() {
   if(!memoQuill||!$('#memo-format-toolbar'))return;
@@ -1384,7 +1396,7 @@ function calculateMini() {
 }
 
 function applicationsView() {
-  return head('MY APPLICATIONS','알바 지원','지원한 공고, 나의 경력, 문자 지원 양식을 한곳에 모아 두세요.')+`<div class="applications-layout"><section class="panel application-board" aria-labelledby="application-board-title"><div class="panel-title"><div><h2 id="application-board-title"><img src="./assets/applications-icon.png" width="39" height="39" alt="">지원한 알바 공고</h2><p>제목을 누르면 공고 내용과 링크를 볼 수 있어요.</p></div><button type="button" class="button primary" data-action="new-application">${icon('plus')}공고 작성</button></div><label class="field application-search"><span>제목 검색</span><input id="application-search" type="search" maxlength="160" placeholder="찾는 공고 제목" value="${esc(applicationSearch)}"></label><div id="application-list" aria-live="polite"></div></section><div class="application-writing"><section class="panel application-note"><div class="panel-title"><h2>${icon('notebook')}단기 알바 경력</h2><button type="button" class="button secondary small" data-action="copy-career">${icon('copy')}복사</button></div><label class="field"><span>참여한 행사와 업무 경험</span><textarea id="application-career" maxlength="30000" rows="9" placeholder="예: 2026.10 전시회 안내 · 3일\n입장 안내, 관람객 응대, 물품 정리">${esc(state.applicationCareer)}</textarea></label><p id="career-save-state" class="application-save-state" role="status">${state.applicationCareer.length.toLocaleString('ko-KR')} / 30,000자 · 자동 저장</p></section><section class="panel application-note"><div class="panel-title"><h2>${icon('edit')}문자 지원 양식</h2><button type="button" class="button secondary small" data-action="copy-application-template">${icon('copy')}복사</button></div><p class="field-hint">행사명/이름/나이/거주지/경력사항 순서로 작성해 보세요.</p><label class="field"><span>나의 문자 지원 내용</span><textarea id="application-template" maxlength="30000" rows="6" placeholder="행사명/이름/나이/거주지/경력사항">${esc(state.applicationTemplate)}</textarea></label><p id="template-save-state" class="application-save-state" role="status">${state.applicationTemplate.length.toLocaleString('ko-KR')} / 30,000자 · 자동 저장</p></section></div></div>`;
+  return head('MY APPLICATIONS','알바 지원','지원한 공고, 나의 경력, 문자 지원 양식을 한곳에 모아 두세요.')+`<div class="applications-layout"><section class="panel application-board" aria-labelledby="application-board-title"><div class="panel-title"><div><h2 id="application-board-title"><img src="./assets/applications-icon.png?v=${APP_RELEASE}" width="39" height="39" alt="">지원한 알바 공고</h2><p>제목을 누르면 공고 내용과 링크를 볼 수 있어요.</p></div><button type="button" class="button primary" data-action="new-application">${icon('plus')}공고 작성</button></div><label class="field application-search"><span>제목 검색</span><input id="application-search" type="search" maxlength="160" placeholder="찾는 공고 제목" value="${esc(applicationSearch)}"></label><div id="application-list" aria-live="polite"></div></section><div class="application-writing"><section class="panel application-note"><div class="panel-title"><h2>${icon('notebook')}단기 알바 경력</h2><button type="button" class="button secondary small" data-action="copy-career">${icon('copy')}복사</button></div><label class="field"><span>참여한 행사와 업무 경험</span><textarea id="application-career" maxlength="30000" rows="9" placeholder="예: 2026.10 전시회 안내 · 3일\n입장 안내, 관람객 응대, 물품 정리">${esc(state.applicationCareer)}</textarea></label><p id="career-save-state" class="application-save-state" role="status">${state.applicationCareer.length.toLocaleString('ko-KR')} / 30,000자 · 자동 저장</p></section><section class="panel application-note"><div class="panel-title"><h2>${icon('edit')}문자 지원 양식</h2><button type="button" class="button secondary small" data-action="copy-application-template">${icon('copy')}복사</button></div><p class="field-hint">행사명/이름/나이/거주지/경력사항 순서로 작성해 보세요.</p><label class="field"><span>나의 문자 지원 내용</span><textarea id="application-template" maxlength="30000" rows="6" placeholder="행사명/이름/나이/거주지/경력사항">${esc(state.applicationTemplate)}</textarea></label><p id="template-save-state" class="application-save-state" role="status">${state.applicationTemplate.length.toLocaleString('ko-KR')} / 30,000자 · 자동 저장</p></section></div></div>`;
 }
 function renderApplicationList() {
   const host=$('#application-list');if(!host)return;
@@ -1483,7 +1495,7 @@ function applyAccountWorkspace(next) {
     renderApplicationList();applyTheme();return;
   }
   if(page==='notes'&&memoQuill){
-    if(memoChanged){const range=memoQuill.getSelection();memoQuill.setContents(state.workMemoDelta||{ops:[{insert:state.workMemo+'\n'}]},'silent');if(range){const index=Math.min(range.index,memoQuill.getLength()-1);memoQuill.setSelection(index,Math.min(range.length,memoQuill.getLength()-1-index),'silent');}}
+    if(memoChanged){const range=memoQuill.getSelection();memoQuill.setContents(state.workMemoDelta||{ops:[{insert:state.workMemo+'\n'}]},'silent');setMemoSaveState('ready');if(range){const index=Math.min(range.index,memoQuill.getLength()-1);memoQuill.setSelection(index,Math.min(range.length,memoQuill.getLength()-1-index),'silent');}}
     updateMemoStatus();updateMemoTools();applyTheme();
   }else if($('#record-dialog').open||document.activeElement?.closest('form')){applyTheme();if(activeTool()==='records')updateRecords();}
   else render();
@@ -1662,7 +1674,7 @@ document.addEventListener('submit', async event => {
 document.addEventListener('input', event => {
   if(event.target.id==='application-search'){applicationSearch=event.target.value;applicationPage=0;renderApplicationList();return;}
   if(['application-career','application-template'].includes(event.target.id)){const career=event.target.id==='application-career',value=event.target.value;if(value.length>30000)return;state[career?'applicationCareer':'applicationTemplate']=value;const saved=save();$('#'+(career?'career':'template')+'-save-state').textContent=value.length.toLocaleString('ko-KR')+' / 30,000자 · '+(saved?'저장했어요':'저장되지 않음 · JSON 백업 필요');return;}
-  if(event.target.id==='memo-fallback'){state.workMemo=event.target.value;state.workMemoDelta=null;updateMemoStatus(save());return;}
+  if(event.target.id==='memo-fallback'){state.workMemo=event.target.value;state.workMemoDelta=null;const saved=save();updateMemoStatus(saved);setMemoSaveState(saved?'ready':'error');return;}
   if(event.target.id==='mini-expression'){miniExpression=event.target.value;miniAnswer='';$('#mini-answer').textContent='';return;}
   const form = event.target.closest('form');
   if (form?.id === 'calculator-form') {
@@ -1767,7 +1779,7 @@ document.addEventListener('click', async event => {
     if(action==='open-updates'){openUpdates();return;}
     if(action==='close-updates'){$('#updates-dialog').close();return;}
     if(action.startsWith('memo-format-')){formatMemo(action.slice('memo-format-'.length));return;}
-    if(action==='save-memo'){const saved=save();updateMemoStatus(saved);if(saved){if(cloud.user)void cloud.sync();toast(cloud.user?'이 기기에 저장했어요. 계정 동기화를 시작합니다.':'메모를 저장했어요.');}return;}
+    if(action==='save-memo'){const saved=save();updateMemoStatus(saved);setMemoSaveState(saved?'saved':'error');if(saved&&cloud.user)void cloud.sync();return;}
     if(action==='edit-schedule'){mobileScheduleSettingsOpen=true;$('#schedule-settings').open=true;$('#schedule-settings').scrollIntoView({behavior:'smooth',block:'start'});}
     if(action==='adjust-rest'){openRestAdjustment();return;}
     if(action==='close-rest-adjust'){$('#rest-adjust-dialog').close();restAdjustment=null;return;}
