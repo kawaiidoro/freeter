@@ -23,6 +23,7 @@ const outputs = new Map([['site.js',runtime],['version.json',JSON.stringify({ver
 const pages = ['index','applications','schedule','calculator','records','stats','guide','privacy','settings','notes'].map(name=>name+'.html');
 for(const name of pages){
   let html=await read(name);
+  html=html.replace(/<button\b[^>]*class="[^"]*\bupdates-top-link\b[^"]*"[^>]*>[\s\S]*?<\/button>/g,'');
   html=html.replace(/^\s*<meta (?:http-equiv="Content-Security-Policy"|name="referrer")[^>]*>\r?\n/gm,'');
   html=html.replace('  <meta charset="utf-8">',`  <meta charset="utf-8">\n  <meta http-equiv="Content-Security-Policy" content="${policy}">\n  <meta name="referrer" content="no-referrer">`);
   html=html.replace(/^\s*<script defer src="\.\/vendor\/quill\.js(?:\?[^\"]*)?"><\/script>\r?\n/gm,'');

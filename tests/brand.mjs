@@ -17,6 +17,7 @@ try{
  await check('모든 페이지 Freeter 이름·푸터 슬로건 제거·정적 공유 메타데이터',async()=>{
   for(const route of ['','applications.html','schedule.html','calculator.html','records.html','stats.html','notes.html','guide.html','privacy.html','settings.html']){
    await go(route);assert.ok((await page.title()).includes('Freeter'));assert.equal(await page.locator('meta[property="og:site_name"]').getAttribute('content'),'Freeter');
+   assert.equal(await page.locator('.updates-top-link,.workspace-updates').count(),0);assert.equal(await page.locator('[data-action="open-updates"]').count(),route==='guide.html'?1:0);
    const footer=await page.locator('.site-footer').innerText();assert.ok(!footer.includes('오늘의 수고가'));assert.ok(!footer.includes('언제나 무료'));assert.equal(await page.locator('.sidebar-foot,.bottom-note,.local-note').count(),0);assert.equal(await page.locator('.breadcrumb > span').first().textContent(),'나의 알바 매니저');
    const response=await context.request.get(new URL(route,base).href),html=await response.text();assert.equal(response.status(),200);assert.ok(html.includes('property="og:image"'));assert.ok(html.includes('name="twitter:card" content="summary_large_image"'));assert.ok(!footer.includes('저는 단기알바입니다.'));
    assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'),'https://kawaiidoro.github.io/freeter/'+route);
@@ -24,7 +25,7 @@ try{
    assert.ok(!html.includes('https://kawaiidoro.github.io/dangi-alba/'));
   }
  });
- await check('홈의 도구 8개는 작은 머터리얼 일러스트로 중앙 정렬하고 상단 정보는 차분하게 표시',async()=>{
+ await check('홈의 도구 8개는 다색 앱 아이콘으로 중앙 정렬하고 상단 정보는 차분하게 표시',async()=>{
   await go('');assert.equal(await page.locator('.app-tile-icon img').count(),8);
   assert.equal(await page.locator('.app-tile-icon').evaluateAll(nodes=>nodes.every(node=>node.querySelector('img').complete&&node.querySelector('img').naturalWidth===256)),true);
   assert.ok(await page.locator('#today-label').evaluate(node=>parseFloat(getComputedStyle(node).fontSize)<=12));

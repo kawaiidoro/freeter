@@ -17,7 +17,7 @@ try{
   await page.screenshot({path:join(output,'centred-korean-logo-desktop.png'),fullPage:true});
  });
  await check('업데이트 문구와 모바일 메모 비우기 확인창의 작은 크기·취소 보존',async()=>{
-  await page.setViewportSize({width:390,height:844});await go('');await page.locator('.updates-top-link').click();assert.equal(await page.getByRole('heading',{name:'받은 급여는 지급 완료',exact:true}).count(),1);await page.locator('[data-action="close-updates"]').click();await go('notes.html');await page.locator('#work-memo .ql-editor').fill('보존할 업무 메모');
+  await page.setViewportSize({width:390,height:844});await go('guide.html');await page.locator('.updates-trigger').click();assert.equal(await page.getByRole('heading',{name:'받은 급여는 지급 완료',exact:true}).count(),1);await page.locator('[data-action="close-updates"]').click();await go('notes.html');await page.locator('#work-memo .ql-editor').fill('보존할 업무 메모');
   for(const width of [320,390]){await page.setViewportSize({width,height:700});await page.locator('[data-action="clear-memo"]').click();const box=await page.locator('#confirm-dialog').boundingBox();assert.ok(box.width<=width-39&&box.height<=260,JSON.stringify(box));await page.locator('#confirm-dialog button[value="cancel"]').click();assert.equal(await page.locator('#work-memo .ql-editor').innerText(),'보존할 업무 메모');}
   await page.locator('[data-action="clear-memo"]').click();await page.screenshot({path:join(output,'memo-confirm-mobile.png')});await page.locator('#confirm-yes').click();assert.equal(await page.locator('#work-memo .ql-editor').innerText(),'\n');
  });

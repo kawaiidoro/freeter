@@ -16,12 +16,13 @@ const memo=page=>page.locator('#work-memo').evaluate(node=>Quill.find(node).getT
 let count=0;async function check(name,fn){try{await fn();count++;console.log('PASS '+name);}catch(error){const diagnostics=await Promise.all([a].map(page=>page.evaluate(()=>({toast:document.querySelector('#toast')?.textContent})).catch(()=>({}))));console.log('::error title=Freeter browser check::'+(name+': '+JSON.stringify(diagnostics)+' '+error.stack).replace(/%/g,'%25').replace(/\n/g,'%0A').replace(/\r/g,'%0D'));throw error;}}
 const text='오늘의 업무\n준비물: 안전화, 신분증\n<script>원문 그대로</script>';
 try{
- await check('업데이트 내역은 클릭할 때 곰씨와 함께 열리고 모바일에서도 화면 안에 표시',async()=>{
-  await go(a,'');assert.equal(await a.locator('#updates-dialog').isVisible(),false);await a.locator('.workspace-updates').click();
+ await check('업데이트 내역은 사용 가이드에서만 곰씨와 함께 열리고 모바일 화면 안에 표시',async()=>{
+  await go(a,'');assert.equal(await a.locator('.updates-top-link,.workspace-updates,[data-action="open-updates"]').count(),0);
+  await go(a,'guide.html');assert.equal(await a.locator('#updates-dialog').isVisible(),false);await a.locator('.updates-trigger').click();
   assert.ok(await a.getByRole('heading',{name:'새로운 근무 관리 도구',exact:true}).isVisible());await a.locator('.updates-mascot img').evaluate(node=>node.decode());assert.ok(await a.locator('.updates-mascot img').evaluate(node=>node.complete&&node.naturalWidth>0));
   const size=await a.locator('#updates-dialog').evaluate(node=>[node.clientWidth,node.scrollWidth]);assert.ok(size[1]<=size[0]+1);await a.screenshot({path:join(output,'updates-mobile.png')});
   await a.locator('[data-action="close-updates"]').click();assert.equal(await a.locator('#updates-dialog').isVisible(),false);
-  await go(a,'guide.html');assert.equal(await a.getByRole('heading',{name:'새로운 근무 관리 도구',exact:true}).count(),0);await a.locator('.updates-trigger').click();assert.ok(await a.locator('#updates-dialog').isVisible());await a.locator('[data-action="close-updates"]').click();
+  assert.equal(await a.locator('[data-action="open-updates"]').count(),1);
  });
  await check('선택한 메모에 굵게·밑줄·크기·글자색·형광펜 적용 및 즉시 저장',async()=>{
   await go(a,'notes.html');await editor(a).fill(text);await editor(a).press('ControlOrMeta+a');
