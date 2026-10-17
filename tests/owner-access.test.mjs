@@ -60,6 +60,21 @@ try{
  });
  await test('읽기 전용 연결 진단은 단일 결과로 메타데이터만 반환',async()=>{
   const result=await db.query(await readFile(new URL('../supabase/diagnose-sync.sql',import.meta.url),'utf8'));
-  const data=result.rows[0].diagnosis;assert.equal(data.workspace.tableExists,true);assert.equal(data.workspace.saveRpcExists,true);assert.ok(Array.isArray(data.connections));assert.ok(!JSON.stringify(data).includes(ownerEmail));assert.ok(!JSON.stringify(data).includes('Owner updated'));
+  const data=result.rows[0].diagnosis;assert.equal(data.workspace.tableExists,true);assert.equal(data.workspace.saveRpcExists,true);assert.equal(data.workspace.conflictUsesRetryCode,false);assert.equal(data.workspace.conflictUsesHttp409,true);assert.ok(Array.isArray(data.connections));assert.ok(!JSON.stringify(data).includes(ownerEmail));assert.ok(!JSON.stringify(data).includes('Owner updated'));
+ });
+ await test('기존 DB 복구: 40001을 PT409로 변경하고 자료·리비전·소유자 제한·권한 보존',async()=>{
+  const query="select pg_get_functiondef('public.freeter_save_workspace(jsonb,bigint,bigint,boolean)'::regprocedure) as definition";
+  const definition=(await db.query(query)).rows[0].definition;
+  await db.exec(definition.replaceAll("'PT409'","'40001'"));
+  await as('authenticated',alice,async()=>await assert.rejects(save(emptyState(),1),error=>error.code==='40001'));
+  const before=(await db.query('select user_id,data,revision,generation from public.freeter_workspaces order by user_id')).rows;
+  const repair=await readFile(new URL('../supabase/migrations/202610170002_conflict_http.sql',import.meta.url),'utf8');
+  await db.exec(repair);await db.exec(repair);
+  await as('authenticated',alice,async()=>await assert.rejects(save(emptyState(),1),error=>error.code==='PT409'&&/FREETER_CONFLICT/.test(error.message)));
+  await as('authenticated',bob,async()=>await assert.rejects(save(emptyState(),1),/FREETER_ACCOUNT_NOT_ALLOWED/));
+  await as('anon',null,async()=>await assert.rejects(save(emptyState()),/permission denied/));
+  assert.deepEqual((await db.query('select user_id,data,revision,generation from public.freeter_workspaces order by user_id')).rows,before);
+  const flags=(await db.query("select prosecdef,proconfig from pg_proc where oid='public.freeter_save_workspace(jsonb,bigint,bigint,boolean)'::regprocedure")).rows[0];
+  assert.equal(flags.prosecdef,true);assert.ok(flags.proconfig.includes('search_path=""'));
  });
 }finally{await db.close();}

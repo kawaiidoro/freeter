@@ -4,6 +4,8 @@ select jsonb_build_object(
   'workspace',jsonb_build_object(
     'tableExists',to_regclass('public.freeter_workspaces') is not null,
     'saveRpcExists',to_regprocedure('public.freeter_save_workspace(jsonb,bigint,bigint,boolean)') is not null,
+    'conflictUsesRetryCode',coalesce(position('''40001''' in pg_get_functiondef(to_regprocedure('public.freeter_save_workspace(jsonb,bigint,bigint,boolean)')))>0,false),
+    'conflictUsesHttp409',coalesce(position('''PT409''' in pg_get_functiondef(to_regprocedure('public.freeter_save_workspace(jsonb,bigint,bigint,boolean)')))>0,false),
     'dbMaxConnections',current_setting('max_connections')::integer),
   'roleLimits',(select coalesce(jsonb_agg(x),'[]') from (
     select rolname,rolconnlimit from pg_roles where rolname in ('authenticator','authenticated','postgres')

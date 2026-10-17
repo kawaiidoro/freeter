@@ -59,7 +59,8 @@ begin
       where w.user_id = actor and w.revision = p_expected_revision and w.generation = p_expected_generation
       returning w.* into saved;
   end if;
-  if saved.user_id is null then raise exception 'FREETER_CONFLICT' using errcode = '40001'; end if;
+  -- Application conflicts must not trigger PostgREST transaction retries.
+  if saved.user_id is null then raise sqlstate 'PT409' using message = 'FREETER_CONFLICT'; end if;
   return query select saved.revision, saved.generation, saved.updated_at;
 end;
 $$;
@@ -161,12 +162,42 @@ begin
       where w.user_id = actor and w.revision = p_expected_revision and w.generation = p_expected_generation
       returning w.* into saved;
   end if;
-  if saved.user_id is null then raise exception 'FREETER_CONFLICT' using errcode = '40001'; end if;
+  -- Application conflicts must not trigger PostgREST transaction retries.
+  if saved.user_id is null then raise sqlstate 'PT409' using message = 'FREETER_CONFLICT'; end if;
   return query select saved.revision, saved.generation, saved.updated_at;
 end;
 $$;
 revoke all on function public.freeter_save_workspace(jsonb,bigint,bigint,boolean) from public, anon;
 grant execute on function public.freeter_save_workspace(jsonb,bigint,bigint,boolean) to authenticated;
+
+-- Existing installations: replace the retry-triggering conflict SQLSTATE only.
+-- Run as postgres in SQL Editor with Freeter tabs closed. Preserves records,
+-- function privileges, search_path and any installed owner-account gate.
+
+set local lock_timeout = '3s';
+set local statement_timeout = '15s';
+do $repair$
+declare
+  target regprocedure := to_regprocedure('public.freeter_save_workspace(jsonb,bigint,bigint,boolean)');
+  definition text;
+begin
+  if target is null then
+    raise exception 'Freeter save function is missing. Apply setup-owner.sql first.';
+  end if;
+  definition := pg_get_functiondef(target);
+  if position('FREETER_CONFLICT' in definition) = 0 then
+    raise exception 'Unrecognized Freeter save function. Review it before repair.';
+  end if;
+  if position('''40001''' in definition) > 0 then
+    execute replace(definition, '''40001''', '''PT409''');
+  elsif position('''PT409''' in definition) = 0 then
+    raise exception 'Unrecognized Freeter conflict code. Review it before repair.';
+  end if;
+end;
+$repair$;
+
+-- Existing looping requests can outlive this definition change. After success,
+-- restart the project once to clear them, then reopen Freeter with the new build.
 
 insert into private.freeter_access_config(singleton,owner_email_hash) values(true,'ef27bc8bb6355e66375322949c4d1b92ff3a29fac3446bd764c0f1782ab74b7f')
 on conflict(singleton) do update set owner_email_hash=excluded.owner_email_hash;

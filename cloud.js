@@ -229,7 +229,9 @@ export class FreeterCloud {
       const { data, error } = await this.client.rpc('freeter_save_workspace', { p_data: sent, p_expected_revision: this.revision, p_expected_generation: this.generation, p_reset: reset });
       if (epoch !== this.epoch) return false;
       if (error) {
-        if (error.code !== '40001') throw error;
+        // PT409 is an application conflict. 40001 makes PostgREST retry the SQL
+        // transaction; accept old responses only while existing DBs are repaired.
+        if (!['PT409', '40001'].includes(error.code)) throw error;
         const remote = await this.read(user); if (epoch !== this.epoch) return false;
         if (!this.reconcile(remote)) return false;
         continue;

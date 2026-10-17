@@ -56,7 +56,8 @@ begin
       where w.user_id = actor and w.revision = p_expected_revision and w.generation = p_expected_generation
       returning w.* into saved;
   end if;
-  if saved.user_id is null then raise exception 'FREETER_CONFLICT' using errcode = '40001'; end if;
+  -- Application conflicts must not trigger PostgREST transaction retries.
+  if saved.user_id is null then raise sqlstate 'PT409' using message = 'FREETER_CONFLICT'; end if;
   return query select saved.revision, saved.generation, saved.updated_at;
 end;
 $$;

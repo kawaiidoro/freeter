@@ -41,7 +41,7 @@ async function context(){
   }
   if(url.pathname==='/rest/v1/rpc/freeter_save_workspace'){
    const data=request.postDataJSON(),prior=server.get(id);
-   if((prior?.revision||0)!==data.p_expected_revision||(prior?.generation||1)!==data.p_expected_generation)return reply({code:'40001',message:'FREETER_CONFLICT'},409);
+   if((prior?.revision||0)!==data.p_expected_revision||(prior?.generation||1)!==data.p_expected_generation)return reply({code:'PT409',message:'FREETER_CONFLICT'},409);
    const row={user_id:id,data:jsonb(data.p_data),revision:(prior?.revision||0)+1,generation:(prior?.generation||1)+(prior&&data.p_reset?1:0),updated_at:new Date().toISOString()};server.set(id,row);return reply([{revision:row.revision,generation:row.generation,updated_at:row.updated_at}]);
   }
   throw Error('Unexpected fixture request: '+url.pathname);

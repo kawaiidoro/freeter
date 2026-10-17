@@ -734,7 +734,9 @@ class FreeterCloud {
       const { data, error } = await this.client.rpc('freeter_save_workspace', { p_data: sent, p_expected_revision: this.revision, p_expected_generation: this.generation, p_reset: reset });
       if (epoch !== this.epoch) return false;
       if (error) {
-        if (error.code !== '40001') throw error;
+        // PT409 is an application conflict. 40001 makes PostgREST retry the SQL
+        // transaction; accept old responses only while existing DBs are repaired.
+        if (!['PT409', '40001'].includes(error.code)) throw error;
         const remote = await this.read(user); if (epoch !== this.epoch) return false;
         if (!this.reconcile(remote)) return false;
         continue;
@@ -979,7 +981,7 @@ function mountWeatherWidget() {
 }
 
 
-const APP_RELEASE = 'ada2914935b5';
+const APP_RELEASE = '9158070aabf1';
 let latestRelease = APP_RELEASE;
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];

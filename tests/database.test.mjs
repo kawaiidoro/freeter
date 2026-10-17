@@ -29,7 +29,7 @@ try{
  });
  await test('DB: RPC 본인만 수정·CAS 충돌 시 원본 유지',async()=>{
   await as('authenticated',bob,async()=>{await assert.rejects(save({...emptyState(),workMemo:'overwrite Alice'},1),/FREETER_CONFLICT/);await save({...emptyState(),workMemo:'Bob private'});});
-  await as('authenticated',alice,async()=>{await assert.rejects(save(emptyState(),0),/FREETER_CONFLICT/);await save({...emptyState(),workMemo:'Alice updated'},1);await assert.rejects(save(emptyState(),1),/FREETER_CONFLICT/);const own=await db.query('select data,revision from public.freeter_workspaces');assert.equal(own.rows[0].data.workMemo,'Alice updated');assert.equal(own.rows[0].revision,2);});
+  await as('authenticated',alice,async()=>{await assert.rejects(save(emptyState(),0),error=>error.code==='PT409'&&/FREETER_CONFLICT/.test(error.message));await save({...emptyState(),workMemo:'Alice updated'},1);await assert.rejects(save(emptyState(),1),error=>error.code==='PT409');const own=await db.query('select data,revision from public.freeter_workspaces');assert.equal(own.rows[0].data.workMemo,'Alice updated');assert.equal(own.rows[0].revision,2);});
  });
  await test('DB: 잘못된 JSON·NULL·2MB 초과 저장 거부',async()=>{
   await as('authenticated',alice,async()=>{for(const invalid of [null,{},[],{...emptyState(),records:'bad'},{...emptyState(),workMemo:'x'.repeat(2097153)}])await assert.rejects(save(invalid,2),/constraint|not-null/);});

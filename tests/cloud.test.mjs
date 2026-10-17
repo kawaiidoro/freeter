@@ -15,8 +15,8 @@ function harness(t,{server=new Map(),id='alice',storage=new MemoryStorage(),onWo
  const control={server,id,offline:false,readGate:null,writeGate:null,reads:0,writes:0,subscription:null,verifiedId:null},client={};
  client.auth={getUser:async()=>control.verifyOffline?{data:{user:null},error:{code:'NETWORK'}}:({data:{user:{id:control.verifiedId||control.id,email:control.id+'@example.test',...control.userProps}}}),getSession:async()=>({data:{session:control.id?{user:{id:control.id}}:null}}),onAuthStateChange:callback=>{control.subscription=callback;return{data:{subscription:{unsubscribe(){}}}};},exchangeCodeForSession:async code=>{control.code=code;return{error:control.exchangeError||null};},signInWithOAuth:async options=>{control.oauth=options;return{data:{url:config.url+'/auth/v1/authorize?provider=google'}};},signOut:async()=>{if(control.signOutGate)await control.signOutGate;return{error:null};}};
  client.from=()=>({select:()=>({eq:(_key,user)=>({maybeSingle:async()=>{control.reads++;await control.beforeRead?.(user);if(control.readGate)await control.readGate;if(control.offline)throw Error('Offline');return{data:clone(server.get(user)||null),error:null};}})})});
- client.rpc=async(_name,args)=>{const owner=control.id;control.writes++;if(control.writeGate)await control.writeGate;if(control.offline)return{error:{code:'NETWORK'}};const prior=server.get(owner);
-  if((prior?.revision||0)!==args.p_expected_revision||(prior?.generation||1)!==args.p_expected_generation)return{error:{code:'40001'}};
+ client.rpc=async(_name,args)=>{const owner=control.id;control.writes++;if(control.writeGate)await control.writeGate;if(control.offline)return{error:{code:'NETWORK'}};if(control.alwaysConflict)return{error:{code:control.conflictCode||'PT409'}};const prior=server.get(owner);
+  if((prior?.revision||0)!==args.p_expected_revision||(prior?.generation||1)!==args.p_expected_generation)return{error:{code:control.conflictCode||'PT409'}};
   const next={data:clone(control.dropWriteData?(prior?.data||emptyState()):args.p_data),revision:(prior?.revision||0)+1,generation:(prior?.generation||1)+(prior&&args.p_reset?1:0),updated_at:new Date().toISOString()};server.set(owner,next);return{data:[{revision:next.revision,generation:next.generation,updated_at:next.updated_at}],error:null};
  };
  const cloud=new FreeterCloud({config:clientConfig,createClient:(_url,_key,options)=>{control.options=options;return client;},storage,onWorkspace,delay:1000000,requestTimeout,request:request|| (async()=>({ok:true,json:async()=>({external:{google:!control.googleDisabled}})}))});t.after(()=>cloud.stop());
@@ -55,6 +55,18 @@ test('로그인 전 기록은 자동 업로드하거나 덮어쓰지 않고 계�
 });
 test('두 기기의 독립된 기록은 CAS 재시도로 둘 다 보존',async t=>{
  const server=new Map(),a=harness(t,{server}),b=harness(t,{server});await a.signIn();await b.signIn();a.cloud.save({...emptyState(),records:[record('a')]});b.cloud.save({...emptyState(),records:[record('b')]});await a.cloud.sync();await b.cloud.sync();await a.cloud.sync();assert.deepEqual(server.get('alice').data.records.map(r=>r.id).sort(),['a','b']);assert.deepEqual(a.cloud.current.records,b.cloud.current.records);
+});
+test('HTTP 409 충돌과 기존 DB 응답 모두 재조회 후 병합하고 재시도는 3회로 제한',async t=>{
+ for(const code of ['PT409','40001'])await t.test(code,async t=>{
+  const{cloud,control,storage,signIn}=harness(t);control.conflictCode=code;await signIn();
+  cloud.save({...emptyState(),records:[record('local')]});
+  control.server.set('alice',{data:{...emptyState(),records:[record('remote')]},revision:1,generation:1,updated_at:null});
+  assert.equal(await cloud.sync(),true);assert.equal(control.writes,2);assert.equal(cloud.phase,'synced');
+  assert.deepEqual(control.server.get('alice').data.records.map(r=>r.id).sort(),['local','remote']);
+  cloud.save({...cloud.current,workMemo:'보존할 초안'});control.alwaysConflict=true;const writes=control.writes;
+  assert.equal(await cloud.sync(),false);assert.equal(control.writes-writes,3);assert.equal(cloud.phase,'pending');
+  assert.equal(JSON.parse(storage.getItem(cloud.cacheKey)).data.workMemo,'보존할 초안');
+ });
 });
 test('같은 메모 동시 수정은 서버·기기 양쪽 내용을 보존하고 자동 덮어쓰기 중지',async t=>{
  const server=new Map(),a=harness(t,{server}),b=harness(t,{server});await a.signIn();await b.signIn();a.cloud.save({...emptyState(),workMemo:'A'});b.cloud.save({...emptyState(),workMemo:'B'});await a.cloud.sync();await b.cloud.sync();assert.equal(b.cloud.phase,'conflict');assert.equal(b.cloud.current.workMemo,'B');assert.equal(server.get('alice').data.workMemo,'A');await b.cloud.sync();assert.equal(server.get('alice').data.workMemo,'A');
