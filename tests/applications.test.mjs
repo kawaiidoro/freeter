@@ -10,15 +10,17 @@ test('이전 기본 예시는 빈 입력란으로 옮기고 실제 문자 내용
  state.applicationTemplate='공연 안내/홍길동/25/서울/진행 3회';
  assert.equal(validateState(state).applicationTemplate,state.applicationTemplate);
 });
-test('공고 고정은 백업과 다른 기기의 병합을 거쳐 유지되고 잘못된 고정 값은 거부',()=>{
+test('공고 결정 상태는 백업과 다른 기기의 병합을 거쳐 유지되고 잘못된 값은 거부',()=>{
  const base={...emptyState(),applications:[post('a'),post('b')]},local=structuredClone(base),remote=structuredClone(base);
- local.applications[0].pinned=true;remote.applications[1].title='다른 기기 공고 수정';
+ local.applications[0].decided=true;remote.applications[1].title='다른 기기 공고 수정';
  const merged=mergeWorkspaces(base,local,remote);assert.deepEqual(merged.conflicts,[]);
  const restored=validateState(JSON.parse(JSON.stringify(merged.data)));
- assert.equal(restored.applications.find(p=>p.id==='a').pinned,true);
+ assert.equal(restored.applications.find(p=>p.id==='a').decided,true);
  assert.equal(restored.applications.find(p=>p.id==='b').title,'다른 기기 공고 수정');
- assert.deepEqual(validateApplication({...post(),pinned:false}),post());
- assert.throws(()=>validateApplication({...post(),pinned:'true'}));
+ assert.deepEqual(validateApplication({...post(),decided:false}),post());
+ assert.throws(()=>validateApplication({...post(),decided:'true'}));
+ const legacy=validateApplication({...post(),pinned:true});
+ assert.equal(legacy.pinned,true);assert.ok(!legacy.decided,'이전 고정 설정은 지원 결정으로 바꾸지 않음');
 });
 test('지원 자료 JSON 왕복과 허용 필드만 복사',()=>{const data={...emptyState(),applications:[{...post(),unexpected:'drop'}],applicationCareer:'행사 안내 3회',applicationTemplate:'행사/홍길동/25/서울/안내'};const out=validateState(JSON.parse(JSON.stringify(data)));assert.equal(out.applications[0].unexpected,undefined);assert.equal(out.applicationCareer,data.applicationCareer);assert.equal(out.applicationTemplate,data.applicationTemplate);});
 test('공고 링크의 실행 코드·로그인정보, 잘못된 항목·중복 ID·과대 자료 거부',()=>{for(const url of ['javascript:alert(1)','data:text/html,test','file:///tmp/a','https://name:pass@example.com','invalid'])assert.throws(()=>validateApplication({...post(),url}));for(const item of [{...post(),title:' '},{...post(),body:'x'.repeat(20001)},{...post(),createdAt:'not-date'}])assert.throws(()=>validateApplication(item));assert.throws(()=>validateState({...emptyState(),applications:[post(),post()]}));assert.throws(()=>validateState({...emptyState(),applicationCareer:'x'.repeat(30001)}));assert.throws(()=>validateState({...emptyState(),applications:Array.from({length:2001},(_,i)=>post(String(i)))}));});

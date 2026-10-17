@@ -1243,9 +1243,8 @@ html[data-theme] .profile-wordmark.freeter-wordmark { width: 220px; }
 .application-titles button:hover { color: var(--blue); background: var(--blue-soft); }
 .application-titles button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .application-titles .icon { color: var(--muted); width: 17px; height: 17px; }
-.application-titles .application-pin { flex: 0 0 auto; justify-content: center; gap: 5px; min-height: 40px; padding: 8px; border: 1px solid var(--border); border-radius: 11px; font-size: 11px; color: var(--muted); }
-.application-pin[aria-pressed='true'] { background: var(--blue-soft); border-color: var(--blue); color: var(--blue); }
-.application-pin[aria-pressed='true'] .icon { color: inherit; fill: var(--blue-soft); }
+.application-titles button.application-fix { flex: 0 0 auto; justify-content: center; min-width: 52px; min-height: 40px; padding: 8px 12px; border: 1px solid #1db954; border-radius: 11px; background: #1db954; color: #101010; font-size: 13px; font-weight: 750; }
+.application-titles .application-fix[aria-pressed='true'] { background: #e7ff00; border-color: #e7ff00; color: #101010; }
 .application-pagination { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 25px; }
 .application-pagination > span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 #application-dialog { width: 620px; max-width: calc(100vw - 32px); max-height: calc(100dvh - 40px); padding: 27px; border-radius: 23px; overflow-y: auto; }
@@ -1261,6 +1260,9 @@ html[data-theme] .profile-wordmark.freeter-wordmark { width: 220px; }
 .application-open-link { max-width: 100%; }
 @media(max-width:1100px){ .applications-layout { grid-template-columns: 1fr; } .application-writing { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:800px){
+  /* Give the native date value and calendar picker their full row on mobile. */
+  .calculator-basics > .field:first-child { grid-column: 1 / -1; }
+  #calculator-form input[type='date'] { max-width: 100%; min-width: 0; }
   html[data-theme] .mobile-nav { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); padding-inline: 4px; }
   html[data-theme] .mobile-nav a { min-width: 0; min-height: 44px; padding-inline: 2px; font-size: 9px; gap: 4px; }
   html[data-theme] .mobile-nav a .icon { width: 20px; height: 20px; }

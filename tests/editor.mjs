@@ -28,7 +28,7 @@ try{
   await go(a,'notes.html');await editor(a).fill(text);await editor(a).press('ControlOrMeta+a');
   await a.locator('[data-action="memo-format-bold"]').click();await a.locator('[data-action="memo-format-underline"]').click();await a.locator('#memo-font-size').selectOption('24px');
   await a.locator('#memo-font-color').evaluate(node=>{node.value='#cc2211';node.dispatchEvent(new Event('change',{bubbles:true}));});
-  await a.locator('[data-action="memo-format-highlight"]').click();
+  await a.locator('#memo-background-color').evaluate(node=>{node.value='#a7f3d0';node.dispatchEvent(new Event('change',{bubbles:true}));});
   const data=await state(a);assert.equal(data.workMemo,text);const attrs=data.workMemoDelta.ops.find(op=>op.insert.startsWith('오늘')).attributes;
   assert.deepEqual(attrs,{bold:true,underline:true,size:'24px',color:'#cc2211',background:'#a7f3d0'});
   assert.equal(await a.locator('[data-action="memo-mode"],#memo-reader').count(),0);

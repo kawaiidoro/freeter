@@ -68,7 +68,7 @@ try{
  const b=await newPage(await context());
  await check('같은 계정의 다른 기기에서 기존 기록과 메모 서식을 자동 동기화',async()=>{
   await b.goto(site.base);await login(b);await b.goto(new URL('notes.html',site.base).href);await waitMemo(b,'로그인 전의 소중한 메모');await a.goto(new URL('notes.html',site.base).href);await waitMemo(a,'로그인 전의 소중한 메모');
-  await b.locator('#work-memo .ql-editor').fill('모바일에서 수정한 업무');await b.locator('#work-memo .ql-editor').press('ControlOrMeta+a');await b.locator('[data-action="memo-format-bold"]').click();await b.locator('[data-action="memo-format-underline"]').click();await b.locator('#memo-font-size').selectOption('24px');await b.locator('[data-action="memo-format-highlight"]').click();await waitMemo(a,'모바일에서 수정한 업무');assert.ok(await a.locator('#work-memo strong').isVisible());await a.waitForFunction(()=>document.querySelector('#work-memo [style*="24px"]'));assert.ok(await a.locator('#work-memo u').isVisible());assert.equal(server.get(alice).data.workMemo,'모바일에서 수정한 업무');
+  await b.locator('#work-memo .ql-editor').fill('모바일에서 수정한 업무');await b.locator('#work-memo .ql-editor').press('ControlOrMeta+a');await b.locator('[data-action="memo-format-bold"]').click();await b.locator('[data-action="memo-format-underline"]').click();await b.locator('#memo-font-size').selectOption('24px');await b.locator('#memo-background-color').evaluate(node=>{node.value='#a7f3d0';node.dispatchEvent(new Event('change',{bubbles:true}));});await waitMemo(a,'모바일에서 수정한 업무');assert.ok(await a.locator('#work-memo strong').isVisible());await a.waitForFunction(()=>document.querySelector('#work-memo [style*="24px"]'));assert.ok(await a.locator('#work-memo u').isVisible());assert.equal(server.get(alice).data.workMemo,'모바일에서 수정한 업무');
  });
  await check('지원 경력·문자 양식·공고도 두 기기에 동기화되고 입력 포커스 보존',async()=>{
   await a.goto(new URL('applications.html',site.base).href);await b.goto(new URL('applications.html',site.base).href);
@@ -77,6 +77,9 @@ try{
   await a.locator('#application-career').click();await a.locator('#application-career').evaluate(node=>{globalThis.__careerEditor=node;node.setSelectionRange(2,2);});
   await b.locator('[data-action="new-application"]').click();await b.locator('#application-form [name="title"]').fill('두 기기에서 확인할 지원 공고');await b.locator('#application-form [name="body"]').fill('연락 완료');await b.locator('#application-form button[type="submit"]').click();
   await a.waitForFunction(()=>document.querySelector('.application-titles')?.textContent.includes('두 기기에서 확인할 지원 공고'),null,{timeout:25000});assert.equal(await a.evaluate(()=>document.querySelector('#application-career')===globalThis.__careerEditor&&document.activeElement===globalThis.__careerEditor&&globalThis.__careerEditor.selectionStart===2),true);
+  await b.locator('[data-action="fix-application"]').click();
+  await a.waitForFunction(()=>document.querySelector('[data-action="fix-application"]')?.getAttribute('aria-pressed')==='true',null,{timeout:25000});
+  assert.equal(server.get(alice).data.applications[0].decided,true);
   assert.equal(server.get(alice).data.applications.length,1);assert.equal(server.get(alice).data.applicationCareer,'전시회 안내 3회');await a.goto(new URL('notes.html',site.base).href);await b.goto(new URL('notes.html',site.base).href);await waitMemo(a,'모바일에서 수정한 업무');await waitMemo(b,'모바일에서 수정한 업무');
  });
  await check('로그아웃 시 계정 캐시를 지우고 로그인 전 메모로 돌아오기',async()=>{
