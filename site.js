@@ -997,7 +997,7 @@ function mountWeatherWidget() {
 
 const SUPPORT_CONFIG = {"coffeeUrl":"https://open.kakao.com/o/sg56FSSi"};
 
-const APP_RELEASE = 'f501eaa5afc3';
+const APP_RELEASE = '9d7cec176c6a';
 let latestRelease = APP_RELEASE;
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -1008,6 +1008,7 @@ const icons = {
   user: '<circle cx="12" cy="7" r="3"/><path d="M4 20v-1a8 6 0 0 1 16 0v1"/>',
   home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/>',
   calendar: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18M7 15h2m4 0h4M7 18h2"/>',
+  pin: '<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>',
   calculator: '<rect x="5" y="2" width="14" height="20" rx="3"/><path d="M8 6h8M8 10h1m6 0h1m-8 4h1m6 0h1m-8 4h1m6 0h1"/>',
   notebook: '<path d="M8 3H5v18h14V3H8Zm0 0v18M11 8h5m-5 4h5m-5 4h3M3 7h4M3 12h4M3 17h4"/>',
   chart: '<path d="M4 3v17h17M9 15v-4m5 4V7m5 8V4"/>',
@@ -1209,13 +1210,22 @@ const toolIllustration = route => {
 
 const appTile = (route, image, name, color) => `<a class="app-tile" href="#${route}"><span class="app-tile-icon ${color}">${toolIllustration(route)}</span><span>${name}</span></a>`;
 const shortWorkDate = date => new Intl.DateTimeFormat('ko-KR', {month:'long',day:'numeric',weekday:'short'}).format(new Date(`${date}T12:00:00`));
+function dashboardShiftCard() {
+  const now=new Date(),date=today(),upcoming=nextWorkRecord(state.records,now);
+  const ongoing=upcoming&&new Date(`${upcoming.date}T${upcoming.start}:00`)<=now;
+  // Keep today's most recent work visible after it ends; an ongoing overnight shift takes priority.
+  const lastToday=state.records.filter(record=>record.date===date).sort((a,b)=>b.start.localeCompare(a.start)||a.id.localeCompare(b.id))[0];
+  const shift=ongoing||upcoming?.date===date?upcoming:lastToday||upcoming;
+  const isToday=shift?.date===date,label=ongoing&&!isToday?'진행 중인 근무':isToday||!shift?'오늘 근무':'다음 근무';
+  const day=shift?shift.date:date;
+  const dateLabel=isToday||!shift?new Intl.DateTimeFormat('ko-KR',{weekday:'long'}).format(new Date(`${day}T12:00:00`)):shortWorkDate(day);
+  return `<button type="button" class="dashboard-stat overview-next work-shift" data-action="${shift?'edit-record':'add-record'}" ${shift?`data-id="${esc(shift.id)}"`:''} aria-label="${esc(shift?`${label}, ${shortWorkDate(shift.date)}, ${shift.start}–${shift.end}, ${shift.workplace}, 기록 수정`:'오늘 근무 기록 추가')}"><span class="work-shift-icon">${icon('calendar')}</span><span class="work-shift-content"><span class="work-shift-heading"><span class="overview-label">${label}</span><time class="overview-date" datetime="${esc(day)}">${esc(dateLabel)}</time></span>${shift?`<strong class="overview-hours"><time datetime="${esc(shift.date)}T${esc(shift.start)}">${esc(shift.start)}</time><span>–</span><time>${esc(shift.end)}</time></strong><span class="overview-place" title="${esc(shift.workplace)}">${icon('pin')}<span>${esc(shift.workplace)}</span></span>${shift.end<=shift.start?'<span class="work-shift-overnight">다음 날 종료</span>':''}`:'<strong class="work-shift-empty">예정된 근무가 없어요</strong><span class="overview-place">기록을 추가해 일정을 관리하세요.</span>'}</span>${icon(shift?'chevron':'plus','work-shift-arrow')}</button>`;
+}
 function dashboardOverview(stats) {
-  const now=new Date(),next=nextWorkRecord(state.records,now);
-  const ongoing=next&&new Date(`${next.date}T${next.start}:00`)<=now;
   return `<section class="dashboard-overview" aria-label="급여와 다음 근무 요약">
-    <a class="dashboard-stat overview-income" href="#stats" data-overview="income"><span class="overview-label">이번 달 예상 급여</span><strong class="overview-value">${numberWon(stats.expected)}</strong><span class="overview-note">${now.getMonth()+1}월 근무 기록 기준</span><span class="overview-icon">${icon('chart')}${icon('chevron')}</span></a>
-    <a class="dashboard-stat overview-outstanding" href="#records" data-overview="outstanding"><span class="overview-label">미지급 급여</span><strong class="overview-value">${numberWon(stats.outstanding)}</strong><span class="overview-note">이번 달 미수령액</span><span class="overview-icon">${icon('clock')}${icon('chevron')}</span></a>
-    <button type="button" class="dashboard-stat overview-next" data-action="${next?'edit-record':'add-record'}" ${next?`data-id="${esc(next.id)}"`:''}><span class="overview-label">${ongoing?'진행 중인 근무':'다음 근무'}</span>${next?`<strong class="overview-date"><time datetime="${esc(next.date)}">${esc(shortWorkDate(next.date))}</time></strong><span class="overview-note overview-hours">${esc(next.start)}–${esc(next.end)}</span><span class="overview-place" title="${esc(next.workplace)}">${esc(next.workplace)}</span>`:'<strong class="overview-date">일정 등록</strong><span class="overview-note">알바 기록을 추가해요</span>'}<span class="overview-icon">${icon('calendar')}${icon(next?'chevron':'plus')}</span></button>
+    ${dashboardShiftCard()}
+    <a class="dashboard-stat overview-income" href="#stats" data-overview="income"><span class="overview-label">이번 달 예상 급여</span><strong class="overview-value">${numberWon(stats.expected)}</strong><span class="overview-footer"><span class="overview-note">이번 달 근무 기준</span><span class="overview-icon">${icon('chevron')}</span></span></a>
+    <a class="dashboard-stat overview-outstanding" href="#records" data-overview="outstanding"><span class="overview-label">미지급 급여</span><strong class="overview-value">${numberWon(stats.outstanding)}</strong><span class="overview-footer"><span class="overview-note">이번 달 미수령액</span><span class="overview-icon">${icon('chevron')}</span></span></a>
   </section>`;
 }
 function homeView() {
@@ -1223,10 +1233,10 @@ function homeView() {
   const recent = [...state.records].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4);
   return `
     <div class="workspace-grid dashboard-layout">
-      <section class="workspace-widget profile-widget" aria-label="나의 Freeter"><img class="profile-logo" src="./assets/freeter-512.png" width="96" height="96" alt="안전모를 쓴 곰씨 정면 얼굴 Freeter 로고"><div class="profile-copy"><img class="profile-wordmark freeter-wordmark" src="./assets/freeter-wordmark.png" width="220" height="73" alt="FREETER · 프리터"><h1 class="profile-slogan">저는 단기알바입니다.</h1><p>일한 만큼 기록하고,<br>번 만큼 확인하세요.</p></div><a href="#calculator" class="profile-link" aria-label="급여 계산하기"><span>급여 계산하기</span>${icon('arrow')}</a></section>
+      <section class="workspace-widget profile-widget" aria-label="나의 Freeter"><img class="profile-logo" src="./assets/freeter-512.png" width="96" height="96" alt="안전모를 쓴 곰씨 정면 얼굴 Freeter 로고"><div class="profile-copy"><h1 class="profile-slogan">저는 단기알바입니다.</h1></div><button type="button" class="button secondary profile-add" data-action="add-record">${icon('plus')}<span>기록 추가</span></button></section>
       ${dashboardOverview(stats)}
       <section class="workspace-widget launcher-widget" aria-label="근무 관리 도구"><div class="app-launcher">${[['applications','apply','알바 지원','tile-apply'],['notes','edit','업무 메모','tile-notes'],['schedule','calendar','근무표','tile-emerald'],['calculator','calculator','급여 계산','tile-black'],['records','notebook','알바 기록','tile-silver'],['stats','chart','수입 통계','tile-chart'],['settings','settings','데이터 · 설정','tile-settings'],['guide','help','사용 가이드','tile-settings']].map(args=>appTile(...args)).join('')}</div></section>
-      <section class="workspace-widget recent-panel records-widget"><div class="widget-bar"><div><h2>최근 알바 기록</h2></div><a href="#records" class="widget-open" aria-label="알바 기록 전체 보기">전체보기 ${icon('chevron')}</a></div><div class="widget-content">${recent.length ? `<div class="recent-list">${recent.map(r=>`<button type="button" class="recent-row" data-action="edit-record" data-id="${esc(r.id)}"><time class="recent-date" datetime="${esc(r.date)}" aria-label="${esc(shortWorkDate(r.date))}"><strong>${esc(r.date.slice(5).replace('-','.'))}</strong><small>${new Intl.DateTimeFormat('ko-KR',{weekday:'short'}).format(new Date(`${r.date}T12:00:00`))}</small></time><span class="recent-details"><strong>${esc(r.workplace)}</strong><span>${esc(r.start)}–${esc(r.end)} · ${duration(calculatePay(r).paidMinutes)}</span></span><span class="recent-amount"><strong>${money(calculatePay(r).expected)}</strong><span class="status ${recordStatus(r)}">${STATUS[recordStatus(r)]}</span></span></button>`).join('')}</div>` : smallEmpty('첫 번째 알바를 기록해 보세요','근무한 하루를 남기면, 급여 관리가 쉬워져요.','<button class="button secondary small" data-action="add-record">'+icon('plus')+'첫 기록 추가하기</button>')}</div></section>
+      <section class="workspace-widget recent-panel records-widget"><div class="widget-bar"><div><h2>최근 알바 기록</h2></div><a href="#records" class="widget-open" aria-label="알바 기록 전체 보기">전체보기 ${icon('chevron')}</a></div><div class="widget-content">${recent.length ? `<div class="recent-list">${recent.map(r=>`<button type="button" class="recent-row" data-action="edit-record" data-id="${esc(r.id)}"><time class="recent-date" datetime="${esc(r.date)}" aria-label="${esc(shortWorkDate(r.date))}"><small>${Number(r.date.slice(5,7))}월</small><strong>${Number(r.date.slice(8))}</strong></time><span class="recent-details"><strong>${esc(r.workplace)}</strong><span>${esc(r.start)}–${esc(r.end)} · ${duration(calculatePay(r).paidMinutes)}</span></span><span class="recent-amount"><strong>${money(calculatePay(r).expected)}</strong><span class="status ${recordStatus(r)}">${STATUS[recordStatus(r)]}</span></span></button>`).join('')}</div>` : smallEmpty('첫 번째 알바를 기록해 보세요','근무한 하루를 남기면, 급여 관리가 쉬워져요.','<button class="button secondary small" data-action="add-record">'+icon('plus')+'첫 기록 추가하기</button>')}</div></section>
       <section class="workspace-widget memo-widget"><div class="widget-bar"><span class="widget-heading-icon tile-notes">${icon('edit')}</span><div><h2>업무 메모</h2><p>출근 전, 한 번 더 확인</p></div><a href="#notes" class="widget-open" aria-label="업무 메모장 열기">${icon('edit')}</a></div><a class="memo-preview" href="#notes"><span class="memo-preview-title">나의 업무 메모</span><p>${esc(state.workMemo.trim()||'전달받은 업무 설명과 준비물을 적어 두세요.\n필요할 때 바로 꺼내볼 수 있어요.')}</p><span class="memo-preview-cta">${state.workMemo.trim()?'메모 이어 보기':'첫 메모 쓰기'} ${icon('arrow')}</span></a></section>
       <section class="workspace-widget month-widget" aria-labelledby="month-title"><div class="widget-heading"><h2 id="month-title">${new Date().getMonth()+1}월의 기록</h2><a href="#stats" class="text-link">수입 통계 ${icon('chevron')}</a></div><div class="summary-grid home-summary">${summaryCard('calendar','blue','근무한 날',`${stats.days}<small>일</small>`,`${duration(stats.minutes)} 근무`)}${summaryCard('wallet','purple','예상 급여',numberWon(stats.expected),'이번 달 근무 기준')}${summaryCard('check','green','실제 받은 급여',numberWon(stats.cash),'이번 달 입금 기준')}${summaryCard('clock','orange','아직 못 받은 급여',numberWon(stats.outstanding),'이번 달 근무의 미수령액')}</div></section>
     </div>`;
