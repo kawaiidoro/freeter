@@ -106,11 +106,10 @@ try{
   await go('notes.html');await page.locator('#work-memo .ql-editor').fill(memo);await page.reload();assert.equal(await page.locator('#work-memo').evaluate(node=>Quill.find(node).getText().slice(0,-1)),memo);
   assert.equal(await page.locator('.notes-panel script').count(),0);
  });
- await check('새 데이터 전체 JSON 백업·복원에 세금·맞교대·메모 포함',async()=>{
-  await go('settings.html');const pending=page.waitForEvent('download');await action('backup').click();await(await pending).saveAs(join(output,'features-backup.json'));
-  const buffer=await readFile(join(output,'features-backup.json')),data=JSON.parse(buffer);assert.equal(data.version,3);assert.equal(data.workMemo,memo);assert.equal(data.records[0].taxType,'freelance');assert.equal(data.schedule.generatedConfig.count,2);
-  await page.locator('#restore-file').setInputFiles({name:'features-backup.json',mimeType:'application/json',buffer});await page.locator('#confirm-yes').click();
-  await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('복원했어요'));await go('notes.html');assert.equal(await page.locator('#work-memo').evaluate(node=>Quill.find(node).getText().slice(0,-1)),memo);
+ await check('설정 변경 후 세금·맞교대·메모 브라우저 저장 유지',async()=>{
+  await go('settings.html');assert.equal(await action('backup').count(),0);
+  const data=await page.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data')));assert.equal(data.version,3);assert.equal(data.workMemo,memo);assert.equal(data.records[0].taxType,'freelance');assert.equal(data.schedule.generatedConfig.count,2);
+  await page.reload();await go('notes.html');assert.equal(await page.locator('#work-memo').evaluate(node=>Quill.find(node).getText().slice(0,-1)),memo);
  });
  await check('새 화면 모바일 320·390·768px 가로 넘침 검사',async()=>{
   for(const width of [320,390,768]){await page.setViewportSize({width,height:900});for(const route of ['calculator.html','schedule.html','records.html','notes.html']){await go(route);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,route+' '+width);}}

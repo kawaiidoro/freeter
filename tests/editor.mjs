@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 const require=createRequire(import.meta.url),{chromium}=require('playwright');
 const base=process.env.TEST_BASE_URL||'http://127.0.0.1:4173/dangi-alba/';
@@ -45,10 +45,11 @@ try{
   finally{await a.evaluate(()=>{Storage.prototype.setItem=globalThis.__memoOriginalSetItem;delete globalThis.__memoOriginalSetItem;});}
   await a.locator('[data-action="save-memo"]').click();assert.equal(await a.locator('[data-action="save-memo"]').getAttribute('data-save-state'),'saved');assert.equal((await state(a)).workMemo,text);
  });
- await check('서식 메모의 새로고침·전체 JSON 백업 및 v3 저장',async()=>{
+ await check('서식 메모의 새로고침·설정 이동 및 v3 저장',async()=>{
   await a.reload();assert.equal(await memo(a),text);assert.ok((await state(a)).workMemoDelta.ops.some(op=>op.attributes?.bold));
   const data=await state(a);await a.evaluate(()=>history.pushState({},'','settings.html'));await a.reload();
-  const pending=a.waitForEvent('download');await a.locator('[data-action="backup"]').click();const path=join(output,'formatted-memo-backup.json');await(await pending).saveAs(path);const backup=JSON.parse(await readFile(path,'utf8'));assert.equal(backup.version,3);assert.deepEqual(backup.workMemoDelta,data.workMemoDelta);
+  assert.equal(await a.locator('[data-action="backup"],#restore-file').count(),0);assert.equal((await state(a)).version,3);assert.deepEqual((await state(a)).workMemoDelta,data.workMemoDelta);
+
   await a.setViewportSize({width:1440,height:1000});await a.locator('.main-nav [data-page="notes"]').click();
  });
  await check('서식 편집은 오프라인에서도 동작하며 원문·서식을 보존',async()=>{

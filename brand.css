@@ -1297,6 +1297,33 @@ html[data-theme] .profile-wordmark.freeter-wordmark { width: 220px; }
 }
 @media(max-width:360px){ .workspace-grid .app-launcher { gap: 15px 5px; } .workspace-grid .app-tile-icon { width: 44px; height: 44px; } .workspace-grid .app-tile { font-size: 9px; } .application-board, .application-note { padding: 20px 17px; } }
 
+/* Coffee support opens a conversation; the illustration only celebrates a click. */
+html[data-theme] .panel.settings-card.coffee-banner { display: grid; grid-template-columns: minmax(0,1fr) minmax(180px,290px); gap: 24px; align-items: center; background: linear-gradient(135deg,#143321,#07140c); color: #f2fff5; border-color: #2c573d; padding: 32px; overflow: hidden; }
+.coffee-copy { min-width: 0; }
+.coffee-eyebrow { color: #a2cdb1; font-size: 10px; letter-spacing: 1.2px; font-weight: 650; }
+html[data-theme] .coffee-banner h2 { color: #f2fff5; font-size: 27px; margin: 12px 0 16px; }
+.coffee-message { font-size: 17px; font-weight: 650; line-height: 1.8; color: #effff3; }
+.coffee-detail { color: #b9d1c0; font-size: 12px; line-height: 1.8; margin-top: 11px; }
+html[data-theme] .coffee-button { margin-top: 23px; background: #fde68a; border: 1px solid #fde68a; color: #302800; gap: 9px; padding: 12px 19px; min-height: 46px; white-space: normal; text-align: left; }
+html[data-theme] .coffee-button:hover { background: #ffedb0; border-color: #ffedb0; color: #302800; }
+.coffee-button .icon { width: 18px; height: 18px; }
+.coffee-link-note { margin-top: 12px; color: #b9d1c0; font-size: 11px; line-height: 1.7; }
+.coffee-art { min-width: 0; display: grid; place-items: center; border-radius: 24px; background: #ffffff06; overflow: hidden; }
+.coffee-illustration { display: block; width: 100%; height: 280px; object-fit: contain; }
+.coffee-banner[data-coffee-state='drive'] .coffee-illustration { animation: coffee-drive .65s ease-out both; }
+.settings-privacy .text-link { margin-top: 19px; }
+.privacy-updated { color: var(--muted); font-size: 12px; margin-bottom: 24px; }
+@keyframes coffee-drive { from { transform: translateX(-24px) rotate(-3deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@media(max-width:600px){
+  html[data-theme] .panel.settings-card.coffee-banner { grid-template-columns: minmax(0,1fr); gap: 18px; padding: 24px 21px; }
+  html[data-theme] .coffee-banner h2 { font-size: 24px; }
+  .coffee-message { font-size: 15px; }
+  .coffee-art { order: -1; width: 100%; max-width: 260px; margin-inline: auto; }
+  .coffee-illustration { height: 210px; }
+  .coffee-button { width: 100%; justify-content: center; }
+}
+@media(prefers-reduced-motion:reduce){ .coffee-banner[data-coffee-state='drive'] .coffee-illustration { animation: none; } }
+
 /* ISO work dates keep the same visible format on every phone. */
 html[data-theme] .iso-date-field > label { color: var(--body); font-size: 13px; font-weight: 600; }
 .iso-date-control { position: relative; min-width: 0; }

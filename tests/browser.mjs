@@ -102,21 +102,12 @@ try {
     await page.locator('#stats-month').fill('2026-10');
     values = await page.locator('.stats-summary .summary-card>strong').allTextContents(); assert.deepEqual(values, ['0일', '0원', '20,000원', '0원']);
   });
-  let backup;
-  await check('전체 JSON 백업 및 잘못된 파일 거부 시 데이터 보존', async () => {
-    await go('settings.html'); backup = await download('backup', 'backup.json');
-    const parsed = JSON.parse(backup); assert.equal(parsed.records.length, 1); assert.equal(parsed.records[0].payments.length, 2);
+  await check('설정에서 전체 파일 백업·복원 제거와 기록·입금의 브라우저 저장 보존', async () => {
+    await go('settings.html');
+    assert.equal(await page.locator('[data-action="backup"],[data-action="restore"],[data-action="raw-backup"],#restore-file').count(), 0);
     const before = await page.evaluate(() => localStorage.getItem('dangi-alba:data'));
-    await page.locator('#restore-file').setInputFiles({ name: 'invalid.json', mimeType: 'application/json', buffer: Buffer.from('{"version":99}') });
-    await page.waitForFunction(() => document.querySelector('#toast').textContent.includes('복원하지'));
-    assert.equal(await page.evaluate(() => localStorage.getItem('dangi-alba:data')), before);
-  });
-  await check('복원 확인 취소 및 승인 후 JSON 왕복', async () => {
-    const file = { name: 'backup.json', mimeType: 'application/json', buffer: backup };
-    await page.locator('#restore-file').setInputFiles(file); await page.locator('#confirm-dialog button[value="cancel"]').click();
-    await page.locator('#restore-file').setInputFiles(file); await page.locator('#confirm-yes').click();
-    await page.waitForFunction(() => document.querySelector('#toast').textContent.includes('복원했어요'));
-    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('dangi-alba:data')).records[0].payments.length), 2);
+    const parsed = JSON.parse(before); assert.equal(parsed.records.length, 1); assert.equal(parsed.records[0].payments.length, 2);
+    await page.reload(); assert.equal(await page.evaluate(() => localStorage.getItem('dangi-alba:data')), before);
   });
   await check('다크모드 저장 및 모든 경로의 모바일 가로 넘침 검사', async () => {
     await action('set-theme').filter({ hasText: '다크' }).click(); await page.reload();
@@ -160,5 +151,5 @@ try {
     await page.locator('#theme-toggle').click(); assert.equal(await page.evaluate(() => localStorage.getItem('dangi-alba:data')), '{bad json');
   });
   assert.deepEqual(errors, [], '브라우저 JavaScript 오류'); assert.deepEqual(failures, [], 'HTTP 오류');
-  console.log('PASS JavaScript/HTTP 오류 없음\n브라우저 시나리오 18개 통과');
+  console.log('PASS JavaScript/HTTP 오류 없음\n브라우저 시나리오 16개 통과');
 } finally { await browser.close(); }

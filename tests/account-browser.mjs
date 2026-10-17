@@ -60,9 +60,9 @@ try{
   await login(a);assert.equal(pkceSeen,true);assert.equal(exchangeSeen,true);assert.equal(new URL(a.url()).searchParams.has('code'),false);assert.equal(server.size,0);
   await a.locator('.account-top-link').click();assert.equal(await a.locator('#account-dialog .account-email').innerText(),'alice@example.test');await a.waitForFunction(()=>document.querySelector('[data-cloud-verified]')?.textContent.startsWith('최근 서버 확인'));await a.screenshot({path:join(output,'google-account-mobile.png')});await closeAccount(a);
  });
- await check('기존 브라우저 기록은 자동 업로드하지 않으며 확인 후 백업하고 가져오기',async()=>{
+ await check('기존 브라우저 기록은 자동 업로드하지 않으며 확인 후 내부 사본을 보존하고 가져오기',async()=>{
   const guest=await a.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data')));assert.equal(guest.workMemo,'로그인 전의 소중한 메모');await a.locator('.account-top-link').click();await a.locator('[data-action="account-import"]').click();await a.locator('#confirm-dialog button[value="cancel"]').click();assert.equal(server.size,0);
-  await a.locator('[data-action="account-import"]').click();const download=a.waitForEvent('download');await a.locator('#confirm-yes').click();assert.ok((await download).suggestedFilename().includes('before-import'));
+  await a.locator('[data-action="account-import"]').click();await a.locator('#confirm-yes').click();assert.ok(await a.evaluate(()=>Object.keys(localStorage).some(key=>key.startsWith('freeter:account:')&&key.endsWith(':recovery'))));
   await a.waitForFunction(()=>document.querySelector('[data-cloud-status]')?.dataset.status==='synced');assert.equal(server.get(alice).data.workMemo,'로그인 전의 소중한 메모');assert.equal((await a.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data')))).workMemo,guest.workMemo);await closeAccount(a);
  });
  const b=await newPage(await context());
@@ -77,9 +77,10 @@ try{
   await a.locator('#application-career').click();await a.locator('#application-career').evaluate(node=>{globalThis.__careerEditor=node;node.setSelectionRange(2,2);});
   await b.locator('[data-action="new-application"]').click();await b.locator('#application-form [name="title"]').fill('두 기기에서 확인할 지원 공고');await b.locator('#application-form [name="body"]').fill('연락 완료');await b.locator('#application-form button[type="submit"]').click();
   await a.waitForFunction(()=>document.querySelector('.application-titles')?.textContent.includes('두 기기에서 확인할 지원 공고'),null,{timeout:25000});assert.equal(await a.evaluate(()=>document.querySelector('#application-career')===globalThis.__careerEditor&&document.activeElement===globalThis.__careerEditor&&globalThis.__careerEditor.selectionStart===2),true);
+  assert.equal(await b.locator('[data-action="fix-application"]').innerText(),'떨어짐');
   await b.locator('[data-action="fix-application"]').click();
-  await a.waitForFunction(()=>document.querySelector('[data-action="fix-application"]')?.getAttribute('aria-pressed')==='true',null,{timeout:25000});
-  assert.equal(server.get(alice).data.applications[0].rejected,true);
+  await a.waitForFunction(()=>document.querySelector('[data-action="fix-application"]')?.getAttribute('aria-pressed')==='false',null,{timeout:25000});
+  assert.ok(!server.get(alice).data.applications[0].rejected);
   assert.equal(server.get(alice).data.applications.length,1);assert.equal(server.get(alice).data.applicationCareer,'전시회 안내 3회');await a.goto(new URL('notes.html',site.base).href);await b.goto(new URL('notes.html',site.base).href);await waitMemo(a,'모바일에서 수정한 업무');await waitMemo(b,'모바일에서 수정한 업무');
  });
  await check('로그아웃 시 계정 캐시를 지우고 로그인 전 메모로 돌아오기',async()=>{

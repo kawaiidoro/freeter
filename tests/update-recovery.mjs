@@ -56,13 +56,13 @@ try{
   }
   await openUpdates(p);assert.ok(await p.locator('#updates-dialog').isVisible());await c.close();
  });
- await check('저장소 이름 변경 후 새 경로에서 기존 메모·서식·백업을 보존',async()=>{
+ await check('저장소 이름 변경 후 새 경로에서 기존 메모·서식·내부 복구 사본을 보존',async()=>{
   const[c,p]=await context();await p.goto(base+'/dangi-alba/bootstrap.html');
   await p.evaluate(data=>{localStorage.setItem('dangi-alba:data',JSON.stringify(data));localStorage.setItem('freeter:before-peer-sync',JSON.stringify(data));},initial);
   await p.goto(base+'/freeter/notes.html');await p.locator('#work-memo strong').waitFor();assert.equal(await p.locator('#work-memo').evaluate(node=>Quill.find(node).getText().slice(0,-1)),initial.workMemo);
   assert.deepEqual(await p.evaluate(()=>JSON.parse(localStorage.getItem('dangi-alba:data'))),initial);
   assert.deepEqual(await p.evaluate(()=>JSON.parse(localStorage.getItem('freeter:before-peer-sync'))),initial);
-  await p.goto(base+'/freeter/settings.html');const download=p.waitForEvent('download');await p.locator('[data-action="backup"]').tap();const backup=await download;assert.ok(backup.suggestedFilename().endsWith('.json'));await c.close();
+  await p.goto(base+'/freeter/settings.html');assert.equal(await p.locator('[data-action="backup"],#restore-file').count(),0);assert.deepEqual(await p.evaluate(()=>JSON.parse(localStorage.getItem('freeter:before-peer-sync'))),initial);await c.close();
  });
  await check('저장소가 제한돼도 화면과 업데이트 버튼은 동작',async()=>{
   const[c,p]=await context(()=>{Storage.prototype.getItem=()=>{throw new DOMException('Blocked','SecurityError');};});await p.goto(base+'/');await p.locator('.workspace-grid').waitFor();assert.ok(await p.locator('#storage-alert').isVisible());await openUpdates(p);assert.ok(await p.locator('#updates-dialog').isVisible());await c.close();

@@ -682,9 +682,9 @@ class FreeterCloud {
   save(data, { reset = false } = {}) {
     if (!this.user || this.cacheBlocked || this.signingOut) return false;
     const next = validateState(data);
-    if (new TextEncoder().encode(JSON.stringify(next)).length > CLOUD_LIMIT) { this.status('error', '계정 저장은 2MB까지 가능해요. 전체 기록을 JSON으로 백업한 후 기록을 정리해 주세요.'); return false; }
+    if (new TextEncoder().encode(JSON.stringify(next)).length > CLOUD_LIMIT) { this.status('error', '계정 저장은 2MB까지 가능해요. 필요한 내용은 복사해 두고 오래된 기록을 정리해 주세요.'); return false; }
     this.current = next; this.dirty = true; this.reset ||= reset; if(reset)this.resetSerial=(this.resetSerial||0)+1;
-    try { this.persist(); } catch { this.status('error', '이 기기에 기록을 저장하지 못했어요. 새로고침 전에 JSON으로 백업해 주세요.'); return false; }
+    try { this.persist(); } catch { this.status('error', '이 기기에 기록을 저장하지 못했어요. 창을 닫기 전에 필요한 내용을 복사해 주세요.'); return false; }
     if (this.phase !== 'conflict') { this.status('pending'); clearTimeout(this.timer); this.timer = setTimeout(() => this.sync({automatic:true}), this.delay); }
     return true;
   }
@@ -985,8 +985,9 @@ function mountWeatherWidget() {
   document.addEventListener('keydown',event=>{if(open&&event.key==='Escape'){event.preventDefault();close();}});
 }
 
+const SUPPORT_CONFIG = {"coffeeUrl":"https://open.kakao.com/o/sg56FSSi"};
 
-const APP_RELEASE = '10b92ac1d619';
+const APP_RELEASE = '78cb6db684c3';
 let latestRelease = APP_RELEASE;
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -1041,8 +1042,8 @@ try {
   storageBlocked = true;
   $('#storage-alert').hidden = false;
   $('#storage-alert').textContent = rawStored === null
-    ? '이 환경에서는 브라우저 저장소를 사용할 수 없습니다. 새 탭에서 사이트를 열거나 JSON으로 백업해 주세요. 계산은 가능하지만 새로고침하면 변경이 사라집니다.'
-    : '저장 데이터를 읽을 수 없습니다. 원본은 보존했습니다. 데이터 · 설정에서 원본을 백업해 주세요. 지금 변경한 내용은 저장되지 않습니다.';
+    ? '이 환경에서는 브라우저 저장소를 사용할 수 없습니다. 일반 브라우저 탭에서 열어 주세요. 창을 닫기 전에 필요한 내용을 복사해 두세요.'
+    : '저장 데이터를 읽을 수 없습니다. 원본은 그대로 보존했습니다. 브라우저 설정을 확인해 주세요. 지금 변경한 내용은 저장되지 않습니다.';
 }
 const browserStorage={getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value),removeItem:key=>localStorage.removeItem(key)};
 const cloud=new FreeterCloud({config:globalThis.origin==='null'||(storageBlocked&&rawStored===null)?{}:CLOUD_CONFIG,createClient:(...args)=>loadFreeterSupabase().createClient(...args),storage:browserStorage,onStatus:updateCloudUI,onWorkspace:applyAccountWorkspace,onGuest:returnToGuest});
@@ -1054,7 +1055,7 @@ function save() {
     return true;
   } catch {
     $('#storage-alert').hidden = false;
-    $('#storage-alert').textContent = '브라우저 저장 공간에 기록하지 못했습니다. 현재 내용을 JSON으로 백업하고 저장 공간·브라우저 설정을 확인해 주세요. 새로고침하면 저장되지 않은 변경이 사라집니다.';
+    $('#storage-alert').textContent = '브라우저 저장 공간에 기록하지 못했습니다. 창을 닫기 전에 필요한 내용을 복사하고 저장 공간·브라우저 설정을 확인해 주세요.';
     return false;
   }
 }
@@ -1065,7 +1066,7 @@ function toast(message) {
   $('#toast').hidden = false;
   toastTimer = setTimeout(() => { $('#toast').hidden = true; }, 4500);
 }
-function persisted(message) { toast(save() ? message : '현재 화면에 반영했습니다. 브라우저에 저장되지 않았으니 JSON으로 백업해 주세요.'); }
+function persisted(message) { toast(save() ? message : '현재 화면에만 반영했어요. 창을 닫기 전에 필요한 내용을 복사해 주세요.'); }
 const monthNow = () => today().slice(0, 7);
 const monthLabel = month => `${Number(month.slice(0, 4))}년 ${Number(month.slice(5))}월`;
 let page = 'home', statsMonth = monthNow();
@@ -1086,9 +1087,9 @@ const descriptions = {
   calculator: '시급·일급과 분 단위 근무시간으로 예상 급여를 계산하고 기록하세요.',
   records: '여러 근무지의 출퇴근, 예상 급여와 입금 내역을 브라우저에서 관리하세요.',
   stats: '근무한 달의 예상 급여와 실제 입금한 달의 수입을 구분해 확인하세요.',
-  guide: '근무표 생성과 급여 계산, 알바 기록과 백업 방법을 안내합니다.',
+  guide: '근무표 생성과 급여 계산, 알바 기록과 계정 연결 방법을 안내합니다.',
   privacy: '브라우저 저장·Google 로그인·계정 동기화와 개인정보 보호 안내입니다.',
-  settings: '전체 기록을 JSON으로 백업·복원하고 테마와 데이터를 관리하세요.',
+  settings: '계정 연결과 화면 설정, 개인정보 안내와 곰씨 커피 후원을 확인하세요.',
 };
 const THEME_KEY='freeter:theme';
 let deviceTheme=null;
@@ -1170,7 +1171,6 @@ function homeView() {
       <section class="workspace-widget recent-panel records-widget"><div class="widget-bar"><span class="widget-heading-icon tile-silver">${icon('notebook')}</span><div><h2>최근 알바 기록</h2><p>차곡차곡 쌓이는 나의 하루</p></div><a href="#records" class="widget-open" aria-label="알바 기록 전체 보기">${icon('arrow')}</a></div><div class="widget-content">${recent.length ? `<div class="recent-list">${recent.map(r=>`<button class="recent-row" data-action="edit-record" data-id="${esc(r.id)}"><span class="workplace-avatar">${esc(r.workplace.slice(0,1))}</span><span class="recent-details"><strong>${esc(r.workplace)}</strong><span>${esc(r.date)} · ${duration(calculatePay(r).paidMinutes)}</span></span><span class="recent-amount"><strong>${money(calculatePay(r).expected)}</strong><span class="status ${recordStatus(r)}">${STATUS[recordStatus(r)]}</span></span>${icon('chevron')}</button>`).join('')}</div>` : smallEmpty('첫 번째 알바를 기록해 보세요','근무한 하루를 남기면, 급여 관리가 쉬워져요.','<button class="button secondary small" data-action="add-record">'+icon('plus')+'첫 기록 추가하기</button>')}</div></section>
       <section class="workspace-widget memo-widget"><div class="widget-bar"><span class="widget-heading-icon tile-notes">${icon('edit')}</span><div><h2>업무 메모</h2><p>출근 전, 한 번 더 확인</p></div><a href="#notes" class="widget-open" aria-label="업무 메모장 열기">${icon('edit')}</a></div><a class="memo-preview" href="#notes"><span class="memo-preview-title">나의 업무 메모</span><p>${esc(state.workMemo.trim()||'전달받은 업무 설명과 준비물을 적어 두세요.\n필요할 때 바로 꺼내볼 수 있어요.')}</p><span class="memo-preview-cta">${state.workMemo.trim()?'메모 이어 보기':'첫 메모 쓰기'} ${icon('arrow')}</span></a></section>
       <section class="workspace-widget month-widget" aria-labelledby="month-title"><div class="widget-heading"><h2 id="month-title">${new Date().getMonth()+1}월의 기록</h2><a href="#stats" class="text-link">수입 통계 ${icon('chevron')}</a></div><div class="summary-grid home-summary">${summaryCard('calendar','blue','근무한 날',`${stats.days}<small>일</small>`,`${duration(stats.minutes)} 근무`)}${summaryCard('wallet','purple','예상 급여',numberWon(stats.expected),'이번 달 근무 기준')}${summaryCard('check','green','실제 받은 급여',numberWon(stats.cash),'이번 달 입금 기준')}${summaryCard('clock','orange','아직 못 받은 급여',numberWon(stats.outstanding),'이번 달 근무의 미수령액')}</div></section>
-      <a class="workspace-backup" href="#settings">${icon('shield')}<span>소중한 기록, JSON 백업으로 보관하세요.</span>${icon('chevron')}</a>
     </div>`;
 }
 const numberWon = value => `${Math.round(value).toLocaleString('ko-KR')}<small>원</small>`;
@@ -1317,7 +1317,7 @@ function updateCalculator(showError) {
 }
 
 function recordsView() {
-  return head('MY WORK LOG', '나의 알바 기록', '차곡차곡 남긴 나의 하루. 근무와 입금 내역을 한곳에서 관리해요.', `<button class="button primary" data-action="add-record">${icon('plus')}알바 기록 추가</button>`) + `<section class="panel records-panel"><form id="record-filters" class="filters"><label class="field"><span>근무 월</span><input type="month" name="month" value="${esc(recordFilters.month)}" min="1900-01" max="9999-12"><small>비우면 전체 기간</small></label><label class="field"><span>근무지</span><select name="workplace"><option value="">모든 근무지</option>${workplaceOptions().map(w => `<option value="${esc(w)}" ${recordFilters.workplace === w ? 'selected' : ''}>${esc(w)}</option>`).join('')}</select></label><label class="field"><span>지급 상태</span><select name="status"><option value="">모든 상태</option>${Object.entries(STATUS).map(([key, value]) => `<option value="${key}" ${recordFilters.status === key ? 'selected' : ''}>${value}</option>`).join('')}</select></label><label class="field search-field"><span>기록 검색</span><div>${icon('search')}<input type="search" name="search" value="${esc(recordFilters.search)}" placeholder="근무지, 업무, 메모 검색"></div></label><label class="field"><span>정렬</span><select name="sort"><option value="desc" ${recordFilters.sort === 'desc' ? 'selected' : ''}>최근 날짜순</option><option value="asc" ${recordFilters.sort === 'asc' ? 'selected' : ''}>오래된 날짜순</option></select></label></form><div id="record-results" aria-live="polite"></div></section><aside class="info-strip">${icon('help')}<p>지급 상태는 입금 내역과 지급 예정일로 자동 표시돼요. 예정일이 지났고 입금이 없으면 <strong>미지급</strong>, 일부만 입금되면 <strong>일부 지급</strong>으로 표시해요. 지급 완료로 변경 버튼으로 입금일과 남은 금액을 확인하거나 기록을 열어 입금 내역을 추가하세요.</p><a href="#settings">백업 관리 ${icon('arrow')}</a></aside>`;
+  return head('MY WORK LOG', '나의 알바 기록', '차곡차곡 남긴 나의 하루. 근무와 입금 내역을 한곳에서 관리해요.', `<button class="button primary" data-action="add-record">${icon('plus')}알바 기록 추가</button>`) + `<section class="panel records-panel"><form id="record-filters" class="filters"><label class="field"><span>근무 월</span><input type="month" name="month" value="${esc(recordFilters.month)}" min="1900-01" max="9999-12"><small>비우면 전체 기간</small></label><label class="field"><span>근무지</span><select name="workplace"><option value="">모든 근무지</option>${workplaceOptions().map(w => `<option value="${esc(w)}" ${recordFilters.workplace === w ? 'selected' : ''}>${esc(w)}</option>`).join('')}</select></label><label class="field"><span>지급 상태</span><select name="status"><option value="">모든 상태</option>${Object.entries(STATUS).map(([key, value]) => `<option value="${key}" ${recordFilters.status === key ? 'selected' : ''}>${value}</option>`).join('')}</select></label><label class="field search-field"><span>기록 검색</span><div>${icon('search')}<input type="search" name="search" value="${esc(recordFilters.search)}" placeholder="근무지, 업무, 메모 검색"></div></label><label class="field"><span>정렬</span><select name="sort"><option value="desc" ${recordFilters.sort === 'desc' ? 'selected' : ''}>최근 날짜순</option><option value="asc" ${recordFilters.sort === 'asc' ? 'selected' : ''}>오래된 날짜순</option></select></label></form><div id="record-results" aria-live="polite"></div></section><aside class="info-strip">${icon('help')}<p>지급 상태는 입금 내역과 지급 예정일로 자동 표시돼요. 예정일이 지났고 입금이 없으면 <strong>미지급</strong>, 일부만 입금되면 <strong>일부 지급</strong>으로 표시해요. 지급 완료로 변경 버튼으로 입금일과 남은 금액을 확인하거나 기록을 열어 입금 내역을 추가하세요.</p><a href="#settings">저장 · 계정 설정 ${icon('arrow')}</a></aside>`;
 }
 function filteredRecords() {
   return state.records.filter(r => (!recordFilters.month || r.date.startsWith(recordFilters.month)) && (!recordFilters.workplace || r.workplace === recordFilters.workplace) && (!recordFilters.status || recordStatus(r) === recordFilters.status) && `${r.workplace} ${r.task} ${r.note}`.toLowerCase().includes(recordFilters.search.toLowerCase())).sort((a, b) => recordFilters.sort === 'asc' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
@@ -1330,12 +1330,12 @@ function updateRecords() {
 
 function notesView() {
   const lines=state.workMemo.trim()?state.workMemo.split('\n').length:0;
-  return head('WORK NOTES','업무 메모장','설명은 적어 두고, 필요한 순간 가볍게 꺼내 보세요.')+`<div class="notes-layout"><aside class="notes-sidebar"><div class="notes-collection"><span class="notes-collection-icon">${icon('notebook')}</span><div><h2>나의 업무 메모</h2><p>이 브라우저에 자동 저장</p></div>${icon('lock')}</div><div class="note-selected"><span>업무 메모</span><p>${esc(state.workMemo.trim().split('\n')[0]||'첫 업무 설명을 남겨 보세요.')}</p></div><div class="notes-sidebar-help"><h3>출근 전 체크</h3><p>담당자 연락처와 도착 장소<br>꼭 챙겨야 할 준비물<br>업무 순서와 주의사항</p><a href="#settings">메모까지 함께 백업 ${icon('chevron')}</a></div></aside>
+  return head('WORK NOTES','업무 메모장','설명은 적어 두고, 필요한 순간 가볍게 꺼내 보세요.')+`<div class="notes-layout"><aside class="notes-sidebar"><div class="notes-collection"><span class="notes-collection-icon">${icon('notebook')}</span><div><h2>나의 업무 메모</h2><p>이 브라우저에 자동 저장</p></div>${icon('lock')}</div><div class="note-selected"><span>업무 메모</span><p>${esc(state.workMemo.trim().split('\n')[0]||'첫 업무 설명을 남겨 보세요.')}</p></div><div class="notes-sidebar-help"><h3>출근 전 체크</h3><p>담당자 연락처와 도착 장소<br>꼭 챙겨야 할 준비물<br>업무 순서와 주의사항</p><a href="#settings">메모 저장 설정 ${icon('chevron')}</a></div></aside>
     <section class="panel notes-panel"><div class="notes-toolbar"><div class="notes-document-title"><span class="notes-document-icon">${icon('edit')}</span><div><h2>오늘의 업무 설명</h2><p>나의 업무 메모</p></div></div><button type="button" class="button primary small memo-save-button" data-action="save-memo" data-save-state="ready" aria-label="업무 메모 저장">${icon('save')}<span>저장</span></button></div>
       <div id="memo-format-toolbar" class="memo-format-toolbar" aria-label="메모 서식"><div class="memo-format-group"><button type="button" class="memo-format-button" data-action="memo-format-bold" aria-label="굵게" aria-pressed="false"><b>B</b></button><button type="button" class="memo-format-button" data-action="memo-format-underline" aria-label="밑줄" aria-pressed="false"><u>U</u></button><label class="memo-size-label"><span class="sr-only">글자 크기</span><select id="memo-font-size" data-memo-format="size" aria-label="글자 크기">${MEMO_SIZES.map(size=>`<option value="${size}" ${size==='17px'?'selected':''}>${size.replace('px','')}</option>`).join('')}</select><span>px</span></label></div><div class="memo-format-group"><label class="memo-color-control"><span>글자색</span><input type="color" id="memo-font-color" data-memo-format="color" value="#1d1d1f" aria-label="글자색"></label><label class="memo-color-control"><span>배경색</span><input type="color" id="memo-background-color" data-memo-format="background" value="#a7f3d0" aria-label="배경색"></label></div></div>
       <div class="notes-paper"><div id="work-memo" class="notes-editor" aria-label="업무 메모 편집"></div></div>
       <div class="notes-save-state"><span id="memo-status" role="status">${state.workMemo.length.toLocaleString('ko-KR')} / 30,000자 · 브라우저 자동 저장</span><span id="memo-lines">${lines}줄</span></div><div class="notes-bottom-bar"><div class="export-actions"><button class="button secondary" data-action="copy-memo">${icon('copy')}메모 복사</button><button class="button secondary" data-action="download-memo">${icon('download')}TXT 저장</button></div><button class="button ghost" data-action="clear-memo" aria-label="메모 내용 비우기">${icon('trash')}비우기</button></div>
-    </section></div><p class="notes-privacy-note">${icon('lock')}입력 즉시 이 브라우저에 저장돼요. 기기를 바꾸기 전에는 <a href="#settings">JSON 백업</a>을 해 주세요.</p>`;
+    </section></div><p class="notes-privacy-note">${icon('lock')}입력 즉시 이 브라우저에 저장돼요. 다른 기기에서 사용하려면 <a href="#settings">계정 연결 상태</a>를 확인해 주세요.</p>`;
 }
 function setupMemoEditor() {
   const element=$('#work-memo');
@@ -1366,7 +1366,7 @@ function setupMemoEditor() {
 function updateMemoStatus(saved=true) {
   if(!$('#memo-status'))return;
   $('#memo-lines').textContent=`${state.workMemo.trim()?state.workMemo.split('\n').length:0}줄`;
-  $('#memo-status').textContent=`${state.workMemo.length.toLocaleString('ko-KR')} / 30,000자 · ${saved?(cloud.user?'기기에 저장됨 · 계정 자동 동기화':'브라우저 자동 저장'):'저장되지 않음 · JSON 백업 필요'}`;
+  $('#memo-status').textContent=`${state.workMemo.length.toLocaleString('ko-KR')} / 30,000자 · ${saved?(cloud.user?'기기에 저장됨 · 계정 자동 동기화':'브라우저 자동 저장'):'저장되지 않음 · 내용을 복사해 두세요'}`;
 }
 function setMemoSaveState(status) {
   const button=$('[data-action="save-memo"]');if(!button)return;
@@ -1400,7 +1400,7 @@ function newFeaturesGuide() {
 }
 function openUpdates() {
   const dialog=ensureAppDialog('updates-dialog','updates-title');
-  dialog.innerHTML=`<div class="dialog-head"><div><p class="eyebrow">WHAT’S NEW</p><h2 id="updates-title">업데이트 내역</h2></div><button type="button" class="icon-button" data-action="close-updates" aria-label="업데이트 내역 닫기">${icon('close')}</button></div><div class="updates-layout"><section class="updates-content"><span class="update-date">2026.10.17 · FREETER UPDATE</span><h3>새로운 근무 관리 도구</h3><p class="updates-intro">곰씨와 함께, 오늘의 일을 조금 더 편하게.</p><ul class="update-list"><li><span>${icon('calendar')}</span><div><h4>우리 현장에 맞는 교대</h4><p>3인 밀어내기·2인 맞교대, 모두 함께·1명씩·2명 먼저 점심을 선택해요. 모바일에서도 표를 한눈에 볼 수 있어요.</p></div></li><li><span>${icon('calculator')}</span><div><h4>세금까지 계산하는 급여</h4><p>일용근로소득과 프리랜서 3.3%를 선택하고 예상 수령액을 확인해요. 작은 계산기로 추가 계산도 할 수 있어요.</p></div></li><li><span>${icon('check')}</span><div><h4>받은 급여는 지급 완료</h4><p>실제 입금일과 금액을 남기면 지급 상태와 수입 통계에 함께 반영돼요.</p></div></li><li><span>${icon('edit')}</span><div><h4>입력 즉시 반응하는 업무 메모</h4><p>한글을 입력하는 순간 안내 문구가 사라져요. 굵게·크기·밑줄·글자색·형광펜으로 중요한 내용을 표시해요. 입력 즉시 자동 저장하고 저장 버튼으로도 바로 저장해요. JSON 백업에도 서식이 유지돼요.</p></div></li><li><span>${icon('sun')}</span><div><h4>곰씨가 알려주는 오늘 날씨</h4><p>상단 날씨 버튼에서 기온·습도·자외선·일출·일몰·미세먼지를 확인해요. 지역을 고르거나 내 위치를 사용할 수 있어요.</p></div></li></ul></section><aside class="updates-mascot"><img src="./assets/gomssi.png" width="240" height="280" alt="노란 안전모와 작업 조끼를 입고 인사하는 노가다 곰씨"><span>노가다 곰씨</span><p>오늘도 안전하게,<br>기록은 꼼꼼하게.</p></aside></div>`;
+  dialog.innerHTML=`<div class="dialog-head"><div><p class="eyebrow">WHAT’S NEW</p><h2 id="updates-title">업데이트 내역</h2></div><button type="button" class="icon-button" data-action="close-updates" aria-label="업데이트 내역 닫기">${icon('close')}</button></div><div class="updates-layout"><section class="updates-content"><span class="update-date">2026.10.17 · FREETER UPDATE</span><h3>새로운 근무 관리 도구</h3><p class="updates-intro">곰씨와 함께, 오늘의 일을 조금 더 편하게.</p><ul class="update-list"><li><span>${icon('calendar')}</span><div><h4>우리 현장에 맞는 교대</h4><p>3인 밀어내기·2인 맞교대, 모두 함께·1명씩·2명 먼저 점심을 선택해요. 모바일에서도 표를 한눈에 볼 수 있어요.</p></div></li><li><span>${icon('calculator')}</span><div><h4>세금까지 계산하는 급여</h4><p>일용근로소득과 프리랜서 3.3%를 선택하고 예상 수령액을 확인해요. 작은 계산기로 추가 계산도 할 수 있어요.</p></div></li><li><span>${icon('check')}</span><div><h4>받은 급여는 지급 완료</h4><p>실제 입금일과 금액을 남기면 지급 상태와 수입 통계에 함께 반영돼요.</p></div></li><li><span>${icon('edit')}</span><div><h4>입력 즉시 반응하는 업무 메모</h4><p>한글을 입력하는 순간 안내 문구가 사라져요. 굵게·크기·밑줄·글자색·형광펜으로 중요한 내용을 표시해요. 입력 즉시 자동 저장하고 저장 버튼으로도 바로 저장해요. 저장한 서식은 다시 열어도 유지돼요.</p></div></li><li><span>${icon('sun')}</span><div><h4>곰씨가 알려주는 오늘 날씨</h4><p>상단 날씨 버튼에서 기온·습도·자외선·일출·일몰·미세먼지를 확인해요. 지역을 고르거나 내 위치를 사용할 수 있어요.</p></div></li></ul></section><aside class="updates-mascot"><img src="./assets/gomssi.png" width="240" height="280" alt="노란 안전모와 작업 조끼를 입고 인사하는 노가다 곰씨"><span>노가다 곰씨</span><p>오늘도 안전하게,<br>기록은 꼼꼼하게.</p></aside></div>`;
   dialog.showModal();
 }
 function ensureAppDialog(id,label) {
@@ -1474,8 +1474,8 @@ function saveApplication(form) {
     if(dialog.dataset.owner!==(cloud.user?.id||'guest'))throw new Error('계정이 변경되어 저장하지 않았어요.');
     const id=dialog.dataset.id,existing=id?state.applications.find(post=>post.id===id):null;
     if(JSON.stringify(existing??null)!==dialog.dataset.base)throw new Error('다른 화면에서 공고가 변경됐어요. 입력한 내용을 복사한 뒤 다시 열어 주세요.');
-    if(!id&&state.applications.length>=2000)throw new Error('공고는 2,000개까지 저장할 수 있어요. JSON으로 백업한 뒤 정리해 주세요.');
-    const now=new Date().toISOString(),post=validateApplication({id:id||crypto.randomUUID(),title:values.title,body:values.body,url:values.url.trim(),createdAt:existing?.createdAt||now,updatedAt:now,pinned:existing?.pinned,decided:existing?.decided,rejected:existing?.rejected});
+    if(!id&&state.applications.length>=2000)throw new Error('공고는 2,000개까지 저장할 수 있어요. 필요 없는 공고를 정리한 뒤 추가해 주세요.');
+    const now=new Date().toISOString(),post=validateApplication({id:id||crypto.randomUUID(),title:values.title,body:values.body,url:values.url.trim(),createdAt:existing?.createdAt||now,updatedAt:now,pinned:existing?.pinned,decided:existing?.decided,rejected:existing?existing.rejected:true});
     if(id)state.applications[state.applications.findIndex(item=>item.id===id)]=post;else state.applications.push(post);
     applicationSearch='';applicationPage=0;persisted('지원 공고를 저장했어요.');dialog.close();render();
   }catch(failure){error.hidden=false;error.textContent=failure.message;}
@@ -1505,7 +1505,7 @@ function accountContent() {
   const view=cloud.snapshot;
   const status=`<p class="account-status" data-cloud-status data-status="${esc(view.phase)}" role="status">${esc(view.label)}</p>`;
   if(!view.user)return `<div class="account-intro"><span class="feature-icon orange">${icon('user')}</span><div><h3>어디서든, 나의 기록</h3><p>등록된 Google 계정 전용 공간이에요. 같은 계정으로 PC·모바일의 기록과 메모를 함께 볼 수 있어요.</p></div></div>${status}<button class="button google-login" data-action="google-login" ${!view.configured||view.phase==='loading'?'disabled':''}><span class="google-mark" aria-hidden="true">G</span>Google로 계속하기</button><p class="field-hint">로그인 전 기록은 이 브라우저에 별도로 남아요. 로그인 후 직접 가져올 수 있습니다. <a href="./privacy.html" class="text-link">개인정보 안내</a></p>`;
-  return `<p class="account-email">${esc(view.user.email||'Google 계정')}</p>${status}<p class="field-hint" data-cloud-verified>${esc(serverVerifiedLabel(view))}</p><div class="account-actions"><button class="button primary small" data-action="account-sync">${icon('check')}지금 동기화</button><button class="button secondary small" data-action="account-import">브라우저 기록 가져오기</button>${!cloud.config?.allowedEmailHash?'<button class="button secondary small" data-action="account-switch">다른 Google 계정으로 로그인</button>':''}<button class="button ghost small" data-action="account-logout">로그아웃</button></div><div class="account-conflict" data-cloud-conflict ${view.phase==='conflict'?'':'hidden'}><h3>같은 내용을 다른 기기에서 수정했어요.</h3><p>자동 덮어쓰기를 멈췄어요. 현재 기록을 JSON으로 백업한 뒤 사용할 내용을 선택하세요. 선택 전 두 기록을 모두 백업합니다.</p><div class="account-actions"><button class="button secondary small" data-action="account-use-remote">서버 기록 사용</button><button class="button secondary small" data-action="account-use-local">이 기기 기록 사용</button></div></div><p class="field-hint">변경 사항은 자동으로 저장되며, 다른 기기의 내용은 약 10초 간격으로 확인해요. 서버 전송 전 로그아웃한 기록은 이 기기에 계정별로 보관하고, 같은 Google 계정으로 다시 로그인하면 전송합니다.</p>`;
+  return `<p class="account-email">${esc(view.user.email||'Google 계정')}</p>${status}<p class="field-hint" data-cloud-verified>${esc(serverVerifiedLabel(view))}</p><div class="account-actions"><button class="button primary small" data-action="account-sync">${icon('check')}지금 동기화</button><button class="button secondary small" data-action="account-import">브라우저 기록 가져오기</button>${!cloud.config?.allowedEmailHash?'<button class="button secondary small" data-action="account-switch">다른 Google 계정으로 로그인</button>':''}<button class="button ghost small" data-action="account-logout">로그아웃</button></div><div class="account-conflict" data-cloud-conflict ${view.phase==='conflict'?'':'hidden'}><h3>같은 내용을 다른 기기에서 수정했어요.</h3><p>자동 덮어쓰기를 멈췄어요. 사용할 내용을 직접 선택해 주세요. 선택할 때까지 현재 기록을 덮어쓰지 않아요.</p><div class="account-actions"><button class="button secondary small" data-action="account-use-remote">서버 기록 사용</button><button class="button secondary small" data-action="account-use-local">이 기기 기록 사용</button></div></div><p class="field-hint">변경 사항은 자동으로 저장되며, 다른 기기의 내용은 약 10초 간격으로 확인해요. 서버 전송 전 로그아웃한 기록은 이 기기에 계정별로 보관하고, 같은 Google 계정으로 다시 로그인하면 전송합니다.</p>`;
 }
 function accountCard() { return `<section class="panel settings-card wide account-card"><h2>내 계정 · 동기화</h2>${accountContent()}</section>`; }
 function openAccount() {
@@ -1563,20 +1563,35 @@ function guestWorkspace() {
 }
 async function importGuestWorkspace() {
   const incoming=guestWorkspace();
-  if(!await confirmAction(`계정의 현재 기록 ${state.records.length}건과 메모·근무표를 이 브라우저의 로그인 전 기록 ${incoming.records.length}건으로 교체합니다. 현재 계정 기록을 먼저 JSON으로 백업합니다. 브라우저의 원래 기록은 유지됩니다.`,'브라우저 기록을 계정으로 가져올까요?','가져오기'))return;
-  download(JSON.stringify(state,null,2),`Freeter-before-import-${today()}.json`,'application/json;charset=utf-8');
+  if(!await confirmAction(`계정의 현재 기록 ${state.records.length}건과 메모·근무표를 이 브라우저의 로그인 전 기록 ${incoming.records.length}건으로 교체합니다. 기존 계정 기록이 바뀝니다. 브라우저의 원래 기록은 유지됩니다.`,'브라우저 기록을 계정으로 가져올까요?','가져오기'))return;
+  browserStorage.setItem(cloud.cacheKey+':recovery',JSON.stringify(state));
   if(!cloud.save(incoming,{reset:true}))throw new Error(cloud.snapshot.label);
   state=incoming;rawStored=JSON.stringify(state);render();toast('브라우저 기록을 가져왔어요. 계정 저장 상태를 확인해 주세요.');
 }
 
+let coffeeClicked=false;
+function coffeeUrl(){
+  try{const url=new URL(SUPPORT_CONFIG.coffeeUrl);return url.protocol==='https:'&&!url.username&&!url.password?url.href:null;}catch{return null;}
+}
+function coffeeBanner(){
+  const linked=!!coffeeUrl();
+  return `<section class="panel settings-card wide coffee-banner" data-coffee-state="${coffeeClicked?'drive':'please'}" aria-labelledby="coffee-title"><div class="coffee-copy"><span class="coffee-eyebrow">A LITTLE COFFEE FOR GOMSSI</span><h2 id="coffee-title">곰씨에게 커피 한 잔</h2><p class="coffee-message">브라우저 저장 말고 백업을 따로 원하시면<br>개발자한테 커피값 하나만 주세요.</p><p class="coffee-detail">브라우저 자동 저장은 무료예요.<br>별도 백업 지원은 카카오톡에서 문의해 주세요.</p><button type="button" class="button coffee-button" data-action="coffee-gomssi">${icon('coffee')}곰씨한테 커피 값 보내기 ${icon('arrow')}</button><p class="coffee-link-note" role="status">${linked?(coffeeClicked?'카카오톡 문의 창을 열었어요. 곰씨는 드라이브 중!':'카카오톡 오픈채팅으로 연결돼요.'):(coffeeClicked?'곰씨의 드라이브 미리보기예요. 후원 링크는 준비 중이에요.':'후원 링크 연결 전 · 버튼으로 곰씨의 반응을 미리 볼 수 있어요.')}</p></div><div class="coffee-art"><img class="coffee-illustration" src="./assets/gomssi-coffee-${coffeeClicked?'drive':'please'}.png?v=${APP_RELEASE}" alt="${coffeeClicked?'초록색 스포츠카를 타고 떠나는 곰씨':'큰 눈망울로 안전모를 들고 커피 한 잔을 부탁하는 곰씨'}" width="360" height="360"></div></section>`;
+}
 function settingsView() {
-  return head('YOUR DATA, YOUR CONTROL', '데이터 · 설정', '내 기록은 나의 것. 주기적인 백업으로 안전하게 보관해 주세요.') + `<div class="settings-grid">${accountCard()}<section class="panel settings-card"><span class="feature-icon blue">${icon('download')}</span><h2>백업과 복원</h2><p>지원 공고, 경력과 문자 양식, 근무표, 알바·입금 기록과 메모를 하나의 JSON 파일로 보관해요. 다른 기기에서는 이 파일을 불러오세요.</p><div class="stack-actions"><button class="button primary" data-action="backup">${icon('download')}전체 기록 JSON 다운로드</button><button class="button secondary" data-action="restore">${icon('upload')}JSON 파일 불러오기 · 복원</button><button class="button ghost" data-action="all-records-csv">${icon('download')}전체 알바 기록 CSV 다운로드</button>${rawStored !== null ? '<button class="button ghost" data-action="raw-backup">기존 브라우저 저장 원본 다운로드</button>' : ''}</div><input type="file" id="restore-file" accept=".json,application/json" hidden><p class="field-hint">복원 전 파일 구조를 검사하고 덮어쓰기 여부를 확인해요.<br>CSV는 엑셀 열람용이에요. 복원하려면 JSON을 사용해 주세요.</p></section><section class="panel settings-card"><span class="feature-icon purple">${icon('moon')}</span><h2>내게 편한 화면</h2><p>늦은 시간에도 편안하게. 테마 설정도 이 브라우저에 저장돼요.</p><div class="theme-options"><button class="theme-option ${effectiveTheme() === 'light' ? 'selected' : ''}" data-action="set-theme" data-theme="light">${icon('sun')}라이트 모드</button><button class="theme-option ${effectiveTheme() === 'dark' ? 'selected' : ''}" data-action="set-theme" data-theme="dark">${icon('moon')}다크 모드</button></div><div class="data-count"><span>이 브라우저의 알바 기록</span><strong>${state.records.length}건</strong></div><p class="field-hint">저장 형식 버전 ${VERSION} · ${cloud.user?'계정별 저장':'브라우저 저장'}</p></section><section class="panel settings-card wide"><div class="privacy-info">${icon('shield')}<div><h2>브라우저 저장, 꼭 알아두세요</h2><ul><li>로그인하면 계정에 저장하고 다른 기기와 동기화해요. 로그인 전 기록은 이 브라우저에 별도로 보관돼요.</li><li>시크릿 모드를 종료하거나 브라우저 데이터를 지우면 기록이 사라질 수 있어요.</li><li>공용 PC에서는 같은 브라우저를 쓰는 다른 사람에게 기록이 보일 수 있어요.</li><li>JSON과 CSV 백업 파일에도 개인 기록이 담겨 있어요. 안전한 곳에 보관해 주세요.</li></ul><a class="text-link" href="#privacy">개인정보 안내 자세히 보기 ${icon('arrow')}</a></div></div></section><section class="panel settings-card wide danger-zone"><div><h2>전체 데이터 삭제</h2><p>이 서비스의 근무표·근무 기록·입금 내역·설정을 모두 삭제해요. 되돌릴 수 없으니 먼저 백업해 주세요.</p></div><button class="button danger-outline" data-action="delete-all">${icon('trash')}전체 삭제</button></section></div>`;
+  return head('YOUR DATA, YOUR CONTROL','데이터 · 설정','계정 연결과 화면 설정을 한곳에서 관리하세요.')+`<div class="settings-grid">${accountCard()}${coffeeBanner()}<section class="panel settings-card"><span class="feature-icon purple">${icon('moon')}</span><h2>내게 편한 화면</h2><p>늦은 시간에도 편안하게. 원하는 테마를 선택하세요.</p><div class="theme-options"><button class="theme-option ${effectiveTheme()==='light'?'selected':''}" data-action="set-theme" data-theme="light">${icon('sun')}라이트 모드</button><button class="theme-option ${effectiveTheme()==='dark'?'selected':''}" data-action="set-theme" data-theme="dark">${icon('moon')}다크 모드</button></div></section><section class="panel settings-card settings-privacy"><span class="feature-icon blue">${icon('shield')}</span><h2>개인정보 안내</h2><p>기록 저장과 계정 동기화, 날씨 위치 정보, 후원 링크의 처리 방식을 확인하세요.</p><a class="text-link" href="#privacy">개인정보 안내 자세히 보기 ${icon('arrow')}</a></section><section class="panel settings-card wide danger-zone"><div><h2>전체 데이터 삭제</h2><p>지원 자료·근무표·알바와 입금 기록·메모를 모두 삭제해요. 삭제한 기록은 되돌릴 수 없어요.</p></div><button class="button danger-outline" data-action="delete-all">${icon('trash')}전체 삭제</button></section></div>`;
 }
 function guideView() {
-  return head('A LITTLE HELP', '처음이어도 괜찮아요.', '복잡한 건 줄이고, 나의 하루에 집중하세요. 서비스 사용법을 알려드릴게요.') + `<div class="guide-grid"><article class="panel guide-card"><span class="guide-step">01</span><h2>세 사람이 함께하는 밀어내기 근무표</h2><p>이름, 일정, 점심시간, 교대 간격과 첫 휴식자를 입력하고 근무표를 생성하세요. 각 근무 구간에는 두 명 근무, 한 명 휴식이 배정됩니다.</p><p>함께 식사할 때는 모두 쉬고, 교대 식사에서는 식사하지 않는 사람이 근무합니다. 휴식은 A→B→C 순서를 유지하고 점심 교대 후에도 남은 순서를 이어갑니다.</p><p><strong>10:00–19:00, 점심 10:00–11:00, 1시간 교대, 첫 휴식자 A</strong>에 공평 배분을 켜면 A·B·C 모두 5시간 20분 근무하고, 식사 외 휴식은 2시간 40분씩 배정됩니다.</p><p>공평하게 배분은 모두 설정한 간격만큼 한 바퀴씩 쉰 뒤 마지막 남은 시간을 나눕니다. 1시간이 남으면 20분씩, 30분이 남으면 10분씩 쉬어요. 분 단위로 나누어떨어지지 않으면 최대 1분 차이가 납니다. 수동 변경 후에는 실제 차이를 다시 보여드립니다.</p><p>표의 휴식자 선택으로 배정을 조정하고 PNG·CSV·텍스트로 공유하세요. 이름을 바꾸면 표에도 바로 반영돼요. 시간이나 규칙을 바꾸면 생성 버튼을 다시 눌러 주세요.</p><a class="text-link" href="#schedule">근무표 만들기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">02</span><h2>내 예상 급여 계산하기</h2><p><strong>시급제:</strong> (전체 근무시간 − 무급 휴게시간) ÷ 60 × 시급. 분 단위로 계산한 뒤 기본급을 원 단위로 반올림합니다.</p><div class="guide-example">10:00–19:00 · 휴게 60분 · 시급 12,000원<br><strong>유급 8시간 × 12,000원 = 96,000원</strong></div><p><strong>일급제:</strong> 근무시간과 관계없이 입력한 계약 일급을 기본급으로 사용합니다. 추가 지급액을 더하고 직접 입력한 공제액을 빼면 최종 예상액이 됩니다.</p><p>자정을 넘는 근무를 지원하며, 같은 출퇴근 시각은 0시간과 24시간을 구분할 수 없어 허용하지 않아요. 선택한 세금 유형의 공제를 계산합니다. 주휴·야간·연장 수당은 자동 적용하지 않습니다. 실제 근로 조건과 법정 수당은 별도로 확인해 주세요.</p><a class="text-link" href="#calculator">급여 계산하기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">03</span><h2>근무 기록과 입금 관리하기</h2><p>급여 계산기에서 근무일과 근무지를 입력하고 저장하거나, 기록장에서 직접 알바를 추가하세요. 업무·지급 예정일·메모도 남길 수 있습니다.</p><p>입금이 생길 때마다 기록을 열어 <strong>입금 내역 추가</strong>로 금액과 날짜를 남기세요. 여러 번 나눠 받은 내역도 그대로 관리할 수 있어요. 총입금이 예상액 이상이면 지급 완료, 일부 입금이면 일부 지급, 미입금이고 예정일이 지났으면 미지급, 나머지는 지급 예정으로 표시됩니다.</p><p>월별 실적은 <strong>근무 날짜</strong>, 실제 현금 수입은 <strong>입금 날짜</strong>로 집계됩니다. 미수령액은 각 기록의 예상액에서 입금액을 뺀 금액(최소 0원)의 합계입니다.</p><a class="text-link" href="#records">나의 기록장 열기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">04</span><h2>기기를 바꾸기 전에는 백업</h2><p>모든 기록은 현재 브라우저의 localStorage에 자동 저장됩니다. 로그인 전에는 현재 브라우저에 기록합니다. Google 계정으로 로그인하면 계정에 저장하고 PC·모바일에서 함께 볼 수 있습니다. 기존 브라우저 기록은 계정 창의 브라우저 기록 가져오기로 옮기며, JSON 백업·복원도 지원합니다.</p><p>데이터 · 설정에서 <strong>전체 기록 JSON 다운로드</strong>를 누르세요. 다른 기기에서 같은 페이지를 열어 JSON 파일을 복원하면 됩니다. 복원은 현재 기록 전체를 대체하므로 먼저 양쪽 기록을 백업하세요.</p><p>CSV는 한글 UTF-8 BOM 형식으로 내려받아 엑셀에서 열 수 있어요. 파일 가져오기 시 UTF-8을 선택하세요. 데이터가 손상되거나 저장 공간이 부족하면 경고가 표시됩니다. 이때 새로고침하기 전에 JSON을 다운로드해 주세요.</p><a class="text-link" href="#settings">백업 · 복원 관리 ${icon('arrow')}</a></article></div><section class="panel guide-pwa"><span class="feature-icon blue">${icon('home')}</span><div><h2>스마트폰 홈 화면에 추가해 보세요</h2><p>HTTPS에서 한 번 접속하면 핵심 화면과 도구를 오프라인에서도 사용할 수 있어요. Android Chrome의 메뉴 → 홈 화면에 추가, iPhone Safari의 공유 → 홈 화면에 추가를 이용하세요. 브라우저와 설치 방식에 따라 저장 공간이 별도로 관리될 수 있으니 먼저 백업해 주세요.</p></div></section>${newFeaturesGuide()}<div class="ad-space" aria-label="향후 광고 영역"><span>서비스 소식</span><p>오늘도 당신의 알바 생활을 응원합니다.</p></div>`;
+  return head('A LITTLE HELP', '처음이어도 괜찮아요.', '복잡한 건 줄이고, 나의 하루에 집중하세요. 서비스 사용법을 알려드릴게요.') + `<div class="guide-grid"><article class="panel guide-card"><span class="guide-step">01</span><h2>세 사람이 함께하는 밀어내기 근무표</h2><p>이름, 일정, 점심시간, 교대 간격과 첫 휴식자를 입력하고 근무표를 생성하세요. 각 근무 구간에는 두 명 근무, 한 명 휴식이 배정됩니다.</p><p>함께 식사할 때는 모두 쉬고, 교대 식사에서는 식사하지 않는 사람이 근무합니다. 휴식은 A→B→C 순서를 유지하고 점심 교대 후에도 남은 순서를 이어갑니다.</p><p><strong>10:00–19:00, 점심 10:00–11:00, 1시간 교대, 첫 휴식자 A</strong>에 공평 배분을 켜면 A·B·C 모두 5시간 20분 근무하고, 식사 외 휴식은 2시간 40분씩 배정됩니다.</p><p>공평하게 배분은 모두 설정한 간격만큼 한 바퀴씩 쉰 뒤 마지막 남은 시간을 나눕니다. 1시간이 남으면 20분씩, 30분이 남으면 10분씩 쉬어요. 분 단위로 나누어떨어지지 않으면 최대 1분 차이가 납니다. 수동 변경 후에는 실제 차이를 다시 보여드립니다.</p><p>표의 휴식자 선택으로 배정을 조정하고 PNG·CSV·텍스트로 공유하세요. 이름을 바꾸면 표에도 바로 반영돼요. 시간이나 규칙을 바꾸면 생성 버튼을 다시 눌러 주세요.</p><a class="text-link" href="#schedule">근무표 만들기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">02</span><h2>내 예상 급여 계산하기</h2><p><strong>시급제:</strong> (전체 근무시간 − 무급 휴게시간) ÷ 60 × 시급. 분 단위로 계산한 뒤 기본급을 원 단위로 반올림합니다.</p><div class="guide-example">10:00–19:00 · 휴게 60분 · 시급 12,000원<br><strong>유급 8시간 × 12,000원 = 96,000원</strong></div><p><strong>일급제:</strong> 근무시간과 관계없이 입력한 계약 일급을 기본급으로 사용합니다. 추가 지급액을 더하고 직접 입력한 공제액을 빼면 최종 예상액이 됩니다.</p><p>자정을 넘는 근무를 지원하며, 같은 출퇴근 시각은 0시간과 24시간을 구분할 수 없어 허용하지 않아요. 선택한 세금 유형의 공제를 계산합니다. 주휴·야간·연장 수당은 자동 적용하지 않습니다. 실제 근로 조건과 법정 수당은 별도로 확인해 주세요.</p><a class="text-link" href="#calculator">급여 계산하기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">03</span><h2>근무 기록과 입금 관리하기</h2><p>급여 계산기에서 근무일과 근무지를 입력하고 저장하거나, 기록장에서 직접 알바를 추가하세요. 업무·지급 예정일·메모도 남길 수 있습니다.</p><p>입금이 생길 때마다 기록을 열어 <strong>입금 내역 추가</strong>로 금액과 날짜를 남기세요. 여러 번 나눠 받은 내역도 그대로 관리할 수 있어요. 총입금이 예상액 이상이면 지급 완료, 일부 입금이면 일부 지급, 미입금이고 예정일이 지났으면 미지급, 나머지는 지급 예정으로 표시됩니다.</p><p>월별 실적은 <strong>근무 날짜</strong>, 실제 현금 수입은 <strong>입금 날짜</strong>로 집계됩니다. 미수령액은 각 기록의 예상액에서 입금액을 뺀 금액(최소 0원)의 합계입니다.</p><a class="text-link" href="#records">나의 기록장 열기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">04</span><h2>내 기록의 저장 상태 확인하기</h2><p>로그인 전 기록은 현재 브라우저에 자동 저장됩니다. 등록된 Google 계정으로 로그인하면 계정 기록을 불러오고, 연결 상태에 따라 기기 간 변경 사항을 주고받습니다.</p><p>기기 저장과 서버 저장은 별도예요. 계정 창에서 최근 서버 확인 상태를 보고 다른 기기로 이동하세요. 기존 브라우저 기록은 계정 창의 브라우저 기록 가져오기로 직접 옮길 수 있습니다.</p><p>전체 기록의 파일 백업·복원 기능은 제공하지 않습니다. 근무표 PNG·CSV, 알바 기록 CSV, 메모 TXT와 복사는 각 도구에서 사용할 수 있어요.</p><a class="text-link" href="#settings">저장 · 계정 설정 ${icon('arrow')}</a></article></div><section class="panel guide-pwa"><span class="feature-icon blue">${icon('home')}</span><div><h2>스마트폰 홈 화면에 추가해 보세요</h2><p>HTTPS에서 한 번 접속하면 핵심 화면과 도구를 오프라인에서도 사용할 수 있어요. Android Chrome의 메뉴 → 홈 화면에 추가, iPhone Safari의 공유 → 홈 화면에 추가를 이용하세요. 브라우저와 설치 방식에 따라 저장 공간이 별도로 관리될 수 있으니 계정 연결 상태를 확인해 주세요.</p></div></section>${newFeaturesGuide()}<div class="ad-space" aria-label="향후 광고 영역"><span>서비스 소식</span><p>오늘도 당신의 알바 생활을 응원합니다.</p></div>`;
 }
 function privacyView() {
-  return head('YOUR DATA, YOUR CHOICE','내 기록을 안전하게.','로그인 전 브라우저 저장과 Google 계정 저장의 차이를 안내합니다.')+`<article class="panel prose"><h2>로그인 전에는 이 브라우저에 저장합니다</h2><p>로그인 없이 작성한 지원 공고·경력·문자 양식·근무표·급여·입금·업무 메모와 서식은 브라우저 localStorage의 <code>${STORAGE_KEY}</code>에 저장합니다. 이 기록을 자동으로 서버에 올리지 않습니다. 같은 도메인과 브라우저에서는 경로가 바뀌어도 기존 기록을 읽을 수 있습니다.</p><h2>Google 로그인과 계정 동기화</h2><p>Google 로그인 시 Supabase Auth가 계정 식별자·이메일·인증 제공자의 기본 프로필과 세션을 처리합니다. 로그인한 상태에서 작성한 지원 공고·경력·문자 양식·근무표·근무·급여·입금 내역·메모와 서식·설정은 Supabase 데이터베이스의 내 계정 공간에 저장되어 같은 계정의 기기에서 조회할 수 있습니다. 로그인 전 기록은 사용자가 브라우저 기록 가져오기를 확인한 경우에만 계정으로 옮깁니다. Freeter는 Google 비밀번호를 받지 않으며 Google Drive·메일 권한을 요청하지 않습니다.</p><h2>접근 권한과 기기 사본</h2><p>데이터베이스는 로그인한 사용자의 계정 ID로 접근을 제한합니다. 이는 다른 일반 사용자의 접근을 막는 방식이며 서비스 운영자의 관리자 접근까지 차단하는 종단간 암호화는 아닙니다. 계정 세션과 오프라인 편집 사본은 브라우저에 보관합니다. 로그아웃하면 기기의 로그인 정보를 지우고 로그인 전 기록으로 돌아갑니다. 서버 저장이 확인된 계정 사본은 지우며, 미전송 편집은 해당 계정의 기기 저장소에 보관합니다. 같은 Google 계정으로 다시 로그인하면 전송을 재개하고 다른 계정에는 표시하지 않습니다. 세션 만료나 연결 오류 시 미전송 자료는 복구를 위해 기기에 남을 수 있습니다.</p><h2>공용 기기와 보관 기간</h2><p>공용 기기에서는 사용 후 로그아웃하고 백업 파일을 직접 정리하세요. 브라우저 저장소와 기기 파일은 같은 기기를 사용하는 사람이 열람할 수 있습니다. 로그인 전 자료는 전체 삭제나 브라우저 데이터 삭제까지, 계정 자료는 사용자가 계정의 전체 데이터 삭제를 실행할 때까지 유지합니다. Supabase의 서비스 로그·백업 보관은 제공자의 정책과 프로젝트 설정을 따릅니다. 시크릿 모드 종료·브라우저 초기화 시 기기의 미전송 기록이 사라질 수 있습니다.</p><h2>백업·공유·동시 수정</h2><p>JSON·CSV·PNG·TXT 다운로드와 근무표 공유는 버튼을 누를 때만 실행합니다. 백업 파일은 암호화하지 않으므로 안전하게 보관하세요. 다른 항목의 변경은 합치고 같은 항목을 동시에 수정하면 자동 덮어쓰기를 멈춥니다. 사용자가 사용할 기록을 고르기 전에 기기·서버 자료를 각각 백업합니다.</p><h2>전체 데이터 삭제의 범위</h2><p>로그인 전 전체 삭제는 이 서비스의 브라우저 자료와 이전 버전의 복구 자료를 삭제합니다. 로그인 후에는 현재 계정의 기록을 비우며, 서버에 반영되면 같은 계정의 다른 기기에서도 반영합니다. 오프라인에서는 연결 후 삭제가 전송됩니다. Google 계정이나 로그인 전 별도 기록을 삭제하지 않습니다. 이미 내려받거나 공유한 파일은 직접 삭제하세요.</p><h2>곰씨 날씨와 위치</h2><p>상단 날씨 버튼으로 창을 열 때만 선택한 지역의 좌표를 Open-Meteo에 보내 날씨를 조회합니다. 기본 지역은 서울이며 내 위치로 자동 판단하지 않습니다. 내 위치 버튼을 누르고 브라우저에서 허용한 경우에만 위치를 사용합니다. 전송 좌표는 소수점 둘째 자리로 줄이며 계정 기록·브라우저 저장소·오프라인 캐시에 위치를 저장하지 않습니다. 위치 권한 없이도 지역 선택으로 사용할 수 있습니다.</p><h2>호스팅·인증 서비스와 오프라인 캐시</h2><p>GitHub Pages가 정적 사이트를 제공하고, Google과 Supabase가 로그인·계정 저장을 제공합니다. 각 제공자는 접속·서비스 제공에 필요한 정보를 처리할 수 있습니다. 서비스 워커는 공개 사이트 파일만 캐시하고 인증 응답·개인 기록 API는 캐시하지 않습니다. 현재 광고·분석·추적 스크립트는 없습니다.</p><a class="button secondary" href="#settings">계정과 내 데이터 관리 ${icon('arrow')}</a></article>`;
+  return head('YOUR DATA, YOUR CHOICE','내 기록을 안전하게.','저장 위치와 계정 연결, 위치 정보와 후원 링크의 처리 방식을 안내합니다.')+`<article class="panel prose privacy-current"><p class="privacy-updated">최종 수정 · 2026년 10월 17일</p>
+    <h2>이 브라우저에 저장하는 기록</h2><p>지원 공고와 결과, 단기 알바 경력·문자 지원 내용, 근무표, 근무·급여·입금 기록, 업무 메모와 서식, 화면 설정을 브라우저 localStorage에 저장합니다. 로그인 전 작성한 기록을 자동으로 서버에 보내지 않습니다. 시크릿 모드를 닫거나 브라우저 데이터를 삭제하면 기기 기록이 사라질 수 있습니다.</p>
+    <h2>Google 계정과 Supabase 동기화</h2><p>Google 로그인은 등록된 계정용으로 제공됩니다. Supabase Auth가 계정 식별자·이메일·기본 프로필과 로그인 세션을 처리합니다. Freeter는 Google 비밀번호를 받지 않으며 메일·Google Drive 접근 권한을 요청하지 않습니다.</p><p>로그인 후 작성한 기록은 계정별 기기 사본에 저장하고 Supabase 연결 상태에 따라 서버와 동기화합니다. 기기에 저장됐다는 표시가 서버 저장 완료를 뜻하지는 않습니다. 계정 창의 저장 상태와 최근 서버 확인 시각을 확인해 주세요. 로그인 전 기록은 사용자가 가져오기를 선택한 경우에만 계정 기록으로 옮깁니다.</p>
+    <h2>기기 사본과 접근</h2><p>로그인 세션과 전송 대기 중인 계정 기록은 브라우저에 보관합니다. 로그아웃 시 기기 로그인 정보를 지우고 로그인 전 기록으로 돌아갑니다. 미전송 자료는 같은 계정으로 다시 로그인했을 때 전송을 이어가기 위해 계정별로 남을 수 있습니다. 동시 수정 시 자동 덮어쓰기를 멈추고 사용할 기록을 선택합니다.</p><p>계정 데이터는 서버의 사용자별 접근 정책으로 관리하며 종단간 암호화 저장소는 아닙니다. 기기의 브라우저 자료와 내려받은 파일은 그 기기를 사용하는 사람이 열람할 수 있습니다. 공용 기기에서는 사용 후 로그아웃해 주세요.</p>
+    <h2>내려받기와 전체 삭제</h2><p>전체 기록을 파일로 백업하거나 파일에서 복원하는 기능은 제공하지 않습니다. 근무표 PNG·CSV·텍스트 공유, 알바 기록 CSV, 메모 TXT·복사는 사용자가 실행할 때만 동작합니다. 공유하거나 내려받은 자료에는 직접 입력한 개인정보가 포함될 수 있으며 외부에 전달한 파일은 Freeter에서 삭제할 수 없습니다.</p><p>로그인 전 전체 삭제는 이 서비스의 브라우저 기록과 이전 기기 사본을 삭제합니다. 로그인 후 전체 삭제는 현재 계정의 기록을 비우며 서버에 반영되면 같은 계정의 다른 기기에도 적용됩니다. Google 계정과 로그인 전의 별도 기록은 삭제하지 않습니다. 삭제한 기록은 서비스에서 되돌릴 수 없습니다. 서비스 제공자의 로그·서버 보관 자료에는 각 제공자의 보관 정책이 적용됩니다.</p>
+    <h2>날씨와 위치 정보</h2><p>상단 날씨 창을 열면 선택 지역의 좌표를 Open-Meteo에 보내 날씨와 대기질을 조회합니다. 기본 지역은 서울입니다. 내 위치 버튼을 누르고 브라우저에서 허용한 경우에만 기기 위치를 사용하며 전송 좌표는 소수점 둘째 자리로 줄입니다. 위치를 계정 기록·브라우저 저장소·오프라인 캐시에 저장하지 않습니다.</p>
+    <h2>곰씨 커피 후원</h2><p>버튼을 누르면 개발자의 카카오톡 오픈채팅이 새 창으로 열립니다. 대화나 별도 후원은 사용자가 카카오톡에서 직접 진행합니다. Freeter는 채팅 내용, 카드·계좌 정보나 결제 완료 정보를 수집하지 않으며 버튼 클릭만으로 송금하지 않습니다.</p><p>곰씨의 스포츠카 그림은 버튼 클릭에 따른 연출이며 결제 완료 표시가 아닙니다. 후원 버튼을 누르거나 후원하더라도 개인 기록이 개발자에게 자동 전송되지 않고, 별도 백업 기능이 자동 제공되지 않습니다. 별도 지원은 개발자와 협의해 주세요.</p>
+    <h2>호스팅과 오프라인 사용</h2><p>GitHub Pages가 사이트 파일을 제공하고 Google·Supabase가 계정 인증과 저장을, Open-Meteo가 날씨 정보를 제공합니다. 서비스 워커는 공개 화면과 이미지 등 사이트 파일을 캐시하며 개인 기록 API·인증 응답·위치 응답을 캐시하지 않습니다. 광고·분석용 추적 스크립트는 사용하지 않습니다.</p><a class="button secondary" href="#settings">계정과 내 데이터 관리 ${icon('arrow')}</a></article>`;
 }
 
 function confirmAction(message, title = '한 번 더 확인해 주세요', label = '확인', {compact=false}={}) {
@@ -1725,7 +1740,7 @@ document.addEventListener('submit', async event => {
 document.addEventListener('input', event => {
   if(event.target.matches('[data-iso-date]'))syncIsoDate(event.target,true);
   if(event.target.id==='application-search'){applicationSearch=event.target.value;applicationPage=0;renderApplicationList();return;}
-  if(['application-career','application-template'].includes(event.target.id)){const career=event.target.id==='application-career',value=event.target.value;if(value.length>30000)return;state[career?'applicationCareer':'applicationTemplate']=value;const saved=save();$('#'+(career?'career':'template')+'-save-state').textContent=value.length.toLocaleString('ko-KR')+' / 30,000자 · '+(saved?'저장했어요':'저장되지 않음 · JSON 백업 필요');return;}
+  if(['application-career','application-template'].includes(event.target.id)){const career=event.target.id==='application-career',value=event.target.value;if(value.length>30000)return;state[career?'applicationCareer':'applicationTemplate']=value;const saved=save();$('#'+(career?'career':'template')+'-save-state').textContent=value.length.toLocaleString('ko-KR')+' / 30,000자 · '+(saved?'저장했어요':'저장되지 않음 · 내용을 복사해 두세요');return;}
   if(event.target.id==='memo-fallback'){state.workMemo=event.target.value;state.workMemoDelta=null;const saved=save();updateMemoStatus(saved);setMemoSaveState(saved?'ready':'error');return;}
   if(event.target.id==='mini-expression'){miniExpression=event.target.value;miniAnswer='';miniEvaluated=false;updateMiniDisplay();return;}
   const form = event.target.closest('form');
@@ -1768,26 +1783,7 @@ document.addEventListener('change', event => {
   if(event.target.dataset.memoFormat){formatMemo(event.target.dataset.memoFormat,event.target.value);return;}
   if (event.target.matches('.rest-select')) { state.schedule.rows[Number(event.target.dataset.row)].rest = Number(event.target.value); persisted('휴식자 배정을 변경했어요.'); renderScheduleResult(); }
   if (event.target.id === 'stats-month' && /^\d{4}-\d{2}$/.test(event.target.value) && event.target.checkValidity()) { statsMonth = event.target.value; render(); }
-  if (event.target.id === 'restore-file') restoreFile(event.target.files[0]);
 });
-async function restoreFile(file) {
-  if (!file) return;
-  const owner=cloud.user?.id||null;
-  try {
-    if (file.size > 20 * 1024 * 1024) throw new Error('20MB 이하의 JSON 백업 파일을 선택해 주세요.');
-    let data;
-    try { data = JSON.parse(await file.text()); } catch { throw new Error('JSON 파일을 읽을 수 없습니다. 손상되지 않은 백업을 선택해 주세요.'); }
-    if(owner!==(cloud.user?.id||null))throw new Error('계정이 변경되어 복원을 중지했어요.');
-    const restored = validateState(data);
-    if (!await confirmAction(`현재 기록 ${state.records.length}건과 근무표·설정을 백업 파일의 기록 ${restored.records.length}건으로 교체합니다. 현재 내용을 백업하셨나요?`, '백업 파일로 복원할까요?', '덮어쓰고 복원')) return;
-    // Atomic single-key write: failures leave the existing storage untouched.
-    if(cloud.user){if(!cloud.save(restored,{reset:true}))throw new Error(cloud.snapshot.label);}
-    else localStorage.setItem(STORAGE_KEY, JSON.stringify(restored));
-    state = restored; rawStored = JSON.stringify(restored); storageBlocked = false; calcSavedHash = '';
-    $('#storage-alert').hidden = true; render(); toast('백업 파일의 기록을 복원했어요.');
-  } catch (failure) { toast(`복원하지 않았습니다. ${failure.message}`); }
-  finally { if ($('#restore-file')) $('#restore-file').value = ''; }
-}
 document.addEventListener('click', async event => {
   const routeLink = event.target.closest('a[data-route]');
   if (routeLink && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
@@ -1805,6 +1801,12 @@ document.addEventListener('click', async event => {
   if (!button || button.disabled) return;
   const action = button.dataset.action;
   try {
+    if(action==='coffee-gomssi'){
+      coffeeClicked=true;const banner=$('.coffee-banner');
+      if(banner){const holder=document.createElement('div');holder.innerHTML=coffeeBanner();banner.replaceWith(holder.firstElementChild);$('.coffee-button')?.focus({preventScroll:true});}
+      const url=coffeeUrl();if(url)window.open(url,'_blank','noopener,noreferrer');
+      return;
+    }
     if(action==='open-date-picker'){
       const control=button.parentElement,picker=control.querySelector('[data-date-picker]'),input=control.querySelector('[data-iso-date]');
       picker.value=validDate(input.value)?input.value:today();
@@ -1817,7 +1819,7 @@ document.addEventListener('click', async event => {
       const index=state.applications.findIndex(post=>post.id===button.dataset.id);if(index<0)return;
       const post=state.applications[index];
       state.applications[index]=validateApplication({...post,rejected:!post.rejected});
-      if(!save())toast('공고 결과가 이 기기에 저장되지 않았어요. JSON으로 백업해 주세요.');
+      if(!save())toast('공고 결과가 저장되지 않았어요. 창을 닫기 전에 내용을 복사해 주세요.');
       renderApplicationList();
       $$('[data-action="fix-application"]').find(node=>node.dataset.id===post.id)?.focus({preventScroll:true});
       return;
@@ -1842,9 +1844,7 @@ document.addEventListener('click', async event => {
       return;
     }
     if(action==='account-use-local'||action==='account-use-remote'){
-      if(!await confirmAction('현재 기기와 서버의 기록을 각각 JSON으로 백업한 뒤 선택한 기록으로 동기화를 이어갑니다.','사용할 기록을 선택할까요?','백업하고 선택'))return;
-      const account=cloud.user?.id,remote=await cloud.read(account);if(account!==cloud.user?.id)return;
-      download(JSON.stringify(state,null,2),`Freeter-device-${today()}.json`,'application/json;charset=utf-8');download(JSON.stringify(remote.data,null,2),`Freeter-server-${today()}.json`,'application/json;charset=utf-8');
+      if(!await confirmAction('선택한 기록으로 현재 내용을 바꾸고 동기화를 이어갑니다. 선택하지 않은 내용이 달라질 수 있으니 확인해 주세요.','사용할 기록을 선택할까요?','선택한 기록 사용'))return;
       await cloud.resolve(action==='account-use-local'?'local':'remote');toast(cloud.snapshot.label);return;
     }
     if(action==='open-updates'){openUpdates();return;}
@@ -1871,7 +1871,7 @@ document.addEventListener('click', async event => {
     if(action==='complete-payment')openCompletePayment(button.dataset.id);
     if(action==='copy-memo')await copyText(state.workMemo);
     if(action==='download-memo')download(state.workMemo,`업무-메모-${today()}.txt`,'text/plain;charset=utf-8');
-    if(action==='clear-memo'&&await confirmAction('업무 메모 내용을 모두 비웁니다. 필요하면 먼저 TXT 또는 JSON으로 백업해 주세요.','업무 메모를 비울까요?','비우기',{compact:true})){state.workMemo='';state.workMemoDelta=null;persisted('업무 메모를 비웠어요.');render();}
+    if(action==='clear-memo'&&await confirmAction('업무 메모 내용을 모두 비웁니다. 필요한 내용은 먼저 복사하거나 TXT로 저장해 주세요.','업무 메모를 비울까요?','비우기',{compact:true})){state.workMemo='';state.workMemoDelta=null;persisted('업무 메모를 비웠어요.');render();}
     if(action==='mini-key'){
       const key=button.dataset.key;
       if(key==='='){calculateMini();return;}
@@ -1905,11 +1905,8 @@ document.addEventListener('click', async event => {
       if (!state.workplaces.includes(record.workplace)) state.workplaces.push(record.workplace);
       calcSavedHash = JSON.stringify({...values,days:'1'}); persisted('선택한 날짜의 1일 근무를 알바 기록장에 저장했어요.'); updateCalculator(false);
     }
-    if (action === 'backup') { download(JSON.stringify(state, null, 2), `Freeter-backup-${today()}.json`, 'application/json;charset=utf-8'); toast('전체 기록의 JSON 백업을 다운로드했어요.'); }
-    if (action === 'raw-backup') download(rawStored, `Freeter-original-${today()}.json`, 'application/json;charset=utf-8');
-    if (action === 'restore') $('#restore-file').click();
-    if (action === 'all-records-csv' || action === 'records-csv') { download(recordsCsv(action === 'records-csv' ? filteredRecords() : state.records), `Freeter-records-${today()}.csv`, 'text/csv;charset=utf-8'); toast('한글 CSV를 다운로드했어요.'); }
-    if (action === 'delete-all' && await confirmAction(cloud.user?'로그인한 계정의 근무표, 알바·입금 기록과 메모를 비웁니다. 서버에 반영되면 같은 계정의 다른 기기에도 적용됩니다. 먼저 JSON으로 백업해 주세요.':'이 브라우저의 근무표, 알바·입금 기록, 메모와 서식, 설정과 이전 버전의 백업을 삭제합니다. 복구하려면 다운로드한 JSON 백업이 필요합니다.', '모든 데이터를 삭제할까요?', '전체 데이터 삭제')) {
+    if (action === 'records-csv') { download(recordsCsv(filteredRecords()), `Freeter-records-${today()}.csv`, 'text/csv;charset=utf-8'); toast('한글 CSV를 다운로드했어요.'); }
+    if (action === 'delete-all' && await confirmAction(cloud.user?'로그인한 계정의 근무표, 알바·입금 기록과 메모를 비웁니다. 서버에 반영되면 같은 계정의 다른 기기에도 적용됩니다. 삭제한 기록은 되돌릴 수 없습니다.':'이 브라우저의 지원 자료, 근무표, 알바·입금 기록, 메모와 서식, 설정과 이전 버전의 기기 사본을 삭제합니다. 삭제한 기록은 되돌릴 수 없습니다.', '모든 데이터를 삭제할까요?', '전체 데이터 삭제')) {
       if(cloud.user){const cleared=emptyState();if(!cloud.save(cleared,{reset:true}))throw new Error(cloud.snapshot.label);localStorage.removeItem(cloud.cacheKey+':recovery');state=cleared;rawStored=JSON.stringify(cleared);calcSavedHash='';render();toast('계정 기록을 비웠어요. 서버 동기화 상태를 확인해 주세요.');return;}
       localStorage.removeItem('freeter:before-peer-sync');localStorage.removeItem('freeter:peer-conflict');localStorage.removeItem(STORAGE_KEY); state = emptyState(); rawStored = null; storageBlocked = false; calcSavedHash = ''; $('#storage-alert').hidden = true; render(); toast('이 서비스의 모든 브라우저 데이터를 삭제했어요.');
     }
@@ -1934,7 +1931,7 @@ window.addEventListener('storage', event => {
   }
   if (cloud.user || event.key !== STORAGE_KEY) return;
   try { state = event.newValue ? validateState(JSON.parse(event.newValue)) : emptyState(); rawStored = event.newValue; storageBlocked = false; calcSavedHash = ''; $('#record-dialog').close(); $('#application-dialog')?.close(); render(); toast('다른 탭의 최신 기록을 반영했어요. 저장 전 편집 내용은 반영되지 않습니다.'); }
-  catch { storageBlocked = true; $('#storage-alert').hidden = false; $('#storage-alert').textContent = '다른 탭의 데이터를 읽지 못해 저장을 중지했습니다. 현재 내용을 백업해 주세요.'; }
+  catch { storageBlocked = true; $('#storage-alert').hidden = false; $('#storage-alert').textContent = '다른 탭의 데이터를 읽지 못해 저장을 중지했습니다. 필요한 내용을 먼저 복사해 두세요.'; }
 });
 function latestAppUrl() {
   const url=new URL(location.href);url.searchParams.set('v',latestRelease);return url.href;
