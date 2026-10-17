@@ -4,11 +4,11 @@ import { createHash } from 'node:crypto';
 import { cloudConfig } from '../cloud.js';
 const root = new URL('../', import.meta.url);
 const read = name => readFile(new URL(name, root), 'utf8');
-const names = ['core.js','weather.js','cloud.js','cloud-config.json','app.js','vendor/quill.js','vendor/supabase.js','vendor/html-to-image.js','style.css','brand.css','vendor/quill.core.css','scripts/sw-template.js'];
+const names = ['core.js','weather.js','cloud.js','cloud-config.json','app.js','vendor/quill.js','vendor/supabase.js','vendor/html-to-image.js','style.css','brand.css','vendor/quill.core.css','scripts/sw-template.js','manifest.webmanifest'];
 const values = await Promise.all(names.map(read));
 const source = Object.fromEntries(names.map((name,index)=>[name,values[index]]));
 const releaseHash = createHash('sha256').update(values.join('\0'));
-for(const asset of ['assets/freeter-wordmark.png','assets/weather-illustrations.png','assets/freeter-192.png','assets/freeter-512.png','icon.svg'])releaseHash.update(await readFile(new URL(asset,root)));
+for(const asset of ['assets/freeter-wordmark.png','assets/weather-illustrations.png','assets/freeter-192.png','assets/freeter-512.png','assets/freeter-share.png','icon.svg'])releaseHash.update(await readFile(new URL(asset,root)));
 const release=releaseHash.digest('hex').slice(0,12);
 const core = source['core.js'].replace(/^export /gm, '');
 const weather = source['weather.js'].replace(/^export /gm,'');
@@ -25,12 +25,12 @@ for(const name of pages){
   html=html.replace(/^\s*<meta (?:http-equiv="Content-Security-Policy"|name="referrer")[^>]*>\r?\n/gm,'');
   html=html.replace('  <meta charset="utf-8">',`  <meta charset="utf-8">\n  <meta http-equiv="Content-Security-Policy" content="${policy}">\n  <meta name="referrer" content="no-referrer">`);
   html=html.replace(/^\s*<script defer src="\.\/vendor\/quill\.js(?:\?[^\"]*)?"><\/script>\r?\n/gm,'');
-  html=html.replace(/((?:src|href)="\.\/(?:site\.js|style\.css|brand\.css|vendor\/quill\.core\.css|icon\.svg|assets\/freeter-(?:192|512|wordmark)\.png))(?:\?[^\"]*)?"/g,`$1?v=${release}"`);
+  html=html.replace(/((?:src|href)="\.\/(?:site\.js|style\.css|brand\.css|vendor\/quill\.core\.css|icon\.svg|manifest\.webmanifest|assets\/freeter-(?:192|512|wordmark)\.png))(?:\?[^\"]*)?"/g,`$1?v=${release}"`);
   if(html.includes('name="freeter-release"'))html=html.replace(/(<meta name="freeter-release" content=")[^\"]*/,`$1${release}`);
   else html=html.replace('  <meta name="application-name"',`  <meta name="freeter-release" content="${release}">\n  <meta name="application-name"`);
   outputs.set(name,html);
 }
-const assets = ['./',...pages.map(name=>'./'+name),...['style.css','brand.css','vendor/quill.core.css','site.js','icon.svg','assets/freeter-192.png','assets/freeter-512.png','assets/freeter-wordmark.png'].map(name=>`./${name}?v=${release}`),'./icon.svg','./manifest.webmanifest','./assets/freeter-display.woff2','./assets/freeter-192.png','./assets/freeter-512.png','./assets/gomssi.png','./assets/freeter-wordmark.png','./assets/weather-illustrations.png'];
+const assets = ['./',...pages.map(name=>'./'+name),...['style.css','brand.css','vendor/quill.core.css','site.js','icon.svg','manifest.webmanifest','assets/freeter-192.png','assets/freeter-512.png','assets/freeter-wordmark.png'].map(name=>`./${name}?v=${release}`),'./icon.svg','./manifest.webmanifest','./assets/freeter-display.woff2','./assets/freeter-192.png','./assets/freeter-512.png','./assets/gomssi.png','./assets/freeter-wordmark.png','./assets/weather-illustrations.png',...JSON.parse(source['manifest.webmanifest']).icons.map(icon=>icon.src)];
 outputs.set('sw.js',source['scripts/sw-template.js'].replaceAll('__FREETER_RELEASE__',release).replace('__FREETER_ASSETS__',JSON.stringify(assets)));
 for(const [name,value]of outputs){
   if(process.argv.includes('--check')){if(await read(name)!==value)throw new Error(`${name} is stale. Run node scripts/build-site.mjs.`);}

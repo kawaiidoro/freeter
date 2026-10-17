@@ -93,33 +93,25 @@ export async function fetchWeather(lat, lon, { signal, request=(...args)=>global
   return {...parseWeather(forecast.value),airQuality};
 }
 export function mountWeatherWidget() {
-  const root=document.createElement('aside');root.className='gomssi-weather';root.setAttribute('aria-label','곰씨 날씨 도우미');
-  root.innerHTML=`<section id="gomssi-weather-panel" class="weather-panel" role="dialog" aria-labelledby="weather-title" hidden>
+  const root=document.createElement('div');root.className='header-weather';root.setAttribute('aria-label','상단 날씨');
+  root.innerHTML=`<section id="header-weather-panel" class="weather-panel" role="dialog" aria-labelledby="weather-title" hidden>
     <div class="weather-head"><div><span class="weather-eyebrow">GOMSSI WEATHER</span><h2 id="weather-title">곰씨의 오늘 날씨</h2></div><button type="button" class="icon-button weather-close" aria-label="날씨 창 닫기">×</button></div>
     <div class="weather-location"><label><span class="sr-only">날씨 지역</span><select id="weather-city"><option value="current" hidden>내 위치</option>${WEATHER_CITIES.map(city=>`<option value="${city.id}" ${city.id==='seoul'?'selected':''}>${city.name}</option>`).join('')}</select></label><button type="button" class="weather-locate">⌖ 내 위치</button></div>
     <p class="weather-status" role="status" aria-live="polite"></p><div class="weather-content" aria-busy="false"></div>
     <p class="weather-location-note">지역을 선택하거나 내 위치를 허용해 주세요.</p>
     <a class="weather-source" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo · CAMS 대기질 예측 ↗</a>
-    </section><button type="button" class="gomssi-button" aria-label="노가다 곰씨 · 오늘 날씨와 기온 보기" aria-controls="gomssi-weather-panel" aria-haspopup="dialog" aria-expanded="false"><span class="gomssi-bubble" aria-live="off"><span class="gomssi-tip"></span><small>곰씨를 누르면 오늘 날씨 ↗</small></span><img src="./assets/gomssi.png" width="90" height="90" alt="" draggable="false"></button><button type="button" class="gomssi-hide" aria-label="곰씨 숨기기" title="곰씨 숨기기">×</button><button type="button" class="gomssi-restore" hidden>곰씨 켜기</button>`;
-  const hiddenKey='freeter:gomssi-hidden';let collapsed=false;
-  try{collapsed=localStorage.getItem(hiddenKey)==='true';}catch{/* Visibility can still be changed for this visit. */}
-  root.dataset.collapsed=String(collapsed);
-  root.querySelector('.gomssi-button').hidden=collapsed;root.querySelector('.gomssi-hide').hidden=collapsed;root.querySelector('.gomssi-restore').hidden=!collapsed;
-  document.body.append(root);
-  const find=selector=>root.querySelector(selector), panel=find('.weather-panel'), toggle=find('.gomssi-button'), content=find('.weather-content'), status=find('.weather-status'), citySelect=find('#weather-city');
-  let open=false, serial=0, active=null, location={...WEATHER_CITIES[0]}, cache=null;
-  const nextTip=gomssiTipDeck();find('.gomssi-tip').textContent=nextTip();
-  setInterval(()=>{if(!collapsed&&!document.hidden&&!open&&!document.querySelector('dialog[open]')&&!document.activeElement?.closest('input,textarea,[contenteditable="true"]'))find('.gomssi-tip').textContent=nextTip();},14000);
+    </section><button type="button" class="header-weather-toggle" aria-label="오늘 날씨와 기온 보기" aria-controls="header-weather-panel" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M9 2v2M3 8H1m3-5 1 1m8-1-1 1M5 11a5 5 0 1 1 9-3"/><path d="M7 20h11a4 4 0 1 0-1-7.9A5 5 0 0 0 7 12a4 4 0 0 0 0 8Z"/></svg><span>날씨</span></button>`;
+  const host=document.querySelector('.header-clock')||document.querySelector('.topbar');const face=host.querySelector('.clock-face');if(face?.parentNode===host)host.insertBefore(root,face);else host.append(root);
+  const find=selector=>root.querySelector(selector),panel=find('.weather-panel'),toggle=find('.header-weather-toggle'),content=find('.weather-content'),status=find('.weather-status'),citySelect=find('#weather-city');
+  let open=false,serial=0,active=null,location={...WEATHER_CITIES[0]},cache=null;
+  const position=()=>{
+    if(!open)return;
+    const button=toggle.getBoundingClientRect(),bar=document.querySelector('.topbar').getBoundingClientRect(),width=Math.min(360,innerWidth-32);
+    const top=Math.max(8,Math.min(Math.max(bar.bottom,button.bottom)+8,innerHeight-100));
+    panel.style.setProperty('--weather-top',top+'px');panel.style.setProperty('--weather-left',Math.max(16,Math.min(button.right-width,innerWidth-width-16))+'px');
+  };
   const setStatus=(message,error=false)=>{status.textContent=message;status.dataset.error=String(error);};
   const close=(focus=true)=>{open=false;serial++;active?.abort();panel.hidden=true;toggle.setAttribute('aria-expanded','false');if(focus)toggle.focus({preventScroll:true});};
-  const collapse=value=>{
-    close(false);collapsed=value;root.dataset.collapsed=String(value);
-    toggle.hidden=value;find('.gomssi-hide').hidden=value;find('.gomssi-restore').hidden=!value;
-    try{localStorage.setItem(hiddenKey,String(value));}catch{/* Do not touch synced work data for a display preference. */}
-    (value?find('.gomssi-restore'):toggle).focus({preventScroll:true});
-  };
-  find('.gomssi-hide').addEventListener('click',()=>collapse(true));
-  find('.gomssi-restore').addEventListener('click',()=>collapse(false));
   const showWeather=data=>{
     // API strings never enter HTML. Only validated numbers and local labels are displayed.
     const metricIcon=kind=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${kind==='humidity'?'<path d="M12 3C9 8 5 11 5 15a7 7 0 0 0 14 0c0-4-4-7-7-12Z"/><path d="M8 15a4 4 0 0 0 4 4"/>':kind==='uv'?'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1 1m12 12 1 1M5 19l1-1M18 6l1-1"/>':kind.startsWith('sun')?'<path d="M3 18h18M6 15a6 6 0 0 1 12 0M12 2v4m-8 3 2 2m12 0 2-2M8 21h8"/>':'<path d="M3 8h12a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 17h6"/>'}</svg>`;
@@ -157,9 +149,11 @@ export function mountWeatherWidget() {
   };
   toggle.addEventListener('click',()=>{
     if(open){close();return;}
-    open=true;panel.hidden=false;toggle.setAttribute('aria-expanded','true');citySelect.focus({preventScroll:true});load();
+    open=true;panel.hidden=false;position();toggle.setAttribute('aria-expanded','true');citySelect.focus({preventScroll:true});load();
   });
   find('.weather-close').addEventListener('click',()=>close());
+  window.addEventListener('resize',position);window.addEventListener('scroll',position,{passive:true});
+  window.addEventListener('popstate',()=>close(false));window.addEventListener('hashchange',()=>close(false));
   root.addEventListener('click',event=>{if(event.target.closest('.weather-retry'))load(true);});
   citySelect.addEventListener('change',()=>{
     const selected=WEATHER_CITIES.find(city=>city.id===citySelect.value);if(!selected)return;

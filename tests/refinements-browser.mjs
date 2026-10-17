@@ -44,17 +44,15 @@ try{
   page.off('download',collect);assert.equal(downloads.length,parts);
   for(let i=0;i<downloads.length;i++){const path=join(output,`long-schedule-${i+1}.png`);await downloads[i].saveAs(path);const bytes=await readFile(path);assert.ok(bytes.readUInt32BE(20)<16384);}assert.equal(await page.locator('.schedule-export-stage').count(),0);
  });
- await check('곰씨 말풍선이 주기적으로 바뀌고 메모 입력 중에는 읽던 문구를 유지',async()=>{
-  await page.clock.install();await go('');const before=await page.locator('.gomssi-tip').innerText();await page.clock.fastForward(14000);assert.notEqual(await page.locator('.gomssi-tip').innerText(),before);await go('notes.html');await page.locator('#work-memo .ql-editor').click();const reading=await page.locator('.gomssi-tip').innerText();await page.clock.fastForward(28000);assert.equal(await page.locator('.gomssi-tip').innerText(),reading);
+ await check('곰씨를 숨겼던 기기에서도 상단 날씨가 보이고 구석 캐릭터·말풍선·자동 요청 없음',async()=>{
+  await page.clock.install();await go('');await page.evaluate(()=>localStorage.setItem('freeter:gomssi-hidden','true'));let calls=0;await page.route('https://*.open-meteo.com/**',route=>{calls++;return route.abort();});
+  for(const path of ['','notes.html','schedule.html']){await go(path);assert.equal(await page.locator('.topbar .header-weather-toggle').isVisible(),true);assert.equal(await page.locator('.gomssi-weather,.gomssi-button,.gomssi-bubble,.gomssi-hide,.gomssi-restore').count(),0);await page.clock.fastForward(28000);}
+  assert.equal(calls,0);await page.unroute('https://*.open-meteo.com/**');
  });
- await check('곰씨 숨김·복원은 페이지 이동과 재접속에서도 보존하고 숨김 중 말풍선·API 없음',async()=>{
-  await go('');let calls=0;await page.route('https://*.open-meteo.com/**',route=>{calls++;return route.abort();});
-  const before=await page.evaluate(()=>localStorage.getItem('dangi-alba:data'));
-  await page.getByRole('button',{name:'곰씨 숨기기',exact:true}).click();assert.equal(await page.locator('.gomssi-button').isVisible(),false);assert.equal(await page.locator('.gomssi-bubble').isVisible(),false);assert.equal(await page.getByRole('button',{name:'곰씨 켜기',exact:true}).isVisible(),true);
-  const tip=await page.locator('.gomssi-tip').textContent();await page.clock.fastForward(28000);assert.equal(await page.locator('.gomssi-tip').textContent(),tip);assert.equal(calls,0);assert.equal(await page.evaluate(()=>localStorage.getItem('dangi-alba:data')),before);
-  await go('notes.html');assert.equal(await page.locator('.gomssi-button').isVisible(),false);await page.reload();assert.equal(await page.locator('.gomssi-button').isVisible(),false);
-  await page.getByRole('button',{name:'곰씨 켜기',exact:true}).click();assert.equal(await page.locator('.gomssi-button').isVisible(),true);assert.equal(calls,0);await page.reload();assert.equal(await page.locator('.gomssi-button').isVisible(),true);
-  await page.locator('.gomssi-button').click();assert.equal(await page.locator('.weather-panel').isVisible(),true);await page.getByRole('button',{name:'곰씨 숨기기',exact:true}).click();assert.equal(await page.locator('.weather-panel').isVisible(),false);assert.equal(await page.locator('.gomssi-button').getAttribute('aria-expanded'),'false');await page.getByRole('button',{name:'곰씨 켜기',exact:true}).click();await page.unroute('https://*.open-meteo.com/**');
+ await check('상단 날씨 열기·닫기·화면 이동은 메모와 기기 기록을 바꾸지 않음',async()=>{
+  await go('notes.html');await page.locator('#work-memo .ql-editor').fill('날씨를 열어도 보존되는 업무 메모');const before=await page.evaluate(()=>localStorage.getItem('dangi-alba:data'));await page.route('https://*.open-meteo.com/**',route=>route.abort());
+  await page.locator('.header-weather-toggle').click();assert.equal(await page.locator('.weather-panel').isVisible(),true);await page.locator('.weather-close').click();assert.equal(await page.locator('.weather-panel').isVisible(),false);assert.equal(await page.locator('.header-weather-toggle').getAttribute('aria-expanded'),'false');assert.equal(await page.evaluate(()=>localStorage.getItem('dangi-alba:data')),before);
+  await page.locator('.header-weather-toggle').click();await page.locator('.main-nav [data-page="schedule"]').click();assert.equal(await page.locator('.weather-panel').isVisible(),false);await page.unroute('https://*.open-meteo.com/**');
  });
  await check('상단 시계 초 표시·분 전환·자정 날짜 변경이 즉시 반영되며 메모와 커서 보존',async()=>{
   await go('notes.html');await page.clock.setSystemTime(new Date('2026-10-17T23:59:50'));await page.clock.pauseAt(new Date('2026-10-17T23:59:58'));await page.clock.runFor(1000);
@@ -73,12 +71,12 @@ try{
     assert.ok(clock.x>=0&&clock.x+clock.width<=width);assert.ok(clock.y>=actions.y+actions.height||clock.x+clock.width<=actions.x,`${width}px clock overlaps actions`);assert.ok(brand.x+brand.width<=actions.x,`${width}px brand overlaps actions`);assert.equal(await page.locator('#live-clock').isVisible(),true);
    }
   }
-  await page.setViewportSize({width:390,height:844});await page.screenshot({path:join(output,'clock-and-gomssi-mobile.png'),fullPage:true});
+  await page.setViewportSize({width:390,height:844});await page.screenshot({path:join(output,'clock-and-header-weather-mobile.png'),fullPage:true});
  });
- await check('저장소를 차단해도 곰씨 숨김과 초 표시 버튼은 현재 화면에서 동작',async()=>{
+ await check('저장소를 차단해도 상단 날씨와 초 표시 버튼은 현재 화면에서 동작',async()=>{
   const restricted=await browser.newContext(),tab=await restricted.newPage();try{
    await tab.addInitScript(()=>{Storage.prototype.getItem=()=>{throw new DOMException('Blocked','SecurityError');};Storage.prototype.setItem=()=>{throw new DOMException('Blocked','SecurityError');};});
-   await tab.goto(site.base);await tab.locator('main[data-ready]').waitFor();await tab.locator('#seconds-toggle').click();assert.match(await tab.locator('#live-clock').textContent(),/^\d\d:\d\d:\d\d$/);await tab.locator('.gomssi-hide').click();assert.equal(await tab.locator('.gomssi-button').isVisible(),false);await tab.locator('.gomssi-restore').click();assert.equal(await tab.locator('.gomssi-button').isVisible(),true);
+   await tab.goto(site.base);await tab.locator('main[data-ready]').waitFor();await tab.locator('#seconds-toggle').click();assert.match(await tab.locator('#live-clock').textContent(),/^\d\d:\d\d:\d\d$/);await tab.route('https://*.open-meteo.com/**',route=>route.abort());await tab.locator('.header-weather-toggle').click();assert.equal(await tab.locator('.weather-panel').isVisible(),true);await tab.keyboard.press('Escape');assert.equal(await tab.locator('.weather-panel').isVisible(),false);assert.equal(await tab.locator('.gomssi-weather').count(),0);
   }finally{await restricted.close();}
  });
  await check('실제 생성 버튼에서도 1시간 순환 뒤 30분·60분을 10분·20분씩 배정',async()=>{
@@ -91,6 +89,7 @@ try{
   const offline=await browser.newContext(),tab=await offline.newPage();try{
    await tab.goto(site.base);await tab.locator('main[data-ready]').waitFor();await tab.evaluate(()=>navigator.serviceWorker.ready);await tab.waitForFunction(()=>navigator.serviceWorker.controller);await offline.setOffline(true);await tab.reload();await tab.locator('main[data-ready]').waitFor();
    for(const selector of ['.brand > img','.brand .freeter-wordmark','.profile-logo','.profile-wordmark'])assert.equal(await tab.locator(selector).evaluate(image=>image.complete&&image.naturalWidth>0),true,selector);
+   const manifestIcons=await tab.evaluate(async()=>{const url=document.querySelector('link[rel="manifest"]').href,manifest=await(await fetch(url)).json();return Promise.all(manifest.icons.map(async icon=>{const response=await fetch(new URL(icon.src,url));return{url:icon.src,ok:response.ok,bytes:(await response.arrayBuffer()).byteLength};}));});assert.equal(manifestIcons.length,3);assert.ok(manifestIcons.every(icon=>icon.ok&&icon.bytes>1000&&icon.url.includes('gomssi-face-20261017')),'Updated app icons must remain available offline');
   }finally{await offline.close();}
  });
  assert.deepEqual(errors,[]);console.log(`화면·공평 배분·PNG·시계·곰씨 브라우저 시나리오 ${count}개 통과`);

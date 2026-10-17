@@ -21,7 +21,7 @@ async function setup(options={}) {
  const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));return{context,page,control};
 }
 const go=(page,path='')=>page.goto(new URL(path,site.base).href);
-const show=page=>page.locator('.gomssi-button').click();
+const show=page=>page.locator('.header-weather-toggle').click();
 const ready=page=>page.locator('.weather-degrees strong').waitFor();
 async function check(name,fn){try{await fn();count++;console.log('PASS '+name);}catch(error){console.log('::error title=Freeter weather and input::'+(name+': '+error.stack).replace(/%/g,'%25').replace(/\n/g,'%0A'));throw error;}}
 try {
@@ -35,15 +35,15 @@ try {
   await editor.press('ControlOrMeta+a');await editor.press('Backspace');await page.waitForFunction(()=>getComputedStyle(document.querySelector('#work-memo .ql-editor'),'::before').display!=='none');
   await editor.fill('붙여넣은 업무 설명');assert.equal(await editor.evaluate(node=>getComputedStyle(node,'::before').display),'none');await page.reload();assert.equal(await editor.innerText(),'붙여넣은 업무 설명');
  });
- await check('새 영문·한글 로고와 교대 근무표 제목·곰씨는 모든 화면에 표시하고 날씨는 자동 조회하지 않음',async()=>{
+ await check('영문·한글 로고와 상단 날씨는 모든 화면에 표시하고 구석 도우미·자동 날씨 조회는 없음',async()=>{
   const{page,control}=await setup();
   for(const route of ['','schedule.html','calculator.html','records.html','stats.html','notes.html','guide.html','privacy.html','settings.html']){
-   await go(page,route);assert.ok(await page.locator('.mobile-brand .freeter-wordmark').isVisible());assert.equal(await page.locator('.mobile-brand .freeter-wordmark').getAttribute('alt'),'FREETER · 프리터');assert.ok(await page.locator('.gomssi-button').isVisible());
+   await go(page,route);assert.ok(await page.locator('.mobile-brand .freeter-wordmark').isVisible());assert.equal(await page.locator('.mobile-brand .freeter-wordmark').getAttribute('alt'),'FREETER · 프리터');assert.ok(await page.locator('.topbar .header-weather-toggle').isVisible());assert.equal(await page.locator('.gomssi-weather,.gomssi-button,.gomssi-bubble,.gomssi-restore').count(),0);
    if(route==='schedule.html')assert.equal(await page.locator('main h1').innerText(),'교대 근무표');
   }
   assert.equal(control.requests.length,0);assert.equal(await page.locator('.weather-panel').isVisible(),false);
  });
- await check('곰씨를 누르면 현재 기온·최저·최고를 표시하고 선택 지역을 정확히 변경',async()=>{
+ await check('상단 날씨를 누르면 현재 기온·최저·최고를 표시하고 선택 지역을 정확히 변경',async()=>{
   const{page,control}=await setup();await go(page);await show(page);await ready(page);
   assert.equal(await page.locator('.weather-place').innerText(),'서울');assert.equal(await page.locator('.weather-degrees strong').innerText(),'21');assert.equal(await page.locator('.weather-low').innerText(),'최저 16°');assert.equal(await page.locator('.weather-high').innerText(),'최고 25°');
   for(const [key,value]of [['humidity','64%'],['uv','4.2'],['sunrise','06:40'],['sunset','17:52'],['pm10','28.0 ㎍/㎥'],['pm25','12.0 ㎍/㎥']])assert.equal(await page.locator(`[data-metric="${key}"] strong`).innerText(),value);
@@ -75,10 +75,10 @@ try {
   const{page}=await setup();await go(page);
   for(const viewport of [{width:320,height:568},{width:390,height:844},{width:1440,height:1000}]){
    await page.setViewportSize(viewport);await show(page);await ready(page);const box=await page.locator('.weather-panel').boundingBox();assert.ok(box.x>=0&&box.y>=0&&box.x+box.width<=viewport.width&&box.y+box.height<=viewport.height,JSON.stringify(box));assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-   if(viewport.width<=800){const mascot=await page.locator('.gomssi-button').boundingBox(),nav=await page.locator('.mobile-nav').boundingBox();assert.ok(mascot.y+mascot.height<nav.y);}
-   await page.keyboard.press('Escape');assert.equal(await page.locator('.gomssi-button').getAttribute('aria-expanded'),'false');assert.equal(await page.locator('.gomssi-button').evaluate(node=>node===document.activeElement),true);
+   const button=await page.locator('.header-weather-toggle').boundingBox(),header=await page.locator('.topbar').boundingBox();assert.ok(button.y>=header.y&&button.y+button.height<=header.y+header.height);assert.ok(box.y>=header.y+header.height);
+   await page.keyboard.press('Escape');assert.equal(await page.locator('.header-weather-toggle').getAttribute('aria-expanded'),'false');assert.equal(await page.locator('.header-weather-toggle').evaluate(node=>node===document.activeElement),true);
   }
-  assert.notEqual(await page.locator('.gomssi-button img').evaluate(node=>getComputedStyle(node).animationName),'none');await page.emulateMedia({reducedMotion:'reduce'});assert.equal(await page.locator('.gomssi-button img').evaluate(node=>getComputedStyle(node).animationName),'none');await page.locator('#theme-toggle').click();await show(page);await ready(page);await page.screenshot({path:join(output,'gomssi-weather-desktop-dark.png')});
+  await page.emulateMedia({reducedMotion:'reduce'});assert.equal(await page.locator('.gomssi-weather,.gomssi-button,.gomssi-bubble').count(),0);await page.locator('#theme-toggle').click();await show(page);await ready(page);await page.screenshot({path:join(output,'gomssi-weather-desktop-dark.png')});
  });
  assert.deepEqual(errors,[],'Unexpected browser errors');console.log(`날씨·입력 반응 브라우저 시나리오 ${count}개 통과`);
 } finally {await browser.close();await site.close();}

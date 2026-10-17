@@ -743,7 +743,7 @@ html[data-theme] .notes-editor .ql-editor { padding: 0; min-height: 450px; color
   .account-email { font-size: 16px; }
 }
 
-/* Racing wordmark: the existing helmet F stays beside the bilingual logo. */
+/* Gomssi app icon and the bilingual racing wordmark. */
 .brand-lockup { display: block; flex-shrink: 0; line-height: 0; }
 html[data-theme] .brand-lockup .freeter-wordmark { display: block; width: 148px; height: auto; object-fit: contain; }
 html[data-theme] .profile-wordmark.freeter-wordmark { display: block; width: 220px; max-width: 100%; height: auto; margin: 0 0 8px; object-fit: contain; }
@@ -751,13 +751,6 @@ html[data-theme] .profile-wordmark.freeter-wordmark { display: block; width: 220
 .notes-editor .ql-editor.memo-input-active::before { display: none !important; }
 .notes-editor .ql-editor::before { transition: none !important; animation: none !important; }
 
-.gomssi-weather { position: fixed; z-index: 35; right: 24px; bottom: 24px; width: 96px; height: 119px; pointer-events: none; }
-.gomssi-button { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; width: 100%; height: 100%; padding: 0; pointer-events: auto; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.gomssi-button img { display: block; width: 96px; height: 96px; object-fit: contain; transform-origin: 50% 95%; filter: drop-shadow(0 5px 5px #00000016); animation: gomssi-greeting 4.5s ease-in-out infinite; }
-.gomssi-button:focus-visible { outline: 2px solid var(--accent); border-radius: 18px; outline-offset: 3px; }
-.gomssi-button:hover img, .gomssi-button[aria-expanded='true'] img { animation-play-state: paused; transform: rotate(-5deg) translateY(-3px); }
-.gomssi-bubble { position: absolute; top: 0; right: 7px; padding: 5px 10px; white-space: nowrap; font-size: 10px; font-weight: 700; line-height: 1.5; letter-spacing: -.2px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 11px 11px 3px 11px; box-shadow: 0 3px 12px #0000000a; }
-@keyframes gomssi-greeting { 0%, 65%, 100% { transform: translateY(0) rotate(0); } 20% { transform: translateY(-5px) rotate(-5deg); } 35% { transform: translateY(-4px) rotate(4deg); } 48% { transform: translateY(-2px) rotate(-3deg); } }
 .weather-panel { position: absolute; bottom: calc(100% + 10px); right: 0; width: 320px; max-width: calc(100vw - 32px); max-height: min(540px, calc(100dvh - 195px)); overflow-y: auto; overscroll-behavior: contain; pointer-events: auto; padding: 23px; border: 1px solid var(--border); border-radius: 24px; background: var(--surface); box-shadow: 0 15px 65px #00000025; color: var(--text); }
 .weather-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .weather-eyebrow { color: var(--accent); font-size: 8px; letter-spacing: 1.8px; font-weight: 750; }
@@ -786,23 +779,17 @@ html[data-theme] .profile-wordmark.freeter-wordmark { display: block; width: 220
 .weather-source { display: inline-block; margin-top: 5px; color: var(--muted); font-size: 9px; text-decoration: underline; text-underline-offset: 3px; }
 .weather-loading, .weather-error { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 155px; gap: 15px; }
 .weather-loading > span, .weather-error > span { color: var(--muted); font-size: 52px; }
-body:has(dialog[open]) .gomssi-weather { visibility: hidden; }
 @media (max-width: 800px) {
   html[data-theme] .mobile-brand { gap: 6px; }
   html[data-theme] .mobile-brand .freeter-wordmark { width: clamp(82px, 26vw, 118px); height: auto; }
-  .gomssi-weather { right: 12px; bottom: calc(77px + env(safe-area-inset-bottom)); width: 70px; height: 91px; }
-  .gomssi-button img { width: 73px; height: 73px; }
-  .gomssi-bubble { top: 0; right: 0; padding: 3px 8px; font-size: 9px; }
   .weather-panel { padding: 21px; border-radius: 22px; }
 }
 @media (max-width: 360px) {
   html[data-theme] .mobile-brand { gap: 3px; }
   html[data-theme] .topbar { gap: 7px; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .gomssi-button img { animation: none !important; }
-}
-@media print { .gomssi-weather { display: none; } }
+
+
 
 /* Both marks share the rail's centre, independent of their different widths. */
 @media (min-width: 801px) {
@@ -834,17 +821,10 @@ body:has(dialog[open]) .gomssi-weather { visibility: hidden; }
 .weather-metric strong { display: block; margin-top: 6px; font-size: 18px; line-height: 1.4; letter-spacing: -.5px; color: var(--text); }
 .weather-metric small { display: block; margin-top: 2px; color: var(--muted); font-size: 10px; }
 .weather-air-note { color: var(--muted); font-size: 9px; line-height: 1.7; margin-top: 10px; }
-.gomssi-bubble { top: auto; bottom: 99px; right: 0; width: 210px; max-width: calc(100vw - 36px); padding: 12px 14px; white-space: normal; font-size: 12px; font-weight: 500; line-height: 1.7; border-radius: 17px 17px 4px 17px; text-align: left; }
-.gomssi-bubble small { display: block; color: var(--accent); font-size: 10px; margin-top: 5px; font-weight: 600; }
-.gomssi-button[aria-expanded='true'] .gomssi-bubble { visibility: hidden; }
 @media (max-width: 800px) {
-  .gomssi-bubble { bottom: 75px; width: 184px; padding: 10px 12px; font-size: 11px; }
-  .gomssi-bubble small { font-size: 9px; }
   .weather-panel { padding: 19px; }
   .weather-metric { padding: 10px; }
 }
-/* Speech is decorative: underlying controls remain clickable. */
-.gomssi-bubble { pointer-events: none; }
 @media (max-width: 800px) {
   html { scroll-padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
   .workspace-updates, .notes-bottom-bar, .export-actions { scroll-margin-bottom: 115px; }
@@ -855,13 +835,8 @@ body:has(dialog[open]) .gomssi-weather { visibility: hidden; }
 .header-clock .today { display: block; white-space: nowrap; color: var(--muted); font-size: 11px; }
 .clock-face { display: flex; align-items: center; gap: 7px; }
 #live-clock { min-width: 68px; text-align: right; font-size: 14px; font-weight: 650; letter-spacing: .2px; font-variant-numeric: tabular-nums; }
-.seconds-toggle { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 10px; color: var(--muted); background: var(--bg); font-size: 11px; }
-.seconds-toggle[aria-pressed='true'] { color: var(--accent); background: var(--blue-soft); border-color: var(--accent); }
-.seconds-toggle:focus-visible, .gomssi-hide:focus-visible, .gomssi-restore:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.gomssi-hide { position: absolute; right: -2px; bottom: 0; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 19px; pointer-events: auto; cursor: pointer; }
-.gomssi-restore { min-width: 76px; height: 32px; padding: 6px 11px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--muted); font-size: 10px; pointer-events: auto; cursor: pointer; }
-.gomssi-weather[data-collapsed='true'] { width: auto; height: 32px; }
-.gomssi-button[hidden], .gomssi-hide[hidden], .gomssi-restore[hidden] { display: none; }
+.seconds-toggle { display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 0; color: var(--text); background: transparent; font-size: 11px; }
+.seconds-toggle[aria-pressed='true'] { color: var(--accent); }
 @media (min-width: 801px) and (max-width: 1100px) {
   .header-clock { gap: 8px; }
   .header-clock .today { font-size: 10px; }
@@ -873,11 +848,10 @@ body:has(dialog[open]) .gomssi-weather { visibility: hidden; }
   .header-clock { grid-column: 1 / -1; grid-row: 2; width: 100%; margin: 0; justify-content: space-between; }
   .header-clock .today { font-size: 10px; }
   #live-clock { font-size: 13px; }
-  .gomssi-hide { right: -1px; bottom: -1px; }
 }
 
 /* A small illustrated clock replaces the text-only seconds switch. */
-.seconds-toggle { border-color: transparent; border-radius: 50%; background: transparent; color: var(--accent); }
+.seconds-toggle { border: 0; border-radius: 0; background: transparent; color: var(--text); }
 .clock-illustration { width: 29px; height: 29px; display: block; }
 .clock-second-hand { opacity: 0; }
 .seconds-toggle[aria-pressed='true'] .clock-second-hand { opacity: 1; }
@@ -905,3 +879,17 @@ body:has(dialog[open]) .gomssi-weather { visibility: hidden; }
   #rest-adjust-dialog .dialog-actions .button { flex: 1; font-size: 12px; padding: 11px 9px; }
   .schedule-adjust-bar > span { font-size: 10px; }
 }
+
+/* Weather lives in the header; there is no floating mascot or speech bubble. */
+.header-weather { display: flex; align-items: center; flex: 0 0 auto; }
+.header-weather-toggle { display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 3px 5px; color: var(--body); font-size: 11px; font-weight: 600; white-space: nowrap; }
+.header-weather-toggle svg { width: 23px; height: 23px; color: var(--accent); }
+.header-weather-toggle[aria-expanded='true'] { color: var(--accent); }
+.header-weather-toggle:focus-visible, .seconds-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.header-weather .weather-panel { position: fixed; z-index: 60; top: var(--weather-top,90px); left: var(--weather-left,16px); bottom: auto; right: auto; max-height: calc(100vh - var(--weather-top,90px) - 16px); max-height: calc(100dvh - var(--weather-top,90px) - 16px); }
+.seconds-toggle, .seconds-toggle:hover, .seconds-toggle:active, .seconds-toggle[aria-pressed='true'] { background: transparent; border: 0; border-radius: 0; box-shadow: none; -webkit-tap-highlight-color: transparent; }
+.seconds-toggle[aria-pressed='true'] { color: var(--accent); }
+.clock-illustration { width: 25px; height: 25px; }
+@media(max-width:800px){ .header-clock { gap: 6px; } .header-weather-toggle { font-size: 10px; gap: 4px; } }
+@media(min-width:801px) and (max-width:1100px){ .header-clock { gap: 8px; } .breadcrumb { font-size: 10px; gap: 4px; } }
+@media print { .header-weather { display: none; } }

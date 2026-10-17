@@ -1,7 +1,7 @@
 /* Generated as sw.js by scripts/build-site.mjs. */
-const RELEASE = '01f57f08aaad';
+const RELEASE = '4440c632e979';
 const CACHE = `dangi-alba-shell-${RELEASE}`;
-const ASSETS = ["./","./index.html","./schedule.html","./calculator.html","./records.html","./stats.html","./guide.html","./privacy.html","./settings.html","./notes.html","./style.css?v=01f57f08aaad","./brand.css?v=01f57f08aaad","./vendor/quill.core.css?v=01f57f08aaad","./site.js?v=01f57f08aaad","./icon.svg?v=01f57f08aaad","./assets/freeter-192.png?v=01f57f08aaad","./assets/freeter-512.png?v=01f57f08aaad","./assets/freeter-wordmark.png?v=01f57f08aaad","./icon.svg","./manifest.webmanifest","./assets/freeter-display.woff2","./assets/freeter-192.png","./assets/freeter-512.png","./assets/gomssi.png","./assets/freeter-wordmark.png","./assets/weather-illustrations.png"];
+const ASSETS = ["./","./index.html","./schedule.html","./calculator.html","./records.html","./stats.html","./guide.html","./privacy.html","./settings.html","./notes.html","./style.css?v=4440c632e979","./brand.css?v=4440c632e979","./vendor/quill.core.css?v=4440c632e979","./site.js?v=4440c632e979","./icon.svg?v=4440c632e979","./manifest.webmanifest?v=4440c632e979","./assets/freeter-192.png?v=4440c632e979","./assets/freeter-512.png?v=4440c632e979","./assets/freeter-wordmark.png?v=4440c632e979","./icon.svg","./manifest.webmanifest","./assets/freeter-display.woff2","./assets/freeter-192.png","./assets/freeter-512.png","./assets/gomssi.png","./assets/freeter-wordmark.png","./assets/weather-illustrations.png","./icon.svg?v=gomssi-face-20261017","./assets/freeter-192.png?v=gomssi-face-20261017","./assets/freeter-512.png?v=gomssi-face-20261017"];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS.map(path => new Request(path, { cache: 'reload' })))));
   self.skipWaiting();

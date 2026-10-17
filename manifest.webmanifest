@@ -11,18 +11,18 @@
   "theme_color": "#ff6b00",
   "icons": [
     {
-      "src": "./icon.svg",
+      "src": "./icon.svg?v=gomssi-face-20261017",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "./assets/freeter-192.png",
+      "src": "./assets/freeter-192.png?v=gomssi-face-20261017",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "./assets/freeter-512.png",
+      "src": "./assets/freeter-512.png?v=gomssi-face-20261017",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
