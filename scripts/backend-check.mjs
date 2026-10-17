@@ -4,22 +4,17 @@ import { cloudConfig } from '../cloud.js';
 
 const config = cloudConfig(JSON.parse(await readFile(new URL('../cloud-config.json', import.meta.url), 'utf8')));
 if (!config) throw new Error('Supabase public configuration is missing');
-// The free project can take time to answer after inactivity. These probes are read-only
-// (or an impossible NULL write), so a single transport retry does not change user data.
+// Pool acquisition can fail only after ~63 seconds. Wait for the actual PGRST003
+// response once instead of adding a second request to the blocked connection pool.
 const request = async (path, options = {}) => {
-  for(let attempt=0;attempt<2;attempt++){
-    try{
-      const response=await fetch(config.url+path,{...options,headers:{apikey:config.publishableKey,...options.headers},credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(30000)});
-      if(attempt===0&&response.status>=500){await response.body?.cancel();await new Promise(resolve=>setTimeout(resolve,1000));continue;}
-      return response;
-    }catch(error){if(attempt===1)throw error;await new Promise(resolve=>setTimeout(resolve,1000));}
-  }
+  return fetch(config.url+path,{...options,headers:{apikey:config.publishableKey,...options.headers},credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(path.startsWith('/rest/')?70000:10000)});
 };
 let passed = 0;
 async function blocked(path, options) {
   const response = await request(path, options);
   if (![401, 403].includes(response.status)) {
-    await response.body?.cancel();
+    if(response.status===504){const body=await response.json().catch(()=>null);if(body?.code==='PGRST003')throw new Error('PGRST003: Data API cannot acquire a database connection from its pool (HTTP 504). Inspect DB connections and PostgREST health; sign-in is a separate service.');}
+    else await response.body?.cancel();
     throw new Error(`Anonymous access must be denied (HTTP ${response.status}); response body omitted`);
   }
   const error = await response.json();

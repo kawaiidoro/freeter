@@ -11,15 +11,15 @@ class MemoryStorage{
  setItem(key,value){if(this.blocked)throw Error('Quota');this.data.set(key,value);}
  removeItem(key){this.data.delete(key);}
 }
-function harness(t,{server=new Map(),id='alice',storage=new MemoryStorage(),onWorkspace=()=>{},request,requestTimeout=15000}={}){
+function harness(t,{server=new Map(),id='alice',storage=new MemoryStorage(),onWorkspace=()=>{},request,requestTimeout=15000,clientConfig=config}={}){
  const control={server,id,offline:false,readGate:null,writeGate:null,reads:0,writes:0,subscription:null,verifiedId:null},client={};
- client.auth={getUser:async()=>control.verifyOffline?{data:{user:null},error:{code:'NETWORK'}}:({data:{user:{id:control.verifiedId||control.id,email:control.id+'@example.test'}}}),getSession:async()=>({data:{session:control.id?{user:{id:control.id}}:null}}),onAuthStateChange:callback=>{control.subscription=callback;return{data:{subscription:{unsubscribe(){}}}};},exchangeCodeForSession:async code=>{control.code=code;return{error:control.exchangeError||null};},signInWithOAuth:async options=>{control.oauth=options;return{data:{url:config.url+'/auth/v1/authorize?provider=google'}};},signOut:async()=>{if(control.signOutGate)await control.signOutGate;return{error:null};}};
+ client.auth={getUser:async()=>control.verifyOffline?{data:{user:null},error:{code:'NETWORK'}}:({data:{user:{id:control.verifiedId||control.id,email:control.id+'@example.test',...control.userProps}}}),getSession:async()=>({data:{session:control.id?{user:{id:control.id}}:null}}),onAuthStateChange:callback=>{control.subscription=callback;return{data:{subscription:{unsubscribe(){}}}};},exchangeCodeForSession:async code=>{control.code=code;return{error:control.exchangeError||null};},signInWithOAuth:async options=>{control.oauth=options;return{data:{url:config.url+'/auth/v1/authorize?provider=google'}};},signOut:async()=>{if(control.signOutGate)await control.signOutGate;return{error:null};}};
  client.from=()=>({select:()=>({eq:(_key,user)=>({maybeSingle:async()=>{control.reads++;await control.beforeRead?.(user);if(control.readGate)await control.readGate;if(control.offline)throw Error('Offline');return{data:clone(server.get(user)||null),error:null};}})})});
  client.rpc=async(_name,args)=>{const owner=control.id;control.writes++;if(control.writeGate)await control.writeGate;if(control.offline)return{error:{code:'NETWORK'}};const prior=server.get(owner);
   if((prior?.revision||0)!==args.p_expected_revision||(prior?.generation||1)!==args.p_expected_generation)return{error:{code:'40001'}};
   const next={data:clone(control.dropWriteData?(prior?.data||emptyState()):args.p_data),revision:(prior?.revision||0)+1,generation:(prior?.generation||1)+(prior&&args.p_reset?1:0),updated_at:new Date().toISOString()};server.set(owner,next);return{data:[{revision:next.revision,generation:next.generation,updated_at:next.updated_at}],error:null};
  };
- const cloud=new FreeterCloud({config,createClient:(_url,_key,options)=>{control.options=options;return client;},storage,onWorkspace,delay:1000000,requestTimeout,request:request|| (async()=>({ok:true,json:async()=>({external:{google:!control.googleDisabled}})}))});t.after(()=>cloud.stop());
+ const cloud=new FreeterCloud({config:clientConfig,createClient:(_url,_key,options)=>{control.options=options;return client;},storage,onWorkspace,delay:1000000,requestTimeout,request:request|| (async()=>({ok:true,json:async()=>({external:{google:!control.googleDisabled}})}))});t.after(()=>cloud.stop());
  return{cloud,control,storage,signIn:async()=>cloud.sessionChanged({user:{id:control.id}})};
 }
 const gate=()=>{let release;const promise=new Promise(resolve=>{release=resolve;});return{promise,release};};
@@ -164,4 +164,18 @@ test('로그아웃 중 저장소 접근이 막혀도 편집 잠금을 해제하�
  const{cloud,storage,signIn}=harness(t);await signIn();cloud.save({...emptyState(),workMemo:'Do not lose this note'});
  const remove=storage.removeItem.bind(storage);storage.removeItem=()=>{throw new Error('Blocked storage');};
  await assert.rejects(cloud.signOut(),/브라우저 저장소/);assert.equal(cloud.signingOut,false);assert.equal(cloud.authWritesBlocked,false);assert.equal(cloud.user.id,'alice');assert.equal(JSON.parse(storage.getItem(cloud.cacheKey)).data.workMemo,'Do not lose this note');storage.removeItem=remove;
+});
+
+test('허용 목록 밖의 서버 검증 계정은 기기 캐시·REST를 열지 않고 로그아웃',async t=>{
+ const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode('alice@example.test'))),n=>n.toString(16).padStart(2,'0')).join('');
+ const{cloud,control,storage,signIn}=harness(t,{id:'bob',clientConfig:{...config,allowedEmailHash:hash}});
+ control.userProps={email_confirmed_at:new Date().toISOString(),app_metadata:{providers:['google']}};storage.setItem('freeter:account:abcdefghijklmnopqrst:bob','do not read');
+ await signIn();assert.equal(cloud.user,null);assert.equal(control.reads,0);assert.equal(control.writes,0);assert.match(cloud.snapshot.label,/등록된 Google 계정만/);assert.equal(storage.getItem('freeter:account:abcdefghijklmnopqrst:bob'),'do not read');
+ control.id='alice';await signIn();assert.equal(cloud.user.id,'alice');
+});
+test('서버 오류 시 자동 요청은 지수 간격으로 대기하고 명시적 재시도는 즉시 수행',async t=>{
+ const{cloud,control,signIn}=harness(t);await signIn();control.offline=true;await cloud.sync();const reads=control.reads;
+ assert.ok(cloud.retryAt>Date.now());await cloud.sync({automatic:true});assert.equal(control.reads,reads);
+ await cloud.sync();assert.equal(control.reads,reads+1);assert.equal(cloud.syncFailures,2);
+ control.offline=false;await cloud.sync();assert.equal(cloud.syncFailures,0);assert.equal(cloud.retryAt,0);assert.equal(cloud.phase,'synced');
 });

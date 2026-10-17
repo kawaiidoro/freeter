@@ -4,7 +4,7 @@
 
 ## 1. 프로젝트의 공개 설정
 
-Supabase 프로젝트의 **Connect** 또는 **Settings → Data API / API Keys**에서 Project URL과 Publishable key를 확인합니다. `cloud-config.json`에는 아래 두 공개 값만 넣습니다.
+Supabase 프로젝트의 **Connect** 또는 **Settings → Data API / API Keys**에서 Project URL과 Publishable key를 확인합니다. `cloud-config.json`에는 Project URL·Publishable key·허용 계정의 이메일 SHA-256 해시만 넣습니다.
 
 ```json
 {
@@ -13,7 +13,7 @@ Supabase 프로젝트의 **Connect** 또는 **Settings → Data API / API Keys**
 }
 ```
 
-`service_role`, `sb_secret_…`, DB 비밀번호와 Google client secret은 이 파일이나 GitHub 저장소에 넣지 않습니다. 공개 키는 계정 권한을 부여하지 않으며 DB의 RLS와 사용자 인증이 접근을 제한합니다. 공개 설정이 비어 있으면 기존 도구는 동작하고 계정 로그인은 준비 중으로 표시합니다.
+`service_role`, `sb_secret_…`, DB 비밀번호와 Google client secret은 이 파일이나 GitHub 저장소에 넣지 않습니다. `allowedEmailHash`는 확인한 소유자 이메일을 소문자로 정규화한 SHA-256 값입니다. 실제 서버 제한에는 소유자 RLS와 Auth Hook도 적용해야 합니다. 공개 키는 계정 권한을 부여하지 않으며 DB의 RLS와 사용자 인증이 접근을 제한합니다. 공개 설정이 비어 있으면 기존 도구는 동작하고 계정 로그인은 준비 중으로 표시합니다.
 
 ## 2. 데이터베이스 설치
 
@@ -25,7 +25,7 @@ NODE_USE_ENV_PROXY=1 node scripts/setup-supabase.mjs
 
 Supabase Personal Access Token은 계정의 Access Tokens 화면에서 발급합니다. 토큰은 채팅·GitHub·공개 설정에 넣지 않습니다. 스크립트는 이 프로젝트의 테이블·RLS·저장 함수와 사이트·로그인 복귀 주소를 설정하고 익명 접근 차단을 검사합니다. 기존 리디렉션 항목은 보존합니다. Google 인증 제공자의 클라이언트 정보가 이미 설정되어 있으면 이를 유지합니다.
 
-관리 토큰을 제공하지 않는 경우 Supabase의 **SQL Editor → New query**에 [마이그레이션](../supabase/migrations/202610160001_workspaces.sql)을 붙여넣고 실행합니다. 다음으로 **Authentication → URL Configuration**에서 설정합니다.
+관리 토큰을 제공하지 않는 경우 Supabase의 **SQL Editor → New query**에 [소유자 설치 SQL](../supabase/setup-owner.sql)을 붙여넣고 실행합니다. 다음으로 **Authentication → URL Configuration**에서 설정합니다.
 
 - Site URL: `https://kawaiidoro.github.io/freeter/`
 - Redirect URLs: `https://kawaiidoro.github.io/freeter/` (정확한 주소, 와일드카드 불필요)
@@ -56,7 +56,7 @@ node scripts/security-audit.mjs
 
 같은 Google 계정으로 PC·모바일에서 로그인하면 근무표·알바·입금·메모와 서식이 자동 저장되고 약 10초 간격으로 다른 기기의 변경을 확인합니다. 독립된 기록 추가는 합치며 같은 항목의 동시 편집은 자동 덮어쓰기를 멈추고 백업·선택을 제공합니다. 오프라인 편집은 기기에 보관하고 연결 후 재시도합니다. 오프라인 최초 진입에서 세션을 검증하지 못하면 계정 기록을 열지 않으며, 온라인 복귀·앱 재진입 때 다시 확인합니다. 저장 후 서버의 본문을 재조회해야 동기화 완료로 표시하며, 계정 창의 최근 서버 확인 시각으로 확인할 수 있습니다.
 
-로그아웃은 저장 서버의 응답을 기다리지 않고 기기의 로그인 세션을 제거한 뒤 로그인 전 브라우저 기록으로 돌아갑니다. 서버에 확인된 계정 캐시는 지우며, 미전송 편집은 해당 계정의 UID별 기기 캐시에 보관합니다. 같은 Google 계정으로 다시 로그인하면 전송을 재개하고 다른 계정에는 표시하거나 업로드하지 않습니다. 계정 창의 **다른 Google 계정으로 로그인**으로 계정 선택 화면을 열 수 있습니다. 연결 오류로 서버 세션 해제를 확인하지 못한 경우에는 기기 로그아웃과 구분하여 알립니다. **전체 데이터 삭제**는 로그인 상태에서 해당 계정의 기록을 비우고 다른 기기에 반영합니다. Google 계정 자체를 삭제하지 않습니다.
+로그아웃은 저장 서버의 응답을 기다리지 않고 기기의 로그인 세션을 제거한 뒤 로그인 전 브라우저 기록으로 돌아갑니다. 서버에 확인된 계정 캐시는 지우며, 미전송 편집은 해당 계정의 UID별 기기 캐시에 보관합니다. 같은 Google 계정으로 다시 로그인하면 전송을 재개하고 다른 계정에는 표시하거나 업로드하지 않습니다. 운영 사이트는 지정된 소유자 Google 계정만 허용합니다. 연결 오류로 서버 세션 해제를 확인하지 못한 경우에는 기기 로그아웃과 구분하여 알립니다. **전체 데이터 삭제**는 로그인 상태에서 해당 계정의 기록을 비우고 다른 기기에 반영합니다. Google 계정 자체를 삭제하지 않습니다.
 
 ## 실제 서비스 확인
 
@@ -68,3 +68,5 @@ node scripts/security-audit.mjs
 인증 서버와 데이터 서버는 별도로 동작합니다. 로그인 성공만으로 서버 저장 성공을 뜻하지 않습니다. `node scripts/backend-check.mjs`가 Google 활성화까지만 통과하고 REST 조회에서 시간 초과되면 Supabase 프로젝트의 Database/Data API 상태와 로그를 확인하세요. 프로젝트가 일시 중지되었다면 복구하고, 정상 표시인데 응답하지 않으면 프로젝트 설정의 Restart project 또는 Supabase 지원을 통해 데이터 서비스를 복구합니다. 삭제나 새 프로젝트 생성은 필요하지 않습니다.
 
 관리 자동화를 맡기려면 기존 환경 설정의 `SUPABASE_ACCESS_TOKEN`에 보안 값을 연결하세요. 채팅으로 보내거나 `cloud-config.json`에 넣지 않습니다. 환경에 토큰이 없으면 공개 키로 프로젝트를 재시작하거나 DB 설정을 바꿀 수 없습니다. 데이터 API가 회복된 뒤 공개 보안 검사와 실제 로그인 상태의 저장·재조회·다른 기기 반영을 각각 확인해야 합니다.
+
+현재 확인된 `PGRST003` 연결풀 장애와 서버 로그인 제한 설정은 [진단·복구 안내](SYNC-RECOVERY.md)를 따릅니다. 소유자 SQL 실행 후 Authentication → Hooks에서 Before User Created와 Custom Access Token도 활성화해야 서버 로그인을 제한할 수 있습니다.

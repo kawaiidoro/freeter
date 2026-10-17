@@ -1,4 +1,5 @@
 {
   "url": "https://dsqhfwhurecpcvxpbafo.supabase.co",
-  "publishableKey": "sb_publishable_wwAJDFAUZdwMD8Ium6fjIg_9Hs5PGFv"
+  "publishableKey": "sb_publishable_wwAJDFAUZdwMD8Ium6fjIg_9Hs5PGFv",
+  "allowedEmailHash": "ef27bc8bb6355e66375322949c4d1b92ff3a29fac3446bd764c0f1782ab74b7f"
 }

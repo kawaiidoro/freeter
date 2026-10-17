@@ -103,7 +103,7 @@ var FreeterImage=(()=>{var P=Object.defineProperty;var tt=Object.getOwnPropertyD
 return FreeterImage;
 }
 
-const CLOUD_CONFIG = {"url":"https://dsqhfwhurecpcvxpbafo.supabase.co","publishableKey":"sb_publishable_wwAJDFAUZdwMD8Ium6fjIg_9Hs5PGFv"};
+const CLOUD_CONFIG = {"url":"https://dsqhfwhurecpcvxpbafo.supabase.co","publishableKey":"sb_publishable_wwAJDFAUZdwMD8Ium6fjIg_9Hs5PGFv","allowedEmailHash":"ef27bc8bb6355e66375322949c4d1b92ff3a29fac3446bd764c0f1782ab74b7f"};
 const STORAGE_KEY = 'dangi-alba:data';
 const VERSION = 3;
 const MEMO_SIZES = ['14px', '16px', '17px', '18px', '20px', '24px', '28px', '32px'];
@@ -507,7 +507,8 @@ function csvText(rows) {
 
 const CLOUD_LIMIT = 2 * 1024 * 1024;
 function cloudConfig(input) {
-  if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(key=>!['url','publishableKey'].includes(key)))throw new Error('공개 Supabase 설정에는 URL과 Publishable key만 넣으세요.');
+  if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(key=>!['url','publishableKey','allowedEmailHash'].includes(key)))throw new Error('공개 Supabase 설정에는 URL·Publishable key·허용 계정 해시만 넣으세요.');
+  if(input.allowedEmailHash!==undefined&&(typeof input.allowedEmailHash!=='string'||!/^[a-f0-9]{64}$/.test(input.allowedEmailHash)))throw new Error('허용 계정 설정을 확인하세요.');
   if (!input?.url && !input?.publishableKey) return null;
   const url = new URL(input.url);
   if (url.protocol !== 'https:' || !/^[a-z0-9]{20}\.supabase\.co$/.test(url.hostname) || url.port || url.username || url.password || url.pathname !== '/' || url.search || url.hash) throw new Error('Supabase Project URL을 확인하세요.');
@@ -517,7 +518,13 @@ function cloudConfig(input) {
     try { const payload = JSON.parse(atob(key.split('.')[1].replaceAll('-', '+').replaceAll('_', '/'))); allowed = payload.role === 'anon' && (!payload.ref || payload.ref === url.hostname.split('.')[0]); } catch { /* Never accept private or malformed keys. */ }
   }
   if (!allowed) throw new Error('프런트엔드에는 Publishable 또는 anon public key만 사용할 수 있습니다.');
-  return { url: url.origin, publishableKey: key, project: url.hostname.split('.')[0] };
+  return { url: url.origin, publishableKey: key, project: url.hostname.split('.')[0], ...(input.allowedEmailHash?{allowedEmailHash:input.allowedEmailHash}:{}) };
+}
+async function allowedGoogleAccount(user, hash) {
+  if(!hash)return true;
+  if(!user?.email_confirmed_at||!user?.email||!user?.app_metadata?.providers?.includes('google'))return false;
+  const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(user.email.trim().toLowerCase()));
+  return [...new Uint8Array(bytes)].map(n=>n.toString(16).padStart(2,'0')).join('')===hash;
 }
 // PostgreSQL JSONB changes object key order. Array order remains meaningful.
 function equalWorkspaceData(a, b) {
@@ -552,6 +559,7 @@ const labels = {
   offline: '연결 대기 · 이 기기의 기록은 보존돼요', conflict: '동시 수정 확인 필요', error: '동기화 확인 필요',
 };
 function cloudError(error) {
+  if(error?.code==='PGRST003')return 'Supabase DB 연결풀이 응답하지 않아요. 기록은 이 기기에 보관하며 연결 요청 간격을 늘려 재시도합니다.';
   if (error?.name === 'TimeoutError' || /timed?\s*out|timeout/i.test(error?.message || '')) return 'Supabase 저장 서버의 응답이 늦어요. 기록은 이 기기에 보관하며 자동으로 다시 연결합니다.';
   if (error?.code === 'FREETER_VERIFY') return '서버에 저장된 내용을 확인하지 못했어요. 이 기기의 기록을 유지하며 다시 확인합니다.';
   if (['42P01', 'PGRST202', 'PGRST205'].includes(error?.code)) return '계정 저장소 설정이 완료되지 않았어요. 잠시 후 다시 시도해 주세요.';
@@ -616,12 +624,16 @@ class FreeterCloud {
     const target = session?.user?.id || null;
     if (target === this.target) return;
     this.target = target; const epoch = ++this.epoch; clearTimeout(this.timer); this.stopPolling(); this.user = null; this.dirty = false; this.reset = false;
+    this.syncFailures=0;this.retryAt=0;
     this.current = emptyState(); this.base = emptyState(); this.revision = 0; this.generation = 1; this.signingOut = false; this.lastSynced = null; this.verifiedAt = null; this.cacheBlocked = false;
     if (!target) { this.onGuest(); this.status('guest'); return; }
     this.status('loading');
     const { data, error } = await this.client.auth.getUser();
     if (epoch !== this.epoch) return;
     if (error || !data.user || data.user.id !== target) { this.target = undefined; this.onGuest(); this.status('error', '계정을 확인하지 못했어요. 인터넷 연결 후 다시 시도해 주세요.'); return; }
+    const allowed=await allowedGoogleAccount(data.user,this.config.allowedEmailHash);
+    if(epoch!==this.epoch)return;
+    if(!allowed){await this.signOut({sessionOwner:target});if(!this.user)this.status('guest','등록된 Google 계정만 로그인할 수 있어요. 허용된 계정을 선택해 주세요.');return;}
     this.user = { id: data.user.id, email: data.user.email || '' };
     this.authWritesBlocked = false;
     try {
@@ -636,7 +648,7 @@ class FreeterCloud {
     }
     this.cacheBlocked = false; this.onWorkspace(copy(this.current));
     await this.sync(); if (epoch !== this.epoch) return;
-    this.interval = setInterval(() => { if (typeof document === 'undefined' || !document.hidden) this.sync(); }, 10000);
+    this.interval = setInterval(() => { if (typeof document === 'undefined' || !document.hidden) this.sync({automatic:true}); }, 10000);
   }
   async resume() {
     if (!this.client) return false;
@@ -668,7 +680,7 @@ class FreeterCloud {
     if (new TextEncoder().encode(JSON.stringify(next)).length > CLOUD_LIMIT) { this.status('error', '계정 저장은 2MB까지 가능해요. 전체 기록을 JSON으로 백업한 후 기록을 정리해 주세요.'); return false; }
     this.current = next; this.dirty = true; this.reset ||= reset; if(reset)this.resetSerial=(this.resetSerial||0)+1;
     try { this.persist(); } catch { this.status('error', '이 기기에 기록을 저장하지 못했어요. 새로고침 전에 JSON으로 백업해 주세요.'); return false; }
-    if (this.phase !== 'conflict') { this.status('pending'); clearTimeout(this.timer); this.timer = setTimeout(() => this.sync(), this.delay); }
+    if (this.phase !== 'conflict') { this.status('pending'); clearTimeout(this.timer); this.timer = setTimeout(() => this.sync({automatic:true}), this.delay); }
     return true;
   }
   async read(user) {
@@ -702,11 +714,12 @@ class FreeterCloud {
     try{this.persist();}catch(error){Object.assign(this,previous);throw error;}
     if (changed) this.onWorkspace(copy(this.current)); return true;
   }
-  async sync() {
+  async sync({automatic=false}={}) {
     if (!this.user || this.cacheBlocked || this.signingOut || this.phase === 'conflict') return false;
+    if(automatic&&Date.now()<(this.retryAt||0))return false;
     if (this.inFlight?.epoch === this.epoch) return this.inFlight.promise;
     const epoch = this.epoch, user = this.user.id;
-    const promise = this.runSync(epoch, user).catch(error => { if (epoch === this.epoch) this.status(error?.code === 'FREETER_VERIFY' ? 'error' : 'offline', cloudError(error)); return false; }).finally(() => { if (this.inFlight?.epoch === epoch) this.inFlight = null; });
+    const promise = this.runSync(epoch, user).then(result=>{if(epoch===this.epoch){this.syncFailures=0;this.retryAt=0;}return result;}).catch(error => { if (epoch === this.epoch) {this.syncFailures=(this.syncFailures||0)+1;this.retryAt=Date.now()+Math.min(60000,10000*2**Math.min(this.syncFailures-1,3));this.status(error?.code === 'FREETER_VERIFY' ? 'error' : 'offline', cloudError(error));} return false; }).finally(() => { if (this.inFlight?.epoch === epoch) this.inFlight = null; });
     this.inFlight = { epoch, promise }; return promise;
   }
   async runSync(epoch, user) {
@@ -749,7 +762,7 @@ class FreeterCloud {
     if (choice === 'remote') { this.applyRemote(remote); return; }
     this.base = copy(remote.data); this.revision = remote.revision; this.generation = remote.generation; this.dirty = true; this.persist(); this.status('pending'); await this.sync();
   }
-  async signOut({discardPending=false}={}) {
+  async signOut({discardPending=false,sessionOwner=this.user?.id}={}) {
     const epoch=this.epoch, key=this.cacheKey, pending=this.dirty&&!discardPending;
     // Saving is local-first: never wait for an unavailable data API to log out.
     // Unsent edits stay under their owner's UID and resume only on that account.
@@ -759,7 +772,7 @@ class FreeterCloud {
     for(const controller of this.requests)controller.abort();
     const authKey=`freeter:auth:${this.config.project}`;
     let accessToken;
-    try{const session=JSON.parse(this.storage.getItem(authKey));if(session?.user?.id===this.user?.id)accessToken=session.access_token;}catch{/* No token is needed for device logout. */}
+    try{const session=JSON.parse(this.storage.getItem(authKey));if(session?.user?.id===sessionOwner)accessToken=session.access_token;}catch{/* No token is needed for device logout. */}
     try{
       if(this.client.auth.stopAutoRefresh)await this.client.auth.stopAutoRefresh();
       if(epoch!==this.epoch){if(!pending&&key&&key!==this.cacheKey){this.storage.removeItem(key);this.storage.removeItem(key+':recovery');}this.authWritesBlocked=false;return {revoked:false,changedAccount:!!this.user,pending};}
@@ -966,7 +979,7 @@ function mountWeatherWidget() {
 }
 
 
-const APP_RELEASE = '30e3c5338400';
+const APP_RELEASE = 'ada2914935b5';
 let latestRelease = APP_RELEASE;
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -1427,8 +1440,8 @@ function serverVerifiedLabel(view) {
 function accountContent() {
   const view=cloud.snapshot;
   const status=`<p class="account-status" data-cloud-status data-status="${esc(view.phase)}" role="status">${esc(view.label)}</p>`;
-  if(!view.user)return `<div class="account-intro"><span class="feature-icon orange">${icon('user')}</span><div><h3>어디서든, 나의 기록</h3><p>Google 계정으로 로그인하면 근무 기록과 메모를 PC·모바일에서 함께 볼 수 있어요.</p></div></div>${status}<button class="button google-login" data-action="google-login" ${!view.configured||view.phase==='loading'?'disabled':''}><span class="google-mark" aria-hidden="true">G</span>Google로 계속하기</button><p class="field-hint">로그인 전 기록은 이 브라우저에 별도로 남아요. 로그인 후 직접 가져올 수 있습니다. <a href="./privacy.html" class="text-link">개인정보 안내</a></p>`;
-  return `<p class="account-email">${esc(view.user.email||'Google 계정')}</p>${status}<p class="field-hint" data-cloud-verified>${esc(serverVerifiedLabel(view))}</p><div class="account-actions"><button class="button primary small" data-action="account-sync">${icon('check')}지금 동기화</button><button class="button secondary small" data-action="account-import">브라우저 기록 가져오기</button><button class="button secondary small" data-action="account-switch">다른 Google 계정으로 로그인</button><button class="button ghost small" data-action="account-logout">로그아웃</button></div><div class="account-conflict" data-cloud-conflict ${view.phase==='conflict'?'':'hidden'}><h3>같은 내용을 다른 기기에서 수정했어요.</h3><p>자동 덮어쓰기를 멈췄어요. 현재 기록을 JSON으로 백업한 뒤 사용할 내용을 선택하세요. 선택 전 두 기록을 모두 백업합니다.</p><div class="account-actions"><button class="button secondary small" data-action="account-use-remote">서버 기록 사용</button><button class="button secondary small" data-action="account-use-local">이 기기 기록 사용</button></div></div><p class="field-hint">변경 사항은 자동으로 저장되며, 다른 기기의 내용은 약 10초 간격으로 확인해요. 서버 전송 전 로그아웃한 기록은 이 기기에 계정별로 보관하고, 같은 Google 계정으로 다시 로그인하면 전송합니다.</p>`;
+  if(!view.user)return `<div class="account-intro"><span class="feature-icon orange">${icon('user')}</span><div><h3>어디서든, 나의 기록</h3><p>등록된 Google 계정 전용 공간이에요. 같은 계정으로 PC·모바일의 기록과 메모를 함께 볼 수 있어요.</p></div></div>${status}<button class="button google-login" data-action="google-login" ${!view.configured||view.phase==='loading'?'disabled':''}><span class="google-mark" aria-hidden="true">G</span>Google로 계속하기</button><p class="field-hint">로그인 전 기록은 이 브라우저에 별도로 남아요. 로그인 후 직접 가져올 수 있습니다. <a href="./privacy.html" class="text-link">개인정보 안내</a></p>`;
+  return `<p class="account-email">${esc(view.user.email||'Google 계정')}</p>${status}<p class="field-hint" data-cloud-verified>${esc(serverVerifiedLabel(view))}</p><div class="account-actions"><button class="button primary small" data-action="account-sync">${icon('check')}지금 동기화</button><button class="button secondary small" data-action="account-import">브라우저 기록 가져오기</button>${!cloud.config?.allowedEmailHash?'<button class="button secondary small" data-action="account-switch">다른 Google 계정으로 로그인</button>':''}<button class="button ghost small" data-action="account-logout">로그아웃</button></div><div class="account-conflict" data-cloud-conflict ${view.phase==='conflict'?'':'hidden'}><h3>같은 내용을 다른 기기에서 수정했어요.</h3><p>자동 덮어쓰기를 멈췄어요. 현재 기록을 JSON으로 백업한 뒤 사용할 내용을 선택하세요. 선택 전 두 기록을 모두 백업합니다.</p><div class="account-actions"><button class="button secondary small" data-action="account-use-remote">서버 기록 사용</button><button class="button secondary small" data-action="account-use-local">이 기기 기록 사용</button></div></div><p class="field-hint">변경 사항은 자동으로 저장되며, 다른 기기의 내용은 약 10초 간격으로 확인해요. 서버 전송 전 로그아웃한 기록은 이 기기에 계정별로 보관하고, 같은 Google 계정으로 다시 로그인하면 전송합니다.</p>`;
 }
 function accountCard() { return `<section class="panel settings-card wide account-card"><h2>내 계정 · 동기화</h2>${accountContent()}</section>`; }
 function openAccount() {

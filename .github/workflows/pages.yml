@@ -28,6 +28,7 @@ jobs:
         run: |
           node scripts/build-vendor.mjs --check
           node scripts/build-site.mjs --check
+          node scripts/build-owner-setup.mjs --check
           node --check site.js
           npm test
           node scripts/security-audit.mjs

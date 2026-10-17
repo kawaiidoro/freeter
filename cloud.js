@@ -2,7 +2,8 @@ import { emptyState, validateState } from './core.js';
 
 export const CLOUD_LIMIT = 2 * 1024 * 1024;
 export function cloudConfig(input) {
-  if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(key=>!['url','publishableKey'].includes(key)))throw new Error('공개 Supabase 설정에는 URL과 Publishable key만 넣으세요.');
+  if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(key=>!['url','publishableKey','allowedEmailHash'].includes(key)))throw new Error('공개 Supabase 설정에는 URL·Publishable key·허용 계정 해시만 넣으세요.');
+  if(input.allowedEmailHash!==undefined&&(typeof input.allowedEmailHash!=='string'||!/^[a-f0-9]{64}$/.test(input.allowedEmailHash)))throw new Error('허용 계정 설정을 확인하세요.');
   if (!input?.url && !input?.publishableKey) return null;
   const url = new URL(input.url);
   if (url.protocol !== 'https:' || !/^[a-z0-9]{20}\.supabase\.co$/.test(url.hostname) || url.port || url.username || url.password || url.pathname !== '/' || url.search || url.hash) throw new Error('Supabase Project URL을 확인하세요.');
@@ -12,7 +13,13 @@ export function cloudConfig(input) {
     try { const payload = JSON.parse(atob(key.split('.')[1].replaceAll('-', '+').replaceAll('_', '/'))); allowed = payload.role === 'anon' && (!payload.ref || payload.ref === url.hostname.split('.')[0]); } catch { /* Never accept private or malformed keys. */ }
   }
   if (!allowed) throw new Error('프런트엔드에는 Publishable 또는 anon public key만 사용할 수 있습니다.');
-  return { url: url.origin, publishableKey: key, project: url.hostname.split('.')[0] };
+  return { url: url.origin, publishableKey: key, project: url.hostname.split('.')[0], ...(input.allowedEmailHash?{allowedEmailHash:input.allowedEmailHash}:{}) };
+}
+export async function allowedGoogleAccount(user, hash) {
+  if(!hash)return true;
+  if(!user?.email_confirmed_at||!user?.email||!user?.app_metadata?.providers?.includes('google'))return false;
+  const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(user.email.trim().toLowerCase()));
+  return [...new Uint8Array(bytes)].map(n=>n.toString(16).padStart(2,'0')).join('')===hash;
 }
 // PostgreSQL JSONB changes object key order. Array order remains meaningful.
 export function equalWorkspaceData(a, b) {
@@ -47,6 +54,7 @@ const labels = {
   offline: '연결 대기 · 이 기기의 기록은 보존돼요', conflict: '동시 수정 확인 필요', error: '동기화 확인 필요',
 };
 export function cloudError(error) {
+  if(error?.code==='PGRST003')return 'Supabase DB 연결풀이 응답하지 않아요. 기록은 이 기기에 보관하며 연결 요청 간격을 늘려 재시도합니다.';
   if (error?.name === 'TimeoutError' || /timed?\s*out|timeout/i.test(error?.message || '')) return 'Supabase 저장 서버의 응답이 늦어요. 기록은 이 기기에 보관하며 자동으로 다시 연결합니다.';
   if (error?.code === 'FREETER_VERIFY') return '서버에 저장된 내용을 확인하지 못했어요. 이 기기의 기록을 유지하며 다시 확인합니다.';
   if (['42P01', 'PGRST202', 'PGRST205'].includes(error?.code)) return '계정 저장소 설정이 완료되지 않았어요. 잠시 후 다시 시도해 주세요.';
@@ -111,12 +119,16 @@ export class FreeterCloud {
     const target = session?.user?.id || null;
     if (target === this.target) return;
     this.target = target; const epoch = ++this.epoch; clearTimeout(this.timer); this.stopPolling(); this.user = null; this.dirty = false; this.reset = false;
+    this.syncFailures=0;this.retryAt=0;
     this.current = emptyState(); this.base = emptyState(); this.revision = 0; this.generation = 1; this.signingOut = false; this.lastSynced = null; this.verifiedAt = null; this.cacheBlocked = false;
     if (!target) { this.onGuest(); this.status('guest'); return; }
     this.status('loading');
     const { data, error } = await this.client.auth.getUser();
     if (epoch !== this.epoch) return;
     if (error || !data.user || data.user.id !== target) { this.target = undefined; this.onGuest(); this.status('error', '계정을 확인하지 못했어요. 인터넷 연결 후 다시 시도해 주세요.'); return; }
+    const allowed=await allowedGoogleAccount(data.user,this.config.allowedEmailHash);
+    if(epoch!==this.epoch)return;
+    if(!allowed){await this.signOut({sessionOwner:target});if(!this.user)this.status('guest','등록된 Google 계정만 로그인할 수 있어요. 허용된 계정을 선택해 주세요.');return;}
     this.user = { id: data.user.id, email: data.user.email || '' };
     this.authWritesBlocked = false;
     try {
@@ -131,7 +143,7 @@ export class FreeterCloud {
     }
     this.cacheBlocked = false; this.onWorkspace(copy(this.current));
     await this.sync(); if (epoch !== this.epoch) return;
-    this.interval = setInterval(() => { if (typeof document === 'undefined' || !document.hidden) this.sync(); }, 10000);
+    this.interval = setInterval(() => { if (typeof document === 'undefined' || !document.hidden) this.sync({automatic:true}); }, 10000);
   }
   async resume() {
     if (!this.client) return false;
@@ -163,7 +175,7 @@ export class FreeterCloud {
     if (new TextEncoder().encode(JSON.stringify(next)).length > CLOUD_LIMIT) { this.status('error', '계정 저장은 2MB까지 가능해요. 전체 기록을 JSON으로 백업한 후 기록을 정리해 주세요.'); return false; }
     this.current = next; this.dirty = true; this.reset ||= reset; if(reset)this.resetSerial=(this.resetSerial||0)+1;
     try { this.persist(); } catch { this.status('error', '이 기기에 기록을 저장하지 못했어요. 새로고침 전에 JSON으로 백업해 주세요.'); return false; }
-    if (this.phase !== 'conflict') { this.status('pending'); clearTimeout(this.timer); this.timer = setTimeout(() => this.sync(), this.delay); }
+    if (this.phase !== 'conflict') { this.status('pending'); clearTimeout(this.timer); this.timer = setTimeout(() => this.sync({automatic:true}), this.delay); }
     return true;
   }
   async read(user) {
@@ -197,11 +209,12 @@ export class FreeterCloud {
     try{this.persist();}catch(error){Object.assign(this,previous);throw error;}
     if (changed) this.onWorkspace(copy(this.current)); return true;
   }
-  async sync() {
+  async sync({automatic=false}={}) {
     if (!this.user || this.cacheBlocked || this.signingOut || this.phase === 'conflict') return false;
+    if(automatic&&Date.now()<(this.retryAt||0))return false;
     if (this.inFlight?.epoch === this.epoch) return this.inFlight.promise;
     const epoch = this.epoch, user = this.user.id;
-    const promise = this.runSync(epoch, user).catch(error => { if (epoch === this.epoch) this.status(error?.code === 'FREETER_VERIFY' ? 'error' : 'offline', cloudError(error)); return false; }).finally(() => { if (this.inFlight?.epoch === epoch) this.inFlight = null; });
+    const promise = this.runSync(epoch, user).then(result=>{if(epoch===this.epoch){this.syncFailures=0;this.retryAt=0;}return result;}).catch(error => { if (epoch === this.epoch) {this.syncFailures=(this.syncFailures||0)+1;this.retryAt=Date.now()+Math.min(60000,10000*2**Math.min(this.syncFailures-1,3));this.status(error?.code === 'FREETER_VERIFY' ? 'error' : 'offline', cloudError(error));} return false; }).finally(() => { if (this.inFlight?.epoch === epoch) this.inFlight = null; });
     this.inFlight = { epoch, promise }; return promise;
   }
   async runSync(epoch, user) {
@@ -244,7 +257,7 @@ export class FreeterCloud {
     if (choice === 'remote') { this.applyRemote(remote); return; }
     this.base = copy(remote.data); this.revision = remote.revision; this.generation = remote.generation; this.dirty = true; this.persist(); this.status('pending'); await this.sync();
   }
-  async signOut({discardPending=false}={}) {
+  async signOut({discardPending=false,sessionOwner=this.user?.id}={}) {
     const epoch=this.epoch, key=this.cacheKey, pending=this.dirty&&!discardPending;
     // Saving is local-first: never wait for an unavailable data API to log out.
     // Unsent edits stay under their owner's UID and resume only on that account.
@@ -254,7 +267,7 @@ export class FreeterCloud {
     for(const controller of this.requests)controller.abort();
     const authKey=`freeter:auth:${this.config.project}`;
     let accessToken;
-    try{const session=JSON.parse(this.storage.getItem(authKey));if(session?.user?.id===this.user?.id)accessToken=session.access_token;}catch{/* No token is needed for device logout. */}
+    try{const session=JSON.parse(this.storage.getItem(authKey));if(session?.user?.id===sessionOwner)accessToken=session.access_token;}catch{/* No token is needed for device logout. */}
     try{
       if(this.client.auth.stopAutoRefresh)await this.client.auth.stopAutoRefresh();
       if(epoch!==this.epoch){if(!pending&&key&&key!==this.cacheKey){this.storage.removeItem(key);this.storage.removeItem(key+':recovery');}this.authWritesBlocked=false;return {revoked:false,changedAccount:!!this.user,pending};}

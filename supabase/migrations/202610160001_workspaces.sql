@@ -1,4 +1,5 @@
 -- Apply as the Supabase postgres migration role, not from a browser.
+-- Owner deployments use supabase/setup-owner.sql, including the later migration.
 begin;
 create table if not exists public.freeter_workspaces (
   user_id uuid primary key references auth.users(id) on delete cascade,
@@ -39,6 +40,10 @@ declare
   saved public.freeter_workspaces%rowtype;
 begin
   if actor is null then raise exception 'Authentication required' using errcode = '42501'; end if;
+  -- Reapplying this base migration must not remove an installed owner gate.
+  if to_regprocedure('private.freeter_account_allowed()') is not null then
+    if not private.freeter_account_allowed() then raise exception 'FREETER_ACCOUNT_NOT_ALLOWED' using errcode = '42501'; end if;
+  end if;
   if p_expected_revision is null or p_expected_revision < 0 or p_expected_generation is null or p_expected_generation < 1 or p_reset is null then
     raise exception 'Invalid revision' using errcode = '22023';
   end if;

@@ -19,6 +19,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: node scripts/build-vendor.mjs --check
       - run: node scripts/build-site.mjs --check
+      - run: node scripts/build-owner-setup.mjs --check
       - run: npm test
       - run: node scripts/security-audit.mjs
       - name: Prepare browser exploit checks

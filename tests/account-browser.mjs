@@ -2,6 +2,7 @@
 // No Google account, production session or hosted database is used here.
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
+import { createHash } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { serveSite } from './support/site-server.mjs';
@@ -13,7 +14,7 @@ const output=process.env.TEST_OUTPUT_DIR||'/tmp/freeter-account-tests';await mkd
 const alice='00000000-0000-4000-8000-000000000001',bob='00000000-0000-4000-8000-000000000002';
 const server=new Map(),errors=[],contexts=[];let chosenUser=alice,pkceSeen=false,exchangeSeen=false,count=0,dataOffline=false,logoutOffline=false;
 const token=id=>Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')+'.'+Buffer.from(JSON.stringify({sub:id,role:'authenticated',aud:'authenticated',iss:config.url+'/auth/v1',iat:Math.floor(Date.now()/1000),exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.isolated_test_signature';
-const user=id=>({id,aud:'authenticated',role:'authenticated',email:id===alice?'alice@example.test':'<img src=x onerror=bad()>@example.test',app_metadata:{provider:'google',providers:['google']},user_metadata:{},created_at:new Date().toISOString()});
+const user=id=>({id,aud:'authenticated',role:'authenticated',email_confirmed_at:new Date().toISOString(),email:id===alice?'alice@example.test':'<img src=x onerror=bad()>@example.test',app_metadata:{provider:'google',providers:['google']},user_metadata:{},created_at:new Date().toISOString()});
 const jsonb=value=>Array.isArray(value)?value.map(jsonb):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).reverse().map(([key,item])=>[key,jsonb(item)])):value;
 async function context(){
  const c=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true,acceptDownloads:true});contexts.push(c);
@@ -109,6 +110,15 @@ try{
   await c.waitForFunction(()=>document.querySelector('.account-top-link')?.dataset.signedIn==='true');await c.goto(new URL('notes.html',site.base).href);await waitMemo(c,'오프라인에서 보존할 Alice 메모');
   await c.waitForFunction(()=>JSON.parse(localStorage.getItem('freeter:account:abcdefghijklmnopqrst:00000000-0000-4000-8000-000000000001'))?.dirty===false);
   assert.equal(server.get(alice).data.workMemo,'오프라인에서 보존할 Alice 메모');assert.equal(server.get(bob).data.workMemo,'Bob의 개인 기록');
+ });
+ await check('소유자 전용 설정에서는 다른 Google 계정을 거절하고 지정 계정만 허용',async()=>{
+  config.allowedEmailHash=createHash('sha256').update('alice@example.test').digest('hex');chosenUser=bob;
+  const c=await newPage(await context());await c.goto(site.base);await c.locator('.account-top-link').click();await c.locator('#account-dialog [data-action="google-login"]').click();
+  await c.waitForURL(url=>url.pathname==='/freeter/'&&!url.searchParams.has('code'));await c.locator('.account-top-link').click();
+  await c.waitForFunction(()=>document.querySelector('#account-dialog [data-cloud-status]')?.textContent.includes('등록된 Google 계정만'));
+  assert.equal(await c.locator('.account-top-link').getAttribute('data-signed-in'),'false');assert.equal(await c.evaluate(()=>Object.keys(localStorage).some(key=>key.startsWith('freeter:account:'))),false);
+  chosenUser=alice;await c.locator('#account-dialog [data-action="google-login"]').click();await c.waitForFunction(()=>document.querySelector('.account-top-link')?.dataset.signedIn==='true');
+  await c.locator('.account-top-link').click();assert.equal(await c.locator('[data-action="account-switch"]').count(),0);assert.equal(await c.locator('.account-email').innerText(),'alice@example.test');
  });
  assert.deepEqual(errors,[],'Unexpected browser errors');console.log(`계정·동기화 브라우저 시나리오 ${count}개 통과 (격리 OAuth/REST 모사)`);
 }finally{await browser.close();await site.close();}
