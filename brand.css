@@ -1335,8 +1335,10 @@ html[data-theme] .coffee-button:hover { background: #ffedb0; border-color: #ffed
 .homescreen-heading p { color: var(--muted); font-size: 13px; }
 .homescreen-steps { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin-top: 24px; }
 .homescreen-steps > div { padding: 15px 16px; border: 1px solid var(--border); border-radius: 15px; min-width: 0; }
-.homescreen-steps strong { font-size: 12px; }
-.homescreen-steps p { color: var(--muted); font-size: 12px; line-height: 1.8; margin-top: 5px; overflow-wrap: anywhere; }
+.homescreen-steps strong, .homescreen-steps p { font-size: 14px; font-weight: 700; line-height: 1.8; }
+.homescreen-steps p { display: flex; align-items: center; flex-wrap: wrap; gap: 5px 7px; color: var(--body); margin-top: 7px; }
+.homescreen-step { display: inline-flex; align-items: center; gap: 7px; }
+.homescreen-steps .homescreen-arrow, .homescreen-steps .homescreen-menu-icon { width: 18px; height: 18px; flex: 0 0 18px; stroke-width: 2.5; }
 .homescreen-banner .homescreen-note { color: var(--muted); font-size: 11px; line-height: 1.8; margin-top: 17px; }
 @media(max-width:600px) {
   .homescreen-banner { padding: 23px 21px; }
