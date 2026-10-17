@@ -25,7 +25,7 @@ export function validateMemoDelta(delta, text) {
 }
 export const DEFAULT_SCHEDULE = {
   names: ['', '', ''], count: 3, start: '10:00', end: '19:00',
-  lunchEnabled: true, lunchStart: '12:00', lunchEnd: '13:00', interval: 60, first: 0, fair: true, rulesVersion: 2,
+  lunchEnabled: true, lunchStart: '12:00', lunchEnd: '13:00', interval: 60, first: 0, fair: true, rulesVersion: 3,
   lunchMode: 'together', lunchMinutes: 60, lunchFirst: 0,
 };
 export const today = () => {
@@ -88,8 +88,9 @@ export function normalizeSchedule(config) {
 }
 export function generateSchedule(config) {
   config = normalizeSchedule(config);
-  if(![1,2].includes(config.rulesVersion))throw new Error('지원하지 않는 근무표 규칙입니다.');
+  if(![1,2,3].includes(config.rulesVersion))throw new Error('지원하지 않는 근무표 규칙입니다.');
   const original = generateOriginalSchedule(config);
+  if (config.rulesVersion === 3 && config.fair) return generateRoundSchedule(config, original);
   if (config.rulesVersion < 2 || !config.lunchEnabled || config.lunchMode === 'together') return original;
   const meals = original.filter(row => row.rest === null);
   const start = original[0].start, end = original.at(-1).end;
@@ -121,6 +122,47 @@ export function generateSchedule(config) {
   build(start,before,true);rows.push(...meals);
   if(!config.fair){postFirst=next;while(lastMeal.includes(postFirst))postFirst=(postFirst+1)%count;}
   next=postFirst;build(meals.at(-1).end,after,false);
+  return rows;
+}
+function generateRoundSchedule(config, original) {
+  const count=config.count, interval=Number(config.interval), first=Number(config.first);
+  const meals=original.filter(row=>row.rest===null), start=original[0].start, end=original.at(-1).end;
+  const mealStart=meals[0]?.start??end, mealEnd=meals.at(-1)?.end??end;
+  const active=end-start-(mealEnd-mealStart), before=mealStart-start;
+  const order=Array.from({length:count},(_,i)=>(first+i)%count), rounds=[];
+  // Complete a whole round at the selected interval before sharing the final
+  // remainder. Never spend one person's remainder before full rounds finish.
+  for(let i=0;i<Math.floor(active/(count*interval));i++)rounds.push(order.map(rest=>({rest,minutes:interval})));
+  const remainder=active%(count*interval);
+  if(remainder)rounds.push(order.map((rest,i)=>({rest,minutes:Math.floor(remainder/count)+(i<remainder%count?1:0)})));
+  if(meals.at(-1)?.lunchers && mealEnd<end) {
+    const lastDiners=meals.at(-1).lunchers;
+    let elapsed=0;
+    outer:for(const round of rounds)for(let i=0;i<round.length;i++){
+      const slot=round[i];
+      if(elapsed+slot.minutes>before){
+        if(lastDiners.includes(slot.rest)) {
+          // Reorder people within this same round (not its time slots). This
+          // keeps complete intervals and equal totals, including tiny schedules.
+          const candidates=[...round.keys()].slice(i+1).concat([...round.keys()].slice(0,i).reverse());
+          const other=candidates.find(j=>!lastDiners.includes(round[j].rest));
+          [slot.rest,round[other].rest]=[round[other].rest,slot.rest];
+        }
+        break outer;
+      }
+      elapsed+=slot.minutes;
+    }
+  }
+  const rows=[];let cursor=start,inserted=false;
+  for(const round of rounds)for(const slot of round){
+    let remaining=slot.minutes;
+    while(remaining>0){
+      if(!inserted&&meals.length&&cursor===mealStart){rows.push(...meals);cursor=mealEnd;inserted=true;}
+      const minutes=Math.min(remaining,!inserted&&meals.length?mealStart-cursor:remaining);
+      rows.push({start:cursor,end:cursor+minutes,rest:slot.rest});cursor+=minutes;remaining-=minutes;
+    }
+  }
+  if(meals.length&&!inserted)rows.push(...meals);
   return rows;
 }
 function generateOriginalSchedule(config) {
@@ -230,7 +272,7 @@ export function validateState(data) {
   if (!config || !Array.isArray(config.names) || config.names.length !== 3 || config.names.some(n => !textValue(n, 40)) || typeof config.lunchEnabled !== 'boolean' || typeof config.fair !== 'boolean') throw new Error('근무표 설정이 올바르지 않습니다.');
   // Draft input may be incomplete; validate types here and times when generating.
   for (const key of ['start', 'end', 'lunchStart', 'lunchEnd']) if (typeof config[key] !== 'string' || (config[key] !== '' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(config[key]))) throw new Error('근무표 시간 형식이 올바르지 않습니다.');
-  if (!Number.isInteger(config.interval) || config.interval < 1 || config.interval > 1440 || ![1,2].includes(config.rulesVersion) || ![2, 3].includes(config.count) || !Number.isInteger(config.first) || config.first < 0 || config.first >= config.count || !['together', 'single', 'pair'].includes(config.lunchMode) || (config.count === 2 && config.lunchMode === 'pair') || !Number.isInteger(config.lunchMinutes) || config.lunchMinutes < 1 || config.lunchMinutes > 480 || !Number.isInteger(config.lunchFirst) || config.lunchFirst < 0 || config.lunchFirst >= config.count) throw new Error('교대 설정이 올바르지 않습니다.');
+  if (!Number.isInteger(config.interval) || config.interval < 1 || config.interval > 1440 || ![1,2,3].includes(config.rulesVersion) || ![2, 3].includes(config.count) || !Number.isInteger(config.first) || config.first < 0 || config.first >= config.count || !['together', 'single', 'pair'].includes(config.lunchMode) || (config.count === 2 && config.lunchMode === 'pair') || !Number.isInteger(config.lunchMinutes) || config.lunchMinutes < 1 || config.lunchMinutes > 480 || !Number.isInteger(config.lunchFirst) || config.lunchFirst < 0 || config.lunchFirst >= config.count) throw new Error('교대 설정이 올바르지 않습니다.');
   const rows = data.schedule.rows;
   if (!Array.isArray(rows) || rows.length > 3000) throw new Error('저장된 근무표가 올바르지 않습니다.');
   if (rows.length) {

@@ -804,11 +804,12 @@ body:has(dialog[open]) .gomssi-weather { visibility: hidden; }
 }
 @media print { .gomssi-weather { display: none; } }
 
-/* Keep the whole desktop lockup inside the navigation rail. */
+/* Both marks share the rail's centre, independent of their different widths. */
 @media (min-width: 801px) {
-  html[data-theme] .brand { width: 100%; padding: 0; gap: 9px; }
-  .brand .brand-lockup { flex: 1; min-width: 0; }
-  html[data-theme] .brand .freeter-wordmark { width: 100%; max-width: 144px; height: auto; }
+  html[data-theme] .brand { width: 100%; padding: 0 0 5px; gap: 10px; flex-direction: column; align-items: center; justify-content: center; }
+  html[data-theme] .brand > img { width: 58px; height: 58px; }
+  .brand .brand-lockup { flex: 0 0 auto; width: 154px; max-width: 100%; min-width: 0; }
+  html[data-theme] .brand .freeter-wordmark { width: 100%; height: auto; }
 }
 #confirm-dialog.memo-confirm { width: 360px; max-width: calc(100vw - 40px); padding: 21px; border-radius: 20px; }
 #confirm-dialog.memo-confirm h2 { font-size: 18px; line-height: 1.45; margin-bottom: 10px; letter-spacing: -.5px; }
@@ -847,4 +848,30 @@ body:has(dialog[open]) .gomssi-weather { visibility: hidden; }
 @media (max-width: 800px) {
   html { scroll-padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
   .workspace-updates, .notes-bottom-bar, .export-actions { scroll-margin-bottom: 115px; }
+}
+
+/* Local device time; the seconds control never shifts the other actions. */
+.header-clock { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+.header-clock .today { display: block; white-space: nowrap; color: var(--muted); font-size: 11px; }
+.clock-face { display: flex; align-items: center; gap: 7px; }
+#live-clock { min-width: 68px; text-align: right; font-size: 14px; font-weight: 650; letter-spacing: .2px; font-variant-numeric: tabular-nums; }
+.seconds-toggle { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 10px; color: var(--muted); background: var(--bg); font-size: 11px; }
+.seconds-toggle[aria-pressed='true'] { color: var(--accent); background: var(--blue-soft); border-color: var(--accent); }
+.seconds-toggle:focus-visible, .gomssi-hide:focus-visible, .gomssi-restore:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.gomssi-hide { position: absolute; right: -2px; bottom: 0; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 19px; pointer-events: auto; cursor: pointer; }
+.gomssi-restore { min-width: 76px; height: 32px; padding: 6px 11px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--muted); font-size: 10px; pointer-events: auto; cursor: pointer; }
+.gomssi-weather[data-collapsed='true'] { width: auto; height: 32px; }
+.gomssi-button[hidden], .gomssi-hide[hidden], .gomssi-restore[hidden] { display: none; }
+@media (min-width: 801px) and (max-width: 1100px) {
+  .header-clock { gap: 8px; }
+  .header-clock .today { font-size: 10px; }
+}
+@media (max-width: 800px) {
+  html[data-theme] .topbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 40px 32px; height: auto; min-height: 100px; padding-block: 9px 8px; gap: 4px 7px; }
+  .mobile-brand { grid-column: 1; grid-row: 1; }
+  .top-actions { grid-column: 2; grid-row: 1; }
+  .header-clock { grid-column: 1 / -1; grid-row: 2; width: 100%; margin: 0; justify-content: space-between; }
+  .header-clock .today { font-size: 10px; }
+  #live-clock { font-size: 13px; }
+  .gomssi-hide { right: -1px; bottom: -1px; }
 }

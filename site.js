@@ -131,7 +131,7 @@ function validateMemoDelta(delta, text) {
 }
 const DEFAULT_SCHEDULE = {
   names: ['', '', ''], count: 3, start: '10:00', end: '19:00',
-  lunchEnabled: true, lunchStart: '12:00', lunchEnd: '13:00', interval: 60, first: 0, fair: true, rulesVersion: 2,
+  lunchEnabled: true, lunchStart: '12:00', lunchEnd: '13:00', interval: 60, first: 0, fair: true, rulesVersion: 3,
   lunchMode: 'together', lunchMinutes: 60, lunchFirst: 0,
 };
 const today = () => {
@@ -194,8 +194,9 @@ function normalizeSchedule(config) {
 }
 function generateSchedule(config) {
   config = normalizeSchedule(config);
-  if(![1,2].includes(config.rulesVersion))throw new Error('지원하지 않는 근무표 규칙입니다.');
+  if(![1,2,3].includes(config.rulesVersion))throw new Error('지원하지 않는 근무표 규칙입니다.');
   const original = generateOriginalSchedule(config);
+  if (config.rulesVersion === 3 && config.fair) return generateRoundSchedule(config, original);
   if (config.rulesVersion < 2 || !config.lunchEnabled || config.lunchMode === 'together') return original;
   const meals = original.filter(row => row.rest === null);
   const start = original[0].start, end = original.at(-1).end;
@@ -227,6 +228,47 @@ function generateSchedule(config) {
   build(start,before,true);rows.push(...meals);
   if(!config.fair){postFirst=next;while(lastMeal.includes(postFirst))postFirst=(postFirst+1)%count;}
   next=postFirst;build(meals.at(-1).end,after,false);
+  return rows;
+}
+function generateRoundSchedule(config, original) {
+  const count=config.count, interval=Number(config.interval), first=Number(config.first);
+  const meals=original.filter(row=>row.rest===null), start=original[0].start, end=original.at(-1).end;
+  const mealStart=meals[0]?.start??end, mealEnd=meals.at(-1)?.end??end;
+  const active=end-start-(mealEnd-mealStart), before=mealStart-start;
+  const order=Array.from({length:count},(_,i)=>(first+i)%count), rounds=[];
+  // Complete a whole round at the selected interval before sharing the final
+  // remainder. Never spend one person's remainder before full rounds finish.
+  for(let i=0;i<Math.floor(active/(count*interval));i++)rounds.push(order.map(rest=>({rest,minutes:interval})));
+  const remainder=active%(count*interval);
+  if(remainder)rounds.push(order.map((rest,i)=>({rest,minutes:Math.floor(remainder/count)+(i<remainder%count?1:0)})));
+  if(meals.at(-1)?.lunchers && mealEnd<end) {
+    const lastDiners=meals.at(-1).lunchers;
+    let elapsed=0;
+    outer:for(const round of rounds)for(let i=0;i<round.length;i++){
+      const slot=round[i];
+      if(elapsed+slot.minutes>before){
+        if(lastDiners.includes(slot.rest)) {
+          // Reorder people within this same round (not its time slots). This
+          // keeps complete intervals and equal totals, including tiny schedules.
+          const candidates=[...round.keys()].slice(i+1).concat([...round.keys()].slice(0,i).reverse());
+          const other=candidates.find(j=>!lastDiners.includes(round[j].rest));
+          [slot.rest,round[other].rest]=[round[other].rest,slot.rest];
+        }
+        break outer;
+      }
+      elapsed+=slot.minutes;
+    }
+  }
+  const rows=[];let cursor=start,inserted=false;
+  for(const round of rounds)for(const slot of round){
+    let remaining=slot.minutes;
+    while(remaining>0){
+      if(!inserted&&meals.length&&cursor===mealStart){rows.push(...meals);cursor=mealEnd;inserted=true;}
+      const minutes=Math.min(remaining,!inserted&&meals.length?mealStart-cursor:remaining);
+      rows.push({start:cursor,end:cursor+minutes,rest:slot.rest});cursor+=minutes;remaining-=minutes;
+    }
+  }
+  if(meals.length&&!inserted)rows.push(...meals);
   return rows;
 }
 function generateOriginalSchedule(config) {
@@ -336,7 +378,7 @@ function validateState(data) {
   if (!config || !Array.isArray(config.names) || config.names.length !== 3 || config.names.some(n => !textValue(n, 40)) || typeof config.lunchEnabled !== 'boolean' || typeof config.fair !== 'boolean') throw new Error('근무표 설정이 올바르지 않습니다.');
   // Draft input may be incomplete; validate types here and times when generating.
   for (const key of ['start', 'end', 'lunchStart', 'lunchEnd']) if (typeof config[key] !== 'string' || (config[key] !== '' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(config[key]))) throw new Error('근무표 시간 형식이 올바르지 않습니다.');
-  if (!Number.isInteger(config.interval) || config.interval < 1 || config.interval > 1440 || ![1,2].includes(config.rulesVersion) || ![2, 3].includes(config.count) || !Number.isInteger(config.first) || config.first < 0 || config.first >= config.count || !['together', 'single', 'pair'].includes(config.lunchMode) || (config.count === 2 && config.lunchMode === 'pair') || !Number.isInteger(config.lunchMinutes) || config.lunchMinutes < 1 || config.lunchMinutes > 480 || !Number.isInteger(config.lunchFirst) || config.lunchFirst < 0 || config.lunchFirst >= config.count) throw new Error('교대 설정이 올바르지 않습니다.');
+  if (!Number.isInteger(config.interval) || config.interval < 1 || config.interval > 1440 || ![1,2,3].includes(config.rulesVersion) || ![2, 3].includes(config.count) || !Number.isInteger(config.first) || config.first < 0 || config.first >= config.count || !['together', 'single', 'pair'].includes(config.lunchMode) || (config.count === 2 && config.lunchMode === 'pair') || !Number.isInteger(config.lunchMinutes) || config.lunchMinutes < 1 || config.lunchMinutes > 480 || !Number.isInteger(config.lunchFirst) || config.lunchFirst < 0 || config.lunchFirst >= config.count) throw new Error('교대 설정이 올바르지 않습니다.');
   const rows = data.schedule.rows;
   if (!Array.isArray(rows) || rows.length > 3000) throw new Error('저장된 근무표가 올바르지 않습니다.');
   if (rows.length) {
@@ -749,14 +791,26 @@ function mountWeatherWidget() {
     <p class="weather-status" role="status" aria-live="polite"></p><div class="weather-content" aria-busy="false"></div>
     <p class="weather-location-note">지역을 선택하거나 내 위치를 허용해 주세요.</p>
     <a class="weather-source" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo · CAMS 대기질 예측 ↗</a>
-    </section><button type="button" class="gomssi-button" aria-label="노가다 곰씨 · 오늘 날씨와 기온 보기" aria-controls="gomssi-weather-panel" aria-haspopup="dialog" aria-expanded="false"><span class="gomssi-bubble" aria-live="off"><span class="gomssi-tip"></span><small>곰씨를 누르면 오늘 날씨 ↗</small></span><img src="./assets/gomssi.png" width="90" height="90" alt="" draggable="false"></button>`;
+    </section><button type="button" class="gomssi-button" aria-label="노가다 곰씨 · 오늘 날씨와 기온 보기" aria-controls="gomssi-weather-panel" aria-haspopup="dialog" aria-expanded="false"><span class="gomssi-bubble" aria-live="off"><span class="gomssi-tip"></span><small>곰씨를 누르면 오늘 날씨 ↗</small></span><img src="./assets/gomssi.png" width="90" height="90" alt="" draggable="false"></button><button type="button" class="gomssi-hide" aria-label="곰씨 숨기기" title="곰씨 숨기기">×</button><button type="button" class="gomssi-restore" hidden>곰씨 켜기</button>`;
+  const hiddenKey='freeter:gomssi-hidden';let collapsed=false;
+  try{collapsed=localStorage.getItem(hiddenKey)==='true';}catch{/* Visibility can still be changed for this visit. */}
+  root.dataset.collapsed=String(collapsed);
+  root.querySelector('.gomssi-button').hidden=collapsed;root.querySelector('.gomssi-hide').hidden=collapsed;root.querySelector('.gomssi-restore').hidden=!collapsed;
   document.body.append(root);
   const find=selector=>root.querySelector(selector), panel=find('.weather-panel'), toggle=find('.gomssi-button'), content=find('.weather-content'), status=find('.weather-status'), citySelect=find('#weather-city');
   let open=false, serial=0, active=null, location={...WEATHER_CITIES[0]}, cache=null;
   const nextTip=gomssiTipDeck();find('.gomssi-tip').textContent=nextTip();
-  setInterval(()=>{if(!document.hidden&&!open&&!document.querySelector('dialog[open]')&&!document.activeElement?.closest('input,textarea,[contenteditable="true"]'))find('.gomssi-tip').textContent=nextTip();},14000);
+  setInterval(()=>{if(!collapsed&&!document.hidden&&!open&&!document.querySelector('dialog[open]')&&!document.activeElement?.closest('input,textarea,[contenteditable="true"]'))find('.gomssi-tip').textContent=nextTip();},14000);
   const setStatus=(message,error=false)=>{status.textContent=message;status.dataset.error=String(error);};
   const close=(focus=true)=>{open=false;serial++;active?.abort();panel.hidden=true;toggle.setAttribute('aria-expanded','false');if(focus)toggle.focus({preventScroll:true});};
+  const collapse=value=>{
+    close(false);collapsed=value;root.dataset.collapsed=String(value);
+    toggle.hidden=value;find('.gomssi-hide').hidden=value;find('.gomssi-restore').hidden=!value;
+    try{localStorage.setItem(hiddenKey,String(value));}catch{/* Do not touch synced work data for a display preference. */}
+    (value?find('.gomssi-restore'):toggle).focus({preventScroll:true});
+  };
+  find('.gomssi-hide').addEventListener('click',()=>collapse(true));
+  find('.gomssi-restore').addEventListener('click',()=>collapse(false));
   const showWeather=data=>{
     // API strings never enter HTML. Only validated numbers and local labels are displayed.
     const metricIcon=kind=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${kind==='humidity'?'<path d="M12 3C9 8 5 11 5 15a7 7 0 0 0 14 0c0-4-4-7-7-12Z"/><path d="M8 15a4 4 0 0 0 4 4"/>':kind==='uv'?'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1 1m12 12 1 1M5 19l1-1M18 6l1-1"/>':kind.startsWith('sun')?'<path d="M3 18h18M6 15a6 6 0 0 1 12 0M12 2v4m-8 3 2 2m12 0 2-2M8 21h8"/>':'<path d="M3 8h12a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 17h6"/>'}</svg>`;
@@ -818,7 +872,7 @@ function mountWeatherWidget() {
 }
 
 
-const APP_RELEASE = 'cfe5f750abd2';
+const APP_RELEASE = '72ac87aab6af';
 let latestRelease = APP_RELEASE;
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -993,15 +1047,15 @@ function scheduleView() {
       </fieldset><fieldset><legend>교대 규칙</legend><div class="form-grid"><label class="field"><span>교대 간격</span><select name="intervalPreset">${[30,60,90,120].map(n=>`<option value="${n}" ${config.interval===n?'selected':''}>${duration(n)}</option>`).join('')}<option value="custom" ${![30,60,90,120].includes(config.interval)?'selected':''}>사용자 지정</option></select></label>
         ${field('교대 간격 (분)','interval','number',config.interval,'min="1" max="1440" required')}
         <label class="field full"><span>첫 번째 휴식자</span><select name="first">${Array.from({length:count},(_,i)=>`<option value="${i}" ${config.first===i?'selected':''} data-person="${i}">${esc(personName(i))}</option>`).join('')}</select></label>
-      </div><label class="check-label fair-check"><input type="checkbox" name="fair" ${config.fair||config.rulesVersion===1?'checked':''}><span>공평하게 배분 <small>교대 간격보다 근무시간 균형을 우선해요.</small></span></label></fieldset>
+      </div><label class="check-label fair-check"><input type="checkbox" name="fair" ${config.fair||config.rulesVersion===1?'checked':''}><span>공평하게 배분 <small>한 바퀴씩 쉰 뒤 남은 시간을 똑같이 나눠요.</small></span></label></fieldset>
       <div id="schedule-error" class="form-error" role="alert" hidden></div><button class="button primary full-width" type="submit">${icon('sparkle')}근무표 생성하기</button><button class="button ghost full-width" type="button" data-action="reset-schedule">설정과 근무표 초기화</button>
     </form></details></section><section id="schedule-result" class="panel result-panel" aria-live="polite"></section></div>
-    <aside class="info-strip">${icon('help')}<p><strong>식사 중인 사람과 근무 중인 사람을 구분해요.</strong> 식사 교대가 모두 끝난 뒤 이전 휴식 순서와 남은 교대시간을 이어갑니다. 2명이 함께 식사하는 구간은 1명만 근무합니다. 배정용 도구로 급여는 계산하지 않아요.</p><a href="#guide">사용법 ${icon('arrow')}</a></aside>`;
+    <aside class="info-strip">${icon('help')}<p><strong>식사 중인 사람과 근무 중인 사람을 구분해요.</strong> 공평 배분을 켜면 모두 교대 간격만큼 한 바퀴씩 쉬고, 남은 시간은 똑같이 나눠요. 식사 직후에는 마지막 식사자가 먼저 근무하도록 휴식 순서를 조정해요. 2명이 함께 식사하는 구간은 1명만 근무합니다. 배정용 도구로 급여는 계산하지 않아요.</p><a href="#guide">사용법 ${icon('arrow')}</a></aside>`;
 }
 function readSchedule() {
   const data = new FormData($('#schedule-form')), count = Number(data.get('count'));
   const lunchMode = count===2 && data.get('lunchMode')==='pair' ? 'single' : data.get('lunchMode');
-  return { names:[0,1,2].map(i=>String(data.get(`person${i}`)??'').slice(0,40)), count, start:data.get('start'), end:data.get('end'), lunchEnabled:data.has('lunchEnabled'), lunchStart:data.get('lunchStart'), lunchEnd:data.get('lunchEnd'), interval:Number(data.get('interval')), first:Math.min(Number(data.get('first')),count-1), fair:data.has('fair'), rulesVersion:2, lunchMode, lunchMinutes:Number(data.get('lunchMinutes')), lunchFirst:Math.min(Number(data.get('lunchFirst')),count-1) };
+  return { names:[0,1,2].map(i=>String(data.get(`person${i}`)??'').slice(0,40)), count, start:data.get('start'), end:data.get('end'), lunchEnabled:data.has('lunchEnabled'), lunchStart:data.get('lunchStart'), lunchEnd:data.get('lunchEnd'), interval:Number(data.get('interval')), first:Math.min(Number(data.get('first')),count-1), fair:data.has('fair'), rulesVersion:3, lunchMode, lunchMinutes:Number(data.get('lunchMinutes')), lunchFirst:Math.min(Number(data.get('lunchFirst')),count-1) };
 }
 const personName = i => state.schedule.config.names[i]?.trim() || `근무자 ${'ABC'[i]}`;
 const resultCount = () => state.schedule.generatedConfig?.count ?? 3;
@@ -1013,10 +1067,10 @@ function renderScheduleResult() {
   if(!rows.length){ container.innerHTML=`<div class="result-placeholder"><span class="large-feature">${icon('calendar')}</span><span class="eyebrow">READY WHEN YOU ARE</span><h2>우리의 하루를<br>가볍게 계획해요.</h2><p>${state.schedule.config.count}인 교대와 식사 방식을 선택하고<br>근무표 생성하기를 눌러 주세요.</p></div>`;return; }
   const people=resultPeople(), totals=scheduleTotals(rows,people.length), names=people.map(personName);
   const gap=Math.max(...totals.map(t=>t.work))-Math.min(...totals.map(t=>t.work));
-  const oldRules=(state.schedule.generatedConfig.rulesVersion??1)<2;
+  const oldRules=(state.schedule.generatedConfig.rulesVersion??1)<3;
   const dirty=JSON.stringify({...state.schedule.config,names:[]})!==JSON.stringify({...state.schedule.generatedConfig,names:[]});
   container.innerHTML=`<div class="panel-title"><div><h2>우리의 근무표</h2><p>${timeText(rows[0].start)} – ${timeText(rows.at(-1).end)} · ${people.length}인 교대</p></div><div class="result-toolbar"><span class="small-badge blue-badge">${state.schedule.generatedConfig.fair?'균형 우선':'순환 교대'}</span><button type="button" class="button secondary small" data-action="edit-schedule">${icon('settings')}설정</button></div></div>
-    ${oldRules?'<p class="inline-notice">점심 복귀와 공평 배분 규칙이 개선됐어요. 기존 배정을 보존했으니 근무표를 다시 생성해 적용해 주세요.</p>':''}
+    ${oldRules?'<p class="inline-notice">한 바퀴씩 휴식 후 남은 시간을 균등하게 나누도록 개선됐어요. 기존 배정을 보존했으니 근무표를 다시 생성해 적용해 주세요.</p>':''}
     ${dirty?'<p class="inline-notice">시간·인원·규칙이 변경됐어요. 생성 버튼을 눌러 반영해 주세요.</p>':''}
     <div class="schedule-legend"><span><i class="legend-dot work"></i>근무</span><span><i class="legend-dot rest"></i>휴식</span><span><i class="legend-dot lunch"></i>점심</span></div><p class="field-hint mobile-scroll-hint">근무자를 누르면 그 시간의 휴식자로 바꿀 수 있어요.</p>
     <div class="table-scroll schedule-scroll" tabindex="0" aria-label="교대 근무표"><table class="schedule-table"><thead><tr><th scope="col">시간</th>${names.map((n,i)=>`<th scope="col" data-person="${i}">${esc(n)}</th>`).join('')}<th scope="col" class="assignment-column">휴식자 변경</th></tr></thead><tbody>
@@ -1252,7 +1306,7 @@ function settingsView() {
   return head('YOUR DATA, YOUR CONTROL', '데이터 · 설정', '내 기록은 나의 것. 주기적인 백업으로 안전하게 보관해 주세요.') + `<div class="settings-grid">${accountCard()}<section class="panel settings-card"><span class="feature-icon blue">${icon('download')}</span><h2>백업과 복원</h2><p>이름, 근무표, 알바 기록과 입금 내역, 메모와 서식을 하나의 JSON 파일로 보관해요. 다른 기기에서는 이 파일을 불러오세요.</p><div class="stack-actions"><button class="button primary" data-action="backup">${icon('download')}전체 기록 JSON 다운로드</button><button class="button secondary" data-action="restore">${icon('upload')}JSON 파일 불러오기 · 복원</button><button class="button ghost" data-action="all-records-csv">${icon('download')}전체 알바 기록 CSV 다운로드</button>${rawStored !== null ? '<button class="button ghost" data-action="raw-backup">기존 브라우저 저장 원본 다운로드</button>' : ''}</div><input type="file" id="restore-file" accept=".json,application/json" hidden><p class="field-hint">복원 전 파일 구조를 검사하고 덮어쓰기 여부를 확인해요.<br>CSV는 엑셀 열람용이에요. 복원하려면 JSON을 사용해 주세요.</p></section><section class="panel settings-card"><span class="feature-icon purple">${icon('moon')}</span><h2>내게 편한 화면</h2><p>늦은 시간에도 편안하게. 테마 설정도 이 브라우저에 저장돼요.</p><div class="theme-options"><button class="theme-option ${state.settings.theme === 'light' ? 'selected' : ''}" data-action="set-theme" data-theme="light">${icon('sun')}라이트 모드</button><button class="theme-option ${state.settings.theme === 'dark' ? 'selected' : ''}" data-action="set-theme" data-theme="dark">${icon('moon')}다크 모드</button></div><div class="data-count"><span>이 브라우저의 알바 기록</span><strong>${state.records.length}건</strong></div><p class="field-hint">저장 형식 버전 ${VERSION} · ${cloud.user?'계정별 저장':'브라우저 저장'}</p></section><section class="panel settings-card wide"><div class="privacy-info">${icon('shield')}<div><h2>브라우저 저장, 꼭 알아두세요</h2><ul><li>로그인하면 계정에 저장하고 다른 기기와 동기화해요. 로그인 전 기록은 이 브라우저에 별도로 보관돼요.</li><li>시크릿 모드를 종료하거나 브라우저 데이터를 지우면 기록이 사라질 수 있어요.</li><li>공용 PC에서는 같은 브라우저를 쓰는 다른 사람에게 기록이 보일 수 있어요.</li><li>JSON과 CSV 백업 파일에도 개인 기록이 담겨 있어요. 안전한 곳에 보관해 주세요.</li></ul><a class="text-link" href="#privacy">개인정보 안내 자세히 보기 ${icon('arrow')}</a></div></div></section><section class="panel settings-card wide danger-zone"><div><h2>전체 데이터 삭제</h2><p>이 서비스의 근무표·근무 기록·입금 내역·설정을 모두 삭제해요. 되돌릴 수 없으니 먼저 백업해 주세요.</p></div><button class="button danger-outline" data-action="delete-all">${icon('trash')}전체 삭제</button></section></div>`;
 }
 function guideView() {
-  return head('A LITTLE HELP', '처음이어도 괜찮아요.', '복잡한 건 줄이고, 나의 하루에 집중하세요. 서비스 사용법을 알려드릴게요.') + `<div class="guide-grid"><article class="panel guide-card"><span class="guide-step">01</span><h2>세 사람이 함께하는 밀어내기 근무표</h2><p>이름, 일정, 점심시간, 교대 간격과 첫 휴식자를 입력하고 근무표를 생성하세요. 각 근무 구간에는 두 명 근무, 한 명 휴식이 배정됩니다.</p><p>점심에는 모두 쉬고 교대 타이머도 잠시 멈춥니다. 예를 들어 1시간 교대 중 20분 후 점심을 시작하면 점심 이후 남은 40분을 이어갑니다. 마지막 구간은 남은 시간에 맞춰 줄어듭니다.</p><p><strong>10:00–19:00, 점심 10:00–11:00, 1시간 교대, 첫 휴식자 A</strong>라면 A·B는 5시간, C는 6시간 근무합니다. 첫 휴식자를 바꾸어 날짜별 차이를 조절해 보세요.</p><p>공평하게 배분 모드는 휴식시간을 분 단위로 나누어 총 근무시간의 차이를 최대 1분으로 줄입니다. 이 과정에서 설정한 간격보다 짧은 구간이 생길 수 있어요. 수동 변경 후에는 실제 차이를 다시 보여드립니다.</p><p>표의 휴식자 선택으로 배정을 조정하고 PNG·CSV·텍스트로 공유하세요. 이름을 바꾸면 표에도 바로 반영돼요. 시간이나 규칙을 바꾸면 생성 버튼을 다시 눌러 주세요.</p><a class="text-link" href="#schedule">근무표 만들기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">02</span><h2>내 예상 급여 계산하기</h2><p><strong>시급제:</strong> (전체 근무시간 − 무급 휴게시간) ÷ 60 × 시급. 분 단위로 계산한 뒤 기본급을 원 단위로 반올림합니다.</p><div class="guide-example">10:00–19:00 · 휴게 60분 · 시급 12,000원<br><strong>유급 8시간 × 12,000원 = 96,000원</strong></div><p><strong>일급제:</strong> 근무시간과 관계없이 입력한 계약 일급을 기본급으로 사용합니다. 추가 지급액을 더하고 직접 입력한 공제액을 빼면 최종 예상액이 됩니다.</p><p>자정을 넘는 근무를 지원하며, 같은 출퇴근 시각은 0시간과 24시간을 구분할 수 없어 허용하지 않아요. 선택한 세금 유형의 공제를 계산합니다. 주휴·야간·연장 수당은 자동 적용하지 않습니다. 실제 근로 조건과 법정 수당은 별도로 확인해 주세요.</p><a class="text-link" href="#calculator">급여 계산하기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">03</span><h2>근무 기록과 입금 관리하기</h2><p>급여 계산기에서 근무일과 근무지를 입력하고 저장하거나, 기록장에서 직접 알바를 추가하세요. 업무·지급 예정일·메모도 남길 수 있습니다.</p><p>입금이 생길 때마다 기록을 열어 <strong>입금 내역 추가</strong>로 금액과 날짜를 남기세요. 여러 번 나눠 받은 내역도 그대로 관리할 수 있어요. 총입금이 예상액 이상이면 지급 완료, 일부 입금이면 일부 지급, 미입금이고 예정일이 지났으면 미지급, 나머지는 지급 예정으로 표시됩니다.</p><p>월별 실적은 <strong>근무 날짜</strong>, 실제 현금 수입은 <strong>입금 날짜</strong>로 집계됩니다. 미수령액은 각 기록의 예상액에서 입금액을 뺀 금액(최소 0원)의 합계입니다.</p><a class="text-link" href="#records">나의 기록장 열기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">04</span><h2>기기를 바꾸기 전에는 백업</h2><p>모든 기록은 현재 브라우저의 localStorage에 자동 저장됩니다. 로그인 전에는 현재 브라우저에 기록합니다. Google 계정으로 로그인하면 계정에 저장하고 PC·모바일에서 함께 볼 수 있습니다. 기존 브라우저 기록은 계정 창의 브라우저 기록 가져오기로 옮기며, JSON 백업·복원도 지원합니다.</p><p>데이터 · 설정에서 <strong>전체 기록 JSON 다운로드</strong>를 누르세요. 다른 기기에서 같은 페이지를 열어 JSON 파일을 복원하면 됩니다. 복원은 현재 기록 전체를 대체하므로 먼저 양쪽 기록을 백업하세요.</p><p>CSV는 한글 UTF-8 BOM 형식으로 내려받아 엑셀에서 열 수 있어요. 파일 가져오기 시 UTF-8을 선택하세요. 데이터가 손상되거나 저장 공간이 부족하면 경고가 표시됩니다. 이때 새로고침하기 전에 JSON을 다운로드해 주세요.</p><a class="text-link" href="#settings">백업 · 복원 관리 ${icon('arrow')}</a></article></div><section class="panel guide-pwa"><span class="feature-icon blue">${icon('home')}</span><div><h2>스마트폰 홈 화면에 추가해 보세요</h2><p>HTTPS에서 한 번 접속하면 핵심 화면과 도구를 오프라인에서도 사용할 수 있어요. Android Chrome의 메뉴 → 홈 화면에 추가, iPhone Safari의 공유 → 홈 화면에 추가를 이용하세요. 브라우저와 설치 방식에 따라 저장 공간이 별도로 관리될 수 있으니 먼저 백업해 주세요.</p></div></section>${newFeaturesGuide()}<div class="ad-space" aria-label="향후 광고 영역"><span>서비스 소식</span><p>오늘도 당신의 알바 생활을 응원합니다.</p></div>`;
+  return head('A LITTLE HELP', '처음이어도 괜찮아요.', '복잡한 건 줄이고, 나의 하루에 집중하세요. 서비스 사용법을 알려드릴게요.') + `<div class="guide-grid"><article class="panel guide-card"><span class="guide-step">01</span><h2>세 사람이 함께하는 밀어내기 근무표</h2><p>이름, 일정, 점심시간, 교대 간격과 첫 휴식자를 입력하고 근무표를 생성하세요. 각 근무 구간에는 두 명 근무, 한 명 휴식이 배정됩니다.</p><p>함께 식사할 때는 모두 쉬고, 교대 식사에서는 식사하지 않는 사람이 근무합니다. 마지막 식사자는 식사 직후 먼저 근무하도록 휴식 순서를 조정합니다.</p><p><strong>10:00–19:00, 점심 10:00–11:00, 1시간 교대, 첫 휴식자 A</strong>에 공평 배분을 켜면 A·B·C 모두 5시간 20분 근무하고, 식사 외 휴식은 2시간 40분씩 배정됩니다.</p><p>공평하게 배분은 모두 설정한 간격만큼 한 바퀴씩 쉰 뒤 마지막 남은 시간을 나눕니다. 1시간이 남으면 20분씩, 30분이 남으면 10분씩 쉬어요. 분 단위로 나누어떨어지지 않으면 최대 1분 차이가 납니다. 수동 변경 후에는 실제 차이를 다시 보여드립니다.</p><p>표의 휴식자 선택으로 배정을 조정하고 PNG·CSV·텍스트로 공유하세요. 이름을 바꾸면 표에도 바로 반영돼요. 시간이나 규칙을 바꾸면 생성 버튼을 다시 눌러 주세요.</p><a class="text-link" href="#schedule">근무표 만들기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">02</span><h2>내 예상 급여 계산하기</h2><p><strong>시급제:</strong> (전체 근무시간 − 무급 휴게시간) ÷ 60 × 시급. 분 단위로 계산한 뒤 기본급을 원 단위로 반올림합니다.</p><div class="guide-example">10:00–19:00 · 휴게 60분 · 시급 12,000원<br><strong>유급 8시간 × 12,000원 = 96,000원</strong></div><p><strong>일급제:</strong> 근무시간과 관계없이 입력한 계약 일급을 기본급으로 사용합니다. 추가 지급액을 더하고 직접 입력한 공제액을 빼면 최종 예상액이 됩니다.</p><p>자정을 넘는 근무를 지원하며, 같은 출퇴근 시각은 0시간과 24시간을 구분할 수 없어 허용하지 않아요. 선택한 세금 유형의 공제를 계산합니다. 주휴·야간·연장 수당은 자동 적용하지 않습니다. 실제 근로 조건과 법정 수당은 별도로 확인해 주세요.</p><a class="text-link" href="#calculator">급여 계산하기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">03</span><h2>근무 기록과 입금 관리하기</h2><p>급여 계산기에서 근무일과 근무지를 입력하고 저장하거나, 기록장에서 직접 알바를 추가하세요. 업무·지급 예정일·메모도 남길 수 있습니다.</p><p>입금이 생길 때마다 기록을 열어 <strong>입금 내역 추가</strong>로 금액과 날짜를 남기세요. 여러 번 나눠 받은 내역도 그대로 관리할 수 있어요. 총입금이 예상액 이상이면 지급 완료, 일부 입금이면 일부 지급, 미입금이고 예정일이 지났으면 미지급, 나머지는 지급 예정으로 표시됩니다.</p><p>월별 실적은 <strong>근무 날짜</strong>, 실제 현금 수입은 <strong>입금 날짜</strong>로 집계됩니다. 미수령액은 각 기록의 예상액에서 입금액을 뺀 금액(최소 0원)의 합계입니다.</p><a class="text-link" href="#records">나의 기록장 열기 ${icon('arrow')}</a></article><article class="panel guide-card"><span class="guide-step">04</span><h2>기기를 바꾸기 전에는 백업</h2><p>모든 기록은 현재 브라우저의 localStorage에 자동 저장됩니다. 로그인 전에는 현재 브라우저에 기록합니다. Google 계정으로 로그인하면 계정에 저장하고 PC·모바일에서 함께 볼 수 있습니다. 기존 브라우저 기록은 계정 창의 브라우저 기록 가져오기로 옮기며, JSON 백업·복원도 지원합니다.</p><p>데이터 · 설정에서 <strong>전체 기록 JSON 다운로드</strong>를 누르세요. 다른 기기에서 같은 페이지를 열어 JSON 파일을 복원하면 됩니다. 복원은 현재 기록 전체를 대체하므로 먼저 양쪽 기록을 백업하세요.</p><p>CSV는 한글 UTF-8 BOM 형식으로 내려받아 엑셀에서 열 수 있어요. 파일 가져오기 시 UTF-8을 선택하세요. 데이터가 손상되거나 저장 공간이 부족하면 경고가 표시됩니다. 이때 새로고침하기 전에 JSON을 다운로드해 주세요.</p><a class="text-link" href="#settings">백업 · 복원 관리 ${icon('arrow')}</a></article></div><section class="panel guide-pwa"><span class="feature-icon blue">${icon('home')}</span><div><h2>스마트폰 홈 화면에 추가해 보세요</h2><p>HTTPS에서 한 번 접속하면 핵심 화면과 도구를 오프라인에서도 사용할 수 있어요. Android Chrome의 메뉴 → 홈 화면에 추가, iPhone Safari의 공유 → 홈 화면에 추가를 이용하세요. 브라우저와 설치 방식에 따라 저장 공간이 별도로 관리될 수 있으니 먼저 백업해 주세요.</p></div></section>${newFeaturesGuide()}<div class="ad-space" aria-label="향후 광고 영역"><span>서비스 소식</span><p>오늘도 당신의 알바 생활을 응원합니다.</p></div>`;
 }
 function privacyView() {
   return head('YOUR DATA, YOUR CHOICE','내 기록을 안전하게.','로그인 전 브라우저 저장과 Google 계정 저장의 차이를 안내합니다.')+`<article class="panel prose"><h2>로그인 전에는 이 브라우저에 저장합니다</h2><p>로그인 없이 만든 근무표·급여·입금·업무 메모와 서식은 브라우저 localStorage의 <code>${STORAGE_KEY}</code>에 저장합니다. 이 기록을 자동으로 서버에 올리지 않습니다. 같은 도메인과 브라우저에서는 경로가 바뀌어도 기존 기록을 읽을 수 있습니다.</p><h2>Google 로그인과 계정 동기화</h2><p>Google 로그인 시 Supabase Auth가 계정 식별자·이메일·인증 제공자의 기본 프로필과 세션을 처리합니다. 로그인한 상태에서 작성한 근무표·근무·급여·입금 내역·메모와 서식·설정은 Supabase 데이터베이스의 내 계정 공간에 저장되어 같은 계정의 기기에서 조회할 수 있습니다. 로그인 전 기록은 사용자가 브라우저 기록 가져오기를 확인한 경우에만 계정으로 옮깁니다. Freeter는 Google 비밀번호를 받지 않으며 Google Drive·메일 권한을 요청하지 않습니다.</p><h2>접근 권한과 기기 사본</h2><p>데이터베이스는 로그인한 사용자의 계정 ID로 접근을 제한합니다. 이는 다른 일반 사용자의 접근을 막는 방식이며 서비스 운영자의 관리자 접근까지 차단하는 종단간 암호화는 아닙니다. 계정 세션과 오프라인 편집 사본은 브라우저에 보관합니다. 명시적으로 로그아웃하면 현재 브라우저의 계정 사본과 복구 사본을 지우고 로그인 전 기록으로 돌아갑니다. 미전송 편집은 먼저 저장하거나 JSON으로 백업한 뒤 로그아웃합니다. 세션 만료나 연결 오류 시 미전송 자료는 복구를 위해 기기에 남을 수 있습니다.</p><h2>공용 기기와 보관 기간</h2><p>공용 기기에서는 사용 후 로그아웃하고 백업 파일을 직접 정리하세요. 브라우저 저장소와 기기 파일은 같은 기기를 사용하는 사람이 열람할 수 있습니다. 로그인 전 자료는 전체 삭제나 브라우저 데이터 삭제까지, 계정 자료는 사용자가 계정의 전체 데이터 삭제를 실행할 때까지 유지합니다. Supabase의 서비스 로그·백업 보관은 제공자의 정책과 프로젝트 설정을 따릅니다. 시크릿 모드 종료·브라우저 초기화 시 기기의 미전송 기록이 사라질 수 있습니다.</p><h2>백업·공유·동시 수정</h2><p>JSON·CSV·PNG·TXT 다운로드와 근무표 공유는 버튼을 누를 때만 실행합니다. 백업 파일은 암호화하지 않으므로 안전하게 보관하세요. 다른 항목의 변경은 합치고 같은 항목을 동시에 수정하면 자동 덮어쓰기를 멈춥니다. 사용자가 사용할 기록을 고르기 전에 기기·서버 자료를 각각 백업합니다.</p><h2>전체 데이터 삭제의 범위</h2><p>로그인 전 전체 삭제는 이 서비스의 브라우저 자료와 이전 버전의 복구 자료를 삭제합니다. 로그인 후에는 현재 계정의 기록을 비우며, 서버에 반영되면 같은 계정의 다른 기기에서도 반영합니다. 오프라인에서는 연결 후 삭제가 전송됩니다. Google 계정이나 로그인 전 별도 기록을 삭제하지 않습니다. 이미 내려받거나 공유한 파일은 직접 삭제하세요.</p><h2>곰씨 날씨와 위치</h2><p>곰씨를 눌러 날씨 창을 열 때만 선택한 지역의 좌표를 Open-Meteo에 보내 날씨를 조회합니다. 기본 지역은 서울이며 내 위치로 자동 판단하지 않습니다. 내 위치 버튼을 누르고 브라우저에서 허용한 경우에만 위치를 사용합니다. 전송 좌표는 소수점 둘째 자리로 줄이며 계정 기록·브라우저 저장소·오프라인 캐시에 위치를 저장하지 않습니다. 위치 권한 없이도 지역 선택으로 사용할 수 있습니다.</p><h2>호스팅·인증 서비스와 오프라인 캐시</h2><p>GitHub Pages가 정적 사이트를 제공하고, Google과 Supabase가 로그인·계정 저장을 제공합니다. 각 제공자는 접속·서비스 제공에 필요한 정보를 처리할 수 있습니다. 서비스 워커는 공개 사이트 파일만 캐시하고 인증 응답·개인 기록 API는 캐시하지 않습니다. 현재 광고·분석·추적 스크립트는 없습니다.</p><a class="button secondary" href="#settings">계정과 내 데이터 관리 ${icon('arrow')}</a></article>`;
@@ -1564,8 +1618,23 @@ async function checkAppVersion() {
 }
 document.documentElement.dataset.appRelease=APP_RELEASE;
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkAppVersion();});
-$('#today-label').textContent = new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' }).format(new Date());
-$('#year').textContent = new Date().getFullYear();
+// The clock updates only its own text, without re-rendering an active memo.
+const secondsKey='freeter:clock-seconds', clockNode=$('#live-clock'), secondsButton=$('#seconds-toggle');
+let clockSeconds=false;
+try{clockSeconds=localStorage.getItem(secondsKey)==='true';}catch{/* In-memory preference works with storage disabled. */}
+const clockDate=new Intl.DateTimeFormat('ko-KR',{month:'long',day:'numeric',weekday:'short'});
+function updateClock(){
+  const now=new Date(),pad=value=>String(value).padStart(2,'0');
+  const text=[now.getHours(),now.getMinutes(),...(clockSeconds?[now.getSeconds()]:[])].map(pad).join(':');
+  if(clockNode.textContent!==text)clockNode.textContent=text;
+  clockNode.dateTime=now.toISOString();
+  $('#today-label').textContent=clockDate.format(now);$('#year').textContent=now.getFullYear();
+  secondsButton.setAttribute('aria-pressed',String(clockSeconds));
+  secondsButton.title=clockSeconds?'초 단위 숨기기':'초 단위 표시';secondsButton.setAttribute('aria-label',secondsButton.title);
+}
+secondsButton.addEventListener('click',()=>{clockSeconds=!clockSeconds;try{localStorage.setItem(secondsKey,String(clockSeconds));}catch{/* Keep the current display usable. */}updateClock();});
+updateClock();setInterval(()=>{if(!document.hidden)updateClock();},1000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateClock();});
 render();
 mountWeatherWidget();
 if (globalThis.origin !== 'null' && 'serviceWorker' in navigator && (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname))) {

@@ -100,14 +100,26 @@ export function mountWeatherWidget() {
     <p class="weather-status" role="status" aria-live="polite"></p><div class="weather-content" aria-busy="false"></div>
     <p class="weather-location-note">지역을 선택하거나 내 위치를 허용해 주세요.</p>
     <a class="weather-source" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo · CAMS 대기질 예측 ↗</a>
-    </section><button type="button" class="gomssi-button" aria-label="노가다 곰씨 · 오늘 날씨와 기온 보기" aria-controls="gomssi-weather-panel" aria-haspopup="dialog" aria-expanded="false"><span class="gomssi-bubble" aria-live="off"><span class="gomssi-tip"></span><small>곰씨를 누르면 오늘 날씨 ↗</small></span><img src="./assets/gomssi.png" width="90" height="90" alt="" draggable="false"></button>`;
+    </section><button type="button" class="gomssi-button" aria-label="노가다 곰씨 · 오늘 날씨와 기온 보기" aria-controls="gomssi-weather-panel" aria-haspopup="dialog" aria-expanded="false"><span class="gomssi-bubble" aria-live="off"><span class="gomssi-tip"></span><small>곰씨를 누르면 오늘 날씨 ↗</small></span><img src="./assets/gomssi.png" width="90" height="90" alt="" draggable="false"></button><button type="button" class="gomssi-hide" aria-label="곰씨 숨기기" title="곰씨 숨기기">×</button><button type="button" class="gomssi-restore" hidden>곰씨 켜기</button>`;
+  const hiddenKey='freeter:gomssi-hidden';let collapsed=false;
+  try{collapsed=localStorage.getItem(hiddenKey)==='true';}catch{/* Visibility can still be changed for this visit. */}
+  root.dataset.collapsed=String(collapsed);
+  root.querySelector('.gomssi-button').hidden=collapsed;root.querySelector('.gomssi-hide').hidden=collapsed;root.querySelector('.gomssi-restore').hidden=!collapsed;
   document.body.append(root);
   const find=selector=>root.querySelector(selector), panel=find('.weather-panel'), toggle=find('.gomssi-button'), content=find('.weather-content'), status=find('.weather-status'), citySelect=find('#weather-city');
   let open=false, serial=0, active=null, location={...WEATHER_CITIES[0]}, cache=null;
   const nextTip=gomssiTipDeck();find('.gomssi-tip').textContent=nextTip();
-  setInterval(()=>{if(!document.hidden&&!open&&!document.querySelector('dialog[open]')&&!document.activeElement?.closest('input,textarea,[contenteditable="true"]'))find('.gomssi-tip').textContent=nextTip();},14000);
+  setInterval(()=>{if(!collapsed&&!document.hidden&&!open&&!document.querySelector('dialog[open]')&&!document.activeElement?.closest('input,textarea,[contenteditable="true"]'))find('.gomssi-tip').textContent=nextTip();},14000);
   const setStatus=(message,error=false)=>{status.textContent=message;status.dataset.error=String(error);};
   const close=(focus=true)=>{open=false;serial++;active?.abort();panel.hidden=true;toggle.setAttribute('aria-expanded','false');if(focus)toggle.focus({preventScroll:true});};
+  const collapse=value=>{
+    close(false);collapsed=value;root.dataset.collapsed=String(value);
+    toggle.hidden=value;find('.gomssi-hide').hidden=value;find('.gomssi-restore').hidden=!value;
+    try{localStorage.setItem(hiddenKey,String(value));}catch{/* Do not touch synced work data for a display preference. */}
+    (value?find('.gomssi-restore'):toggle).focus({preventScroll:true});
+  };
+  find('.gomssi-hide').addEventListener('click',()=>collapse(true));
+  find('.gomssi-restore').addEventListener('click',()=>collapse(false));
   const showWeather=data=>{
     // API strings never enter HTML. Only validated numbers and local labels are displayed.
     const metricIcon=kind=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${kind==='humidity'?'<path d="M12 3C9 8 5 11 5 15a7 7 0 0 0 14 0c0-4-4-7-7-12Z"/><path d="M8 15a4 4 0 0 0 4 4"/>':kind==='uv'?'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1 1m12 12 1 1M5 19l1-1M18 6l1-1"/>':kind.startsWith('sun')?'<path d="M3 18h18M6 15a6 6 0 0 1 12 0M12 2v4m-8 3 2 2m12 0 2-2M8 21h8"/>':'<path d="M3 8h12a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 17h6"/>'}</svg>`;
